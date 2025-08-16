@@ -19,11 +19,12 @@ import logging
 import matplotlib.ticker as mticker
 from indicators_common import add_indicators
 from pathlib import Path
-import json
 from datetime import time as dtime
 import subprocess
 from common.utils import safe_filename, clean_date_column, get_cached_data, get_manual_data
 from strategies.system1_strategy import System1Strategy
+import threading
+
 
 # 戦略インスタンスを作成
 strategy = System1Strategy()
@@ -254,18 +255,7 @@ if __name__ == "__main__":
                 log_callback=lambda msg: ind_log_area.text(msg),
                 batch_size=batch_size
             )
-
             ind_progress_bar.empty()
-
-            st.info("💾 計算済みデータをキャッシュ保存中...")
-                    
-            # 🔽 追加：計算済みデータをキャッシュ保存
-            os.makedirs("data_cache", exist_ok=True)
-            for sym, df in data_dict.items():
-                path = os.path.join("data_cache", f"{safe_filename(sym)}.csv")
-                df.to_csv(path)
-
-            st.empty()
 
             st.write("📊 指標計算完了"
                      f" | {len(data_dict)} 銘柄のデータを処理しました")
@@ -587,10 +577,25 @@ if __name__ == "__main__":
                 signal_df.to_csv(signal_path, index=False)
                 st.write(f"✅ signal件数も保存済み: {signal_path}")
 
-            # CSVダウンロード
-            csv = results.to_csv(index=False).encode("utf-8")
-            st.download_button("売買ログをCSVで保存", data=csv, file_name="trade_log_system1.csv", mime="text/csv")
+            # -------------------------------
+            # 加工済日足データキャッシュの保存（System1）
+            # -------------------------------
+            st.info("💾 System1 加工済日足データキャッシュ保存開始...")
 
+            os.makedirs("data_cache", exist_ok=True)
+            total = len(data_dict)
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            for i, (sym, df) in enumerate(data_dict.items(), 1):
+                path = os.path.join("data_cache", f"{safe_filename(sym)}.csv")
+                df.to_csv(path)
+                progress_bar.progress(i / total)
+                status_text.text(f"💾 加工済日足データキャッシュ保存中: {i}/{total} 件 完了")
+
+            status_text.text(f"💾 加工済日足データキャッシュ保存完了 ({total} 件)")
+            progress_bar.empty()
+            st.success("🔚 バックテスト終了")
 
 #単体実施
 def run_tab(spy_df):
