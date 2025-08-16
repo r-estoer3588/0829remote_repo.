@@ -1,4 +1,9 @@
 # app_system2.py
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+# 日本語フォントを設定（WindowsならMS GothicやMeiryoが確実）
+plt.rcParams['font.family'] = 'Meiryo'  # 'MS Gothic' でも可
+
 import streamlit as st
 import pandas as pd
 import os
@@ -10,6 +15,7 @@ from strategies.system2_strategy import System2Strategy
 import matplotlib.pyplot as plt
 import numpy as np
 from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
+
 
 # ===============================
 # 戦略インスタンス
@@ -32,8 +38,8 @@ st.title("システム2：ショート RSIスラスト（複数銘柄）")
 def main_process(use_auto, capital, symbols_input):
     # 1. ティッカー取得
     if use_auto:
-        #symbols = get_all_tickers()[:100]
-        symbols = get_all_tickers()
+        symbols = get_all_tickers()[:100]
+        #symbols = get_all_tickers()
     else:
         if not symbols_input:
             st.error("銘柄を入力してください")
@@ -124,6 +130,18 @@ def main_process(use_auto, capital, symbols_input):
     )
     bt_progress.empty()
 
+    # Signal_Count + Trade_Count 表
+    signal_counts = {sym: df["setup"].sum() for sym, df in prepared_dict.items() if "setup" in df.columns}
+    signal_df = pd.DataFrame(signal_counts.items(), columns=["Symbol", "Signal_Count"])
+    trade_counts = results_df.groupby("symbol").size().reset_index(name="Trade_Count")
+    trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
+    summary_df = pd.merge(signal_df, trade_counts, on="Symbol", how="outer").fillna(0)
+    summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
+    summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
+
+    with st.expander("📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False):
+        st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
+
     # 6. 結果表示
     if results_df.empty:
         st.info("トレードは発生しませんでした。")
@@ -137,18 +155,6 @@ def main_process(use_auto, capital, symbols_input):
     st.metric("トレード回数", len(results_df))
     st.metric("最終損益（USD）", f"{total_return:.2f}")
     st.metric("勝率（％）", f"{win_rate:.2f}")
-
-    # Signal_Count + Trade_Count 表
-    signal_counts = {sym: df["setup"].sum() for sym, df in prepared_dict.items() if "setup" in df.columns}
-    signal_df = pd.DataFrame(signal_counts.items(), columns=["Symbol", "Signal_Count"])
-    trade_counts = results_df.groupby("symbol").size().reset_index(name="Trade_Count")
-    trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
-    summary_df = pd.merge(signal_df, trade_counts, on="Symbol", how="outer").fillna(0)
-    summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
-    summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
-
-    with st.expander("📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False):
-        st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
 
     # 損益曲線 & ドローダウン
     results_df["exit_date"] = pd.to_datetime(results_df["exit_date"])
@@ -183,9 +189,9 @@ def main_process(use_auto, capital, symbols_input):
     r_values = results_df["r_multiple"].replace([np.inf, -np.inf], pd.NA).dropna()
     r_values = r_values[(r_values > -5) & (r_values < 20)]
 
-    st.subheader("📊 R倍率ヒストグラム（-5R～+20R）")
+    st.subheader("📊 R倍率ヒストグラム（-5R～+5R）")
     plt.figure(figsize=(8, 4))
-    plt.hist(r_values, bins=20, edgecolor="black", range=(-5, 20))
+    plt.hist(r_values, bins=20, edgecolor="black", range=(-5, 5))
     plt.xlabel("R倍率")
     plt.ylabel("件数")
     plt.title("R倍率の分布")

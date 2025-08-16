@@ -5,7 +5,6 @@ from ta.momentum import RSIIndicator
 from ta.trend import ADXIndicator
 from ta.volatility import AverageTrueRange
 
-
 class System2Strategy:
     """
     システム2：ショート RSIスラスト

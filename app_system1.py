@@ -29,7 +29,6 @@ import threading
 # 戦略インスタンスを作成
 strategy = System1Strategy()
 
-
 #警告抑制
 logging.getLogger('streamlit.runtime.scriptrunner.script_run_context').setLevel(logging.ERROR)
 
@@ -278,10 +277,22 @@ if __name__ == "__main__":
 
             roc_log.text(f"📊 ROC200ランキング: 0/{total_days} 日処理開始... | 残り: 計算中...")
 
+            def progress_callback_roc(i, total, start_time):
+                roc_progress.progress(i / total)
+
+            def log_callback_roc(i, total, start_time):
+                elapsed = time.time() - start_time
+                remain = (elapsed / i) * (total - i)
+                roc_log.text(
+                    f"📊 ROC200計算: {i}/{total} 銘柄処理完了"
+                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                )
+
             candidates_by_date, merged_df = strategy.generate_candidates(
                 data_dict, spy_df,
-                progress_bar=roc_progress,
-                log_area=roc_log
+                on_progress=progress_callback_roc,
+                on_log=log_callback_roc
             )
             daily_df = clean_date_column(merged_df, col_name="Date")
 
@@ -344,26 +355,33 @@ if __name__ == "__main__":
             csv = roc200_ranking_df.to_csv(index=False).encode("utf-8")
             st.download_button("全期間データをCSVで保存", data=csv, file_name="roc200_ranking_all.csv", mime="text/csv")
 
-            #0810 === 追加：Signal_Count + Trade_Count 表
-
-            #trade_dfのためにバックテストの関数を先に読む
             # 固定メッセージを表示
-            # プレースホルダー作成
             bt_area = st.empty()
-
-            # 1回目の表示
             bt_area.info("💹 バックテスト実行中...")
-            
-            bt_progress_placeholder = st.empty()  # 空のプレースホルダー
-            bt_progress = st.progress(0)  # ← 初期化
+
+            bt_progress = st.progress(0)
             bt_log_area = st.empty()
 
+            # --- コールバック定義 ---
+            def progress_callback(i, total, start_time):
+                bt_progress.progress(i / total)
+
+            def log_callback(i, total, start_time):
+                elapsed = time.time() - start_time
+                remain = (elapsed / i) * (total - i)
+                bt_log_area.text(
+                    f"💹 バックテスト: {i}/{total} 日処理完了"
+                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                )
+
+            # --- バックテスト実行 ---
             trades_df = strategy.run_backtest(
                 data_dict,
                 candidates_by_date,
                 capital,
-                progress_bar=bt_progress,
-                log_area=bt_log_area
+                on_progress=progress_callback,
+                on_log=log_callback
             )
 
             # 固定メッセージを消す
@@ -636,10 +654,22 @@ def run_tab(spy_df):
         bt_log_area = st.empty()
         bt_progress = st.progress(0)
 
+        def progress_callback_roc(i, total, start_time):
+            roc_progress.progress(i / total)
+
+        def log_callback_roc(i, total, start_time):
+            elapsed = time.time() - start_time
+            remain = (elapsed / i) * (total - i)
+            roc_log.text(
+                f"📊 ROC200計算: {i}/{total} 銘柄処理完了"
+                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+            )
+
         candidates_by_date, merged_df = strategy.generate_candidates(
             data_dict, spy_df,
-            progress_bar=roc_progress,
-            log_area=roc_log
+            on_progress=progress_callback_roc,
+            on_log=log_callback_roc
         )
 
         # ② true_signal_summary を merged_df から作成
@@ -647,12 +677,24 @@ def run_tab(spy_df):
         true_signal_summary = merged_df["Symbol"].value_counts().to_dict()
 
         # ③ バックテスト実行
+        def progress_callback(i, total, start_time):
+            bt_progress.progress(i / total)
+
+        def log_callback(i, total, start_time):
+            elapsed = time.time() - start_time
+            remain = (elapsed / i) * (total - i)
+            bt_log_area.text(
+                f"💹 バックテスト: {i}/{total} 日処理完了"
+                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+            )
+
         trades_df = strategy.run_backtest(
             data_dict,
             candidates_by_date,
             capital,
-            progress_bar=bt_progress,
-            log_area=bt_log_area
+            on_progress=progress_callback,
+            on_log=log_callback
         )
         bt_progress.empty()
 
