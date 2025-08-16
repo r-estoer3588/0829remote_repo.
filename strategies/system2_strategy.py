@@ -107,7 +107,7 @@ class System2Strategy:
         }
         return candidates_by_date
 
-    def run_backtest(self, data_dict, candidates_by_date, capital, progress_bar=None, log_area=None):
+    def run_backtest(self, data_dict, candidates_by_date, capital, on_progress=None, on_log=None):
         risk_per_trade = 0.02 * capital
         max_position_value = 0.10 * capital
         results = []
@@ -117,16 +117,17 @@ class System2Strategy:
         start_time = time.time()
 
         for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
-            # 進捗表示
-            if progress_bar:
-                progress_bar.progress(i / total_days)
-            if log_area and (i % 10 == 0 or i == total_days):
-                elapsed = time.time() - start_time
-                remain = elapsed / i * (total_days - i)
-                log_area.text(
-                    f"💹 バックテスト: {i}/{total_days} 日処理完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
-                )
+            # --- コールバックで進捗通知 ---
+            if on_progress:
+                on_progress(i, total_days, start_time)
+            if on_log and (i % 10 == 0 or i == total_days):
+                        elapsed = time.time() - start_time
+                        remain = elapsed / i * (total_days - i)
+                        on_log(
+                            f"💹 バックテスト: {i}/{total_days} 日処理完了"
+                            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                        )
 
             # 保有中リスト更新
             active_positions = [p for p in active_positions if p["exit_date"] >= date]

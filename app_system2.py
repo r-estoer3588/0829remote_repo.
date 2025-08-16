@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
 
+import strategies.system2_strategy as s2
+print("DEBUG: system2_strategy 実際のパス ->", s2.__file__)
+
 
 # ===============================
 # 戦略インスタンス
@@ -79,7 +82,6 @@ def main_process(use_auto, capital, symbols_input):
                 elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
                 remain_min, remain_sec = divmod(int(remaining), 60)
                 joined_symbols = ", ".join(symbol_buffer)
-
                 log_area.text(
                     f"📄 データ取得: {i}/{total} 件 完了"
                     f" | 経過: {elapsed_min}分{elapsed_sec}秒 / 残り: 約 {remain_min}分{remain_sec}秒\n"
@@ -121,12 +123,24 @@ def main_process(use_auto, capital, symbols_input):
     st.info("💹 バックテスト実行中...")
     bt_progress = st.progress(0)
     bt_log = st.empty()
+    def progress_callback(i, total, start_time):
+        bt_progress.progress(i / total)
+
+    def log_callback(i, total, start_time):
+        elapsed = time.time() - start_time
+        remain = (elapsed / i) * (total - i)
+        bt_log.text(
+            f"💹 バックテスト: {i}/{total} 日処理完了"
+            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+        )
+
     results_df = strategy.run_backtest(
         prepared_dict,
         candidates_by_date,
         capital,
-        progress_bar=bt_progress,
-        log_area=bt_log
+        on_progress=progress_callback,
+        on_log=log_callback
     )
     bt_progress.empty()
 
