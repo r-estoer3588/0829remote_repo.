@@ -16,10 +16,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
 
-import strategies.system2_strategy as s2
-print("DEBUG: system2_strategy 実際のパス ->", s2.__file__)
-
-
 # ===============================
 # 戦略インスタンス
 # ===============================

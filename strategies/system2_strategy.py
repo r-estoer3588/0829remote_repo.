@@ -121,13 +121,7 @@ class System2Strategy:
             if on_progress:
                 on_progress(i, total_days, start_time)
             if on_log and (i % 10 == 0 or i == total_days):
-                        elapsed = time.time() - start_time
-                        remain = elapsed / i * (total_days - i)
-                        on_log(
-                            f"💹 バックテスト: {i}/{total_days} 日処理完了"
-                            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
-                        )
+                on_log(i, total_days, start_time)
 
             # 保有中リスト更新
             active_positions = [p for p in active_positions if p["exit_date"] >= date]
