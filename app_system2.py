@@ -162,9 +162,12 @@ def main_process(use_auto, capital, symbols_input):
 
     total_return = results_df["pnl"].sum()
     win_rate = (results_df["return_%"] > 0).mean() * 100
-    st.metric("トレード回数", len(results_df))
-    st.metric("最終損益（USD）", f"{total_return:.2f}")
-    st.metric("勝率（％）", f"{win_rate:.2f}")
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("トレード回数", f"{len(results_df)}")
+    col2.metric("最終損益 (USD)", f"{total_return:,.2f}")
+    col3.metric("勝率 (%)", f"{win_rate:.2f}")
+
 
     # 損益曲線 & ドローダウン
     results_df["exit_date"] = pd.to_datetime(results_df["exit_date"])
@@ -173,9 +176,9 @@ def main_process(use_auto, capital, symbols_input):
     results_df["cum_max"] = results_df["cumulative_pnl"].cummax()
     results_df["drawdown"] = results_df["cumulative_pnl"] - results_df["cum_max"]
     max_dd = results_df["drawdown"].min()
-    st.metric("最大ドローダウン（USD）", f"{max_dd:.2f}")
+    col4.metric("最大ドローダウン (USD)", f"{max_dd:,.2f}")
 
-    st.subheader("累積損益グラフ")
+    st.subheader("📈 累積損益グラフ")
     plt.figure(figsize=(10, 4))
     plt.plot(results_df["exit_date"], results_df["cumulative_pnl"], label="Cumulative PnL")
     plt.xlabel("日付")

@@ -393,7 +393,9 @@ if __name__ == "__main__":
             signal_counts.columns = ["Symbol", "Signal_Count"]
 
             # Trade_Count: trades_dfから作成
-            trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
+            if "symbol" in trades_df.columns:
+                trades_df = trades_df.rename(columns={"symbol": "Symbol"})
+            trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
             trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
 
             # マージ
@@ -460,9 +462,11 @@ if __name__ == "__main__":
 
             total_return = trades_df["pnl"].sum()
             win_rate = (trades_df["return_%"] > 0).mean() * 100
-            st.metric("トレード回数", len(trades_df))
-            st.metric("最終損益（USD）", f"{total_return:.2f}")
-            st.metric("勝率（％）", f"{win_rate:.2f}")
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("トレード回数", f"{len(trades_df)}")
+            col2.metric("最終損益 (USD)", f"{total_return:,.2f}")
+            col3.metric("勝率 (%)", f"{win_rate:.2f}")
 
             trades_df["exit_date"] = pd.to_datetime(trades_df["exit_date"])
             results = trades_df.sort_values("exit_date")
@@ -470,7 +474,7 @@ if __name__ == "__main__":
             results["cum_max"] = results["cumulative_pnl"].cummax()
             results["drawdown"] = results["cumulative_pnl"] - results["cum_max"]
             max_dd = results["drawdown"].min()
-            st.metric("最大ドローダウン（USD）", f"{max_dd:.2f}")
+            col4.metric("最大ドローダウン (USD)", f"{max_dd:,.2f}")
 
             st.subheader("累積損益グラフ")
             plt.figure(figsize=(10, 4))
