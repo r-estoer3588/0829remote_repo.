@@ -148,7 +148,7 @@ def load_symbol(symbol):
     return symbol, df
 
 def summarize_signals(trades_df):
-    """trades_dfをsymbolとsignalで集計しDataFrameを返す"""
+    """trades_dfをSymbolとsignalで集計しDataFrameを返す"""
     if trades_df is None or trades_df.empty:
         return pd.DataFrame(columns=["Symbol", "signal", "count"])
     return (
@@ -167,9 +167,9 @@ if __name__ == "__main__":
     capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100)
 
     # 🔽 ここを追加：手動入力UIは use_auto=False のときだけ描画
-    symbols_input = None
+    Symbols_input = None
     if not use_auto:
-        symbols_input = st.text_input(
+        Symbols_input = st.text_input(
             "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
             "AAPL,MSFT,META,AMZN,GOOGL"
     )
@@ -207,7 +207,7 @@ if __name__ == "__main__":
             raw_data_dict = {}
             total = len(select_tickers)
             batch_size = 50
-            symbol_buffer = []
+            Symbol_buffer = []
             # 進捗バー、進捗ログ作成
             data_area = st.empty()
             data_area.info(f"📄 データ取得開始 | {total} 銘柄を処理中...")
@@ -218,24 +218,24 @@ if __name__ == "__main__":
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {executor.submit(load_symbol, sym): sym for sym in select_tickers}
                 for i, future in enumerate(as_completed(futures), 1):
-                    symbol, df = future.result()
+                    Symbol, df = future.result()
                     if df is not None and not df.empty:
-                        raw_data_dict[symbol] = df
-                        symbol_buffer.append(symbol)
+                        raw_data_dict[Symbol] = df
+                        Symbol_buffer.append(Symbol)
 
                     if i % batch_size == 0 or i == total:
                         elapsed = time.time() - start_time
                         remaining = (elapsed / i) * (total - i)
                         elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
                         remain_min, remain_sec = divmod(int(remaining), 60)
-                        joined_symbols = ", ".join(symbol_buffer)
+                        joined_Symbols = ", ".join(Symbol_buffer)
                         data_log_area.text(
                             f"📄 データ取得: {i}/{total} 件 完了"
                             f" | 経過: {elapsed_min}分{elapsed_sec}秒 / 残り: 約 {remain_min}分{remain_sec}秒\n"
-                            f"銘柄: {joined_symbols}"
+                            f"銘柄: {joined_Symbols}"
                         )
                         data_progress_bar.progress(i / total)
-                        symbol_buffer.clear()
+                        Symbol_buffer.clear()
             data_progress_bar.empty()  # データ取得フェーズ終了
 
             # 2. 加工処理フェーズ　(指標計算)
@@ -297,7 +297,7 @@ if __name__ == "__main__":
             daily_df = clean_date_column(merged_df, col_name="Date")
 
             # ここで true_signal_summary を作る
-            merged_df.rename(columns={"Symbol": "Symbol"}, inplace=True)
+            merged_df.rename(columns={"symbol": "Symbol"}, inplace=True)
             true_signal_summary = merged_df["Symbol"].value_counts().to_dict()
 
             roc_progress.empty()
@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 top100 = daily_df[daily_df["Date"] == date].sort_values("ROC200", ascending=False).head(100)
                 # Symbolカラム統一
                 if "Symbol" in top100.columns and "Symbol" not in top100.columns:
-                    top100 = top100.rename(columns={"Symbol": "Symbol"})
+                    top100 = top100.rename(columns={"symbol": "Symbol"})
                 ranking_list.append(top100[["Date", "Symbol", "ROC200_Rank"]])
 
                 roc_progress.progress(i / total_days)
@@ -393,10 +393,10 @@ if __name__ == "__main__":
             signal_counts.columns = ["Symbol", "Signal_Count"]
 
             # Trade_Count: trades_dfから作成
-            if "Symbol" in trades_df.columns:
-                trades_df = trades_df.rename(columns={"Symbol": "Symbol"})
+            if "symbol" in trades_df.columns:
+                trades_df = trades_df.rename(columns={"symbol": "Symbol"})
             trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
-            trade_counts.rename(columns={"Symbol": "Symbol"}, inplace=True)
+            trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
 
             # マージ
             summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
@@ -407,31 +407,31 @@ if __name__ == "__main__":
                 st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
 
         else:
-            if not symbols_input:
+            if not Symbols_input:
                 st.error("銘柄を入力してください")
                 st.stop()
-            symbols = [s.strip().upper() for s in symbols_input.split(",")]
+            Symbols = [s.strip().upper() for s in Symbols_input.split(",")]
 
             # 手動入力モード
             data_dict = {}
             ind_progress_bar = st.progress(0)  
             ind_log_area = st.empty()
-            for symbol in symbols:
-                path = os.path.join("data_cache", f"{safe_filename(symbol)}.csv")
+            for Symbol in Symbols:
+                path = os.path.join("data_cache", f"{safe_filename(Symbol)}.csv")
                 if not os.path.exists(path):
-                    st.warning(f"{symbol}: キャッシュなし（data_cache/{symbol}.csv）")
+                    st.warning(f"{Symbol}: キャッシュなし（data_cache/{Symbol}.csv）")
                     continue
-                df = get_cached_data(symbol)
+                df = get_cached_data(Symbol)
                 if df is None or df.empty:
                     continue
                 prepared = strategy.prepare_data(
-                    {symbol: df},
+                    {Symbol: df},
                     progress_callback=lambda done, total: ind_progress_bar.progress(done / total),
                     log_callback=lambda msg: ind_log_area.text(msg)
                 )
-                df = prepared[symbol]
+                df = prepared[Symbol]
                 if not df.empty:
-                    data_dict[symbol] = df
+                    data_dict[Symbol] = df
 
             ind_progress_bar.empty()
 
@@ -591,12 +591,12 @@ if __name__ == "__main__":
 #単体実施
 def run_tab(spy_df):
     st.header("System1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）") 
-    symbols_input = st.text_input(
+    Symbols_input = st.text_input(
     "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
     "AAPL,MSFT,META,AMZN,GOOGL",
     key="system1_input"
     )
-    symbols = [s.strip().upper() for s in symbols_input.split(",")]
+    Symbols = [s.strip().upper() for s in Symbols_input.split(",")]
     capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital")
 
     if st.button("バックテスト実行", key="system1_button"):
@@ -607,17 +607,17 @@ def run_tab(spy_df):
         ind_log_area = st.empty()
 
         with st.spinner("データ取得中..."):
-            for symbol in symbols:
-                st.write(f"▶ 処理中: {symbol}")
-                df = get_manual_data(symbol)
+            for Symbol in Symbols:
+                st.write(f"▶ 処理中: {Symbol}")
+                df = get_manual_data(Symbol)
                 if df is not None:
                     prepared = strategy.prepare_data(
-                        {symbol: df},
+                        {Symbol: df},
                         progress_callback=lambda done, total: ind_progress_bar.progress(done / total),
                         log_callback=lambda msg: ind_log_area.text(msg)
                     )
-                    df = prepared[symbol]
-                    data_dict[symbol] = df
+                    df = prepared[Symbol]
+                    data_dict[Symbol] = df
         ind_progress_bar.empty()
         
         if spy_df is None or spy_df.empty:
@@ -646,7 +646,8 @@ def run_tab(spy_df):
         )
 
         # ② true_signal_summary を merged_df から作成
-        merged_df.rename(columns={"Symbol": "Symbol"}, inplace=True)
+        if "symbol" in merged_df.columns:
+            merged_df.rename(columns={"symbol": "Symbol"}, inplace=True)
         true_signal_summary = merged_df["Symbol"].value_counts().to_dict()
 
         # ③ バックテスト実行
@@ -674,7 +675,7 @@ def run_tab(spy_df):
         # ④ Signal_Count + Trade_Count 表
         signal_counts = pd.DataFrame(sorted(true_signal_summary.items()), columns=["Symbol", "Signal_Count"])
         trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
-        trade_counts.rename(columns={"Symbol": "Symbol"}, inplace=True)
+        trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
         summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
         summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
         summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
