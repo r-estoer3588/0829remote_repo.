@@ -93,7 +93,7 @@ def main_process(use_auto, capital, symbols_input):
         data_dict,
         progress_callback=lambda done, total: ind_progress.progress(done / total),
         log_callback=lambda msg: ind_log.text(msg),
-        skip_callback=lambda msg: ind_skip_log.text(msg)   # ← 追加
+        skip_callback=lambda msg: ind_skip_log.text(msg)
     )
     ind_progress.empty()
 

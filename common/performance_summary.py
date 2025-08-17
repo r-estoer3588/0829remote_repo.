@@ -2,18 +2,23 @@ import pandas as pd
 
 def summarize_results(results_df, capital):
     """
-    バックテスト結果から共通サマリーを返す
+    バックテスト結果から共通サマリーを返しつつ、
+    results_df に cumulative_pnl / drawdown も追加する
     """
     if results_df.empty:
         return {}
 
-    total_return = results_df["pnl"].sum()
-    win_rate = (results_df["return_%"] > 0).mean() * 100
-
+    results_df = results_df.copy()
+    results_df["exit_date"] = pd.to_datetime(results_df["exit_date"])
     results_df = results_df.sort_values("exit_date")
+
+    # 累積PnLとドローダウンをDataFrameに追加
     results_df["cumulative_pnl"] = results_df["pnl"].cumsum()
     results_df["cum_max"] = results_df["cumulative_pnl"].cummax()
     results_df["drawdown"] = results_df["cumulative_pnl"] - results_df["cum_max"]
+
+    total_return = results_df["pnl"].sum()
+    win_rate = (results_df["return_%"] > 0).mean() * 100
     max_dd = results_df["drawdown"].min()
 
     return {
