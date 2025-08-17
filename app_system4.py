@@ -1,4 +1,8 @@
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+# 日本語フォントを設定（WindowsならMS GothicやMeiryoが確実）
+plt.rcParams['font.family'] = 'Meiryo'  # 'MS Gothic' でも可
+
 import streamlit as st
 import pandas as pd
 import os
@@ -31,6 +35,7 @@ def main_process(use_auto, capital, symbols_input):
     # 1. ティッカー取得
     if use_auto:
         symbols = get_all_tickers()[:100]  # 上限100銘柄
+        #symbols = get_all_tickers()
     else:
         if not symbols_input:
             st.error("銘柄を入力してください")
@@ -97,11 +102,23 @@ def main_process(use_auto, capital, symbols_input):
     ind_progress.empty()
 
     # 4. 候補生成
-    st.info("📊 セットアップ通過銘柄を抽出中...")
-    candidates_by_date = strategy.generate_candidates(prepared_dict)
+    st.info("📊 セットアップ通過銘柄を抽出中...")  # ← 先に固定で出す
+
+    cand_progress = st.progress(0)
+    cand_log = st.empty()
+
+    candidates_by_date = strategy.generate_candidates(
+        prepared_dict,
+        progress_callback=lambda done, total: cand_progress.progress(done / total),
+        log_callback=lambda msg: cand_log.text(msg),
+    )
+    cand_progress.empty()
+
     if not candidates_by_date:
         st.warning("セットアップ条件を満たす銘柄がありませんでした。")
         st.stop()
+
+    st.write(f"📊 セットアップ抽出完了 | {len(prepared_dict)} 銘柄を処理しました")
 
     # 5. バックテスト
     st.info("💹 バックテスト実行中...")
@@ -169,11 +186,51 @@ def main_process(use_auto, capital, symbols_input):
     st.subheader("📆 週次サマリー")
     st.dataframe(weekly)
 
-    # ヒートマップ生成
+    # ===============================
+    # 日別保有銘柄ヒートマップ
+    # ===============================
+    st.subheader("日別保有銘柄ヒートマップ")
+
     st.info("📊 日別保有銘柄ヒートマップ生成中...")
+    progress_heatmap = st.progress(0)
+    heatmap_log = st.empty()
+
+    start_time = time.time()
+    time.sleep(0.1)  # UI即時反映のため少し待機
+
+    unique_dates = sorted(results_df["entry_date"].dt.normalize().unique())
+    total_dates = len(unique_dates)
+
+    for i, date in enumerate(unique_dates, 1):
+        # 1日分の保有状況計算
+        sub_df = results_df[(results_df["entry_date"] <= date) & (results_df["exit_date"] >= date)]
+        # 進捗更新
+        progress_heatmap.progress(i / total_dates)
+
+        elapsed = time.time() - start_time
+        remain = elapsed / i * (total_dates - i)
+
+        if i % 10 == 0 or i == total_dates:
+            heatmap_log.text(
+                f"📊 日別保有銘柄ヒートマップ: {i}/{total_dates} 日処理完了"
+                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+            )
+        time.sleep(0.01)
+
+    # 完了後のメッセージ
+    heatmap_log.text("✅ 日別保有銘柄データ処理完了。図を生成中...")
+    time.sleep(1.0)
+    heatmap_log.text("📊 ヒートマップ描画中...")
+
+    # ヒートマップ生成＆表示
     holding_matrix = generate_holding_matrix(results_df)
     display_holding_heatmap(holding_matrix, title="System4：日別保有銘柄ヒートマップ")
+
+    # ダウンロード用
     download_holding_csv(holding_matrix, filename="holding_status_system4.csv")
+
+    heatmap_log.text("✅ ヒートマップ生成完了")
+    progress_heatmap.empty()
 
     # 売買ログ保存
     today_str = pd.Timestamp.today().date().isoformat()
@@ -185,7 +242,8 @@ def main_process(use_auto, capital, symbols_input):
 
     # データキャッシュ保存（System4専用フォルダ）
     st.info("💾 System4 加工済日足データキャッシュ保存開始...")
-    cache_dir = os.path.join("data_cache", "system4")
+    #0817 データ容量不足になるので後でキャッシュ共通化する
+    cache_dir = os.path.join("data_cache", "systemX")
     os.makedirs(cache_dir, exist_ok=True)
     progress_bar = st.progress(0)
     status_text = st.empty()

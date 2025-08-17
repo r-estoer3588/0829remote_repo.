@@ -47,7 +47,7 @@ def app_body():
     if st.button("バックテスト実行"):
         # ===== データ取得フェーズ =====
         if use_auto:
-            select_tickers = get_all_tickers()[:1000] 
+            select_tickers = get_all_tickers()[:100] 
             #select_tickers = get_all_tickers()
         else:
             if not symbols_input:
@@ -305,7 +305,8 @@ def app_body():
 
         # ===== キャッシュ保存メッセージ（System2準拠） =====
         st.info("💾 System3加工済日足データキャッシュ保存開始…")
-        cache_dir = os.path.join("data_cache", "system3")
+        #0817 データ容量不足になるので後でキャッシュ共通化する
+        cache_dir = os.path.join("data_cache", "systemX")
         os.makedirs(cache_dir, exist_ok=True)
 
         progress_bar = st.progress(0)
