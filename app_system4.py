@@ -1,4 +1,3 @@
-# app_system4.py
 import matplotlib.pyplot as plt
 import streamlit as st
 import pandas as pd
@@ -138,7 +137,7 @@ def main_process(use_auto, capital, symbols_input):
     st.subheader("バックテスト結果")
     st.dataframe(results_df)
 
-    summary = summarize_results(results_df, capital)
+    summary, results_df = summarize_results(results_df, capital)
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("トレード回数", summary["trades"])
     col2.metric("最終損益 (USD)", f"{summary['total_return']:.2f}")
