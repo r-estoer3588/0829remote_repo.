@@ -225,5 +225,6 @@ def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, 
             })
             active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
 
-    results_df = pd.DataFrame(results)
-    return results_df
+    #0817デバッグ用
+    #print("DEBUG: first result sample", results[0] if results else "EMPTY")
+    return results

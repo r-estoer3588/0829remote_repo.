@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
-from io import StringIO
 from ta.trend import SMAIndicator
 from ta.momentum import ROCIndicator
 from ta.volatility import AverageTrueRange
@@ -18,7 +16,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import matplotlib.ticker as mticker
 from indicators_common import add_indicators
-from pathlib import Path
 from datetime import time as dtime
 import subprocess
 from common.utils import safe_filename, clean_date_column, get_cached_data, get_manual_data
@@ -148,11 +145,11 @@ def load_symbol(symbol):
     return symbol, df
 
 def summarize_signals(trades_df):
-    """trades_dfをSymbolとsignalで集計しDataFrameを返す"""
+    """trades_dfをsymbolとsignalで集計しDataFrameを返す"""
     if trades_df is None or trades_df.empty:
-        return pd.DataFrame(columns=["Symbol", "signal", "count"])
+        return pd.DataFrame(columns=["symbol", "signal", "count"])
     return (
-        trades_df.groupby(["Symbol", "signal"])
+        trades_df.groupby(["symbol", "signal"])
         .size()
         .reset_index(name="count")
         .sort_values(["signal", "count"], ascending=[True, False])
@@ -167,9 +164,9 @@ if __name__ == "__main__":
     capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100)
 
     # 🔽 ここを追加：手動入力UIは use_auto=False のときだけ描画
-    Symbols_input = None
+    symbols_input = None
     if not use_auto:
-        Symbols_input = st.text_input(
+        symbols_input = st.text_input(
             "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
             "AAPL,MSFT,META,AMZN,GOOGL"
     )
@@ -190,7 +187,7 @@ if __name__ == "__main__":
 
         if use_auto:
             # 🔽 (0809実装用)ここで銘柄数上限100に制限
-            select_tickers = get_all_tickers()[:100]  
+            select_tickers = get_all_tickers()[:10]  
             data_dict = {}
             log_container = st.container()  # 複数行保持用
             start_time = time.time()
@@ -218,10 +215,10 @@ if __name__ == "__main__":
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {executor.submit(load_symbol, sym): sym for sym in select_tickers}
                 for i, future in enumerate(as_completed(futures), 1):
-                    Symbol, df = future.result()
+                    symbol, df = future.result()
                     if df is not None and not df.empty:
-                        raw_data_dict[Symbol] = df
-                        symbol_buffer.append(Symbol)
+                        raw_data_dict[symbol] = df
+                        symbol_buffer.append(symbol)
 
                     if i % batch_size == 0 or i == total:
                         elapsed = time.time() - start_time
@@ -297,8 +294,7 @@ if __name__ == "__main__":
             daily_df = clean_date_column(merged_df, col_name="Date")
 
             # ここで true_signal_summary を作る
-            merged_df.rename(columns={"symbol": "Symbol"}, inplace=True)
-            true_signal_summary = merged_df["Symbol"].value_counts().to_dict()
+            true_signal_summary = merged_df["symbol"].value_counts().to_dict()
 
             roc_progress.empty()
             roc_log.empty()
@@ -314,10 +310,8 @@ if __name__ == "__main__":
             ranking_list = []
             for i, date in enumerate(unique_dates, start=1):
                 top100 = daily_df[daily_df["Date"] == date].sort_values("ROC200", ascending=False).head(100)
-                # Symbolカラム統一
-                if "symbol" in top100.columns:
-                    top100 = top100.rename(columns={"symbol": "Symbol"})
-                ranking_list.append(top100[["Date", "Symbol", "ROC200_Rank"]])
+                # symbolカラム統一
+                ranking_list.append(top100[["Date", "symbol", "ROC200_Rank"]])
 
                 roc_progress.progress(i / total_days)
                 if i % 10 == 0 or i == total_days:
@@ -338,11 +332,11 @@ if __name__ == "__main__":
 
             with st.expander("📊 日別ROC200ランキング（直近5年 / 上位100銘柄）"):
                 st.dataframe(
-                    roc200_display_df.reset_index(drop=True)[["Date", "ROC200_Rank", "Symbol"]],
+                    roc200_display_df.reset_index(drop=True)[["Date", "ROC200_Rank", "symbol"]],
                     column_config={
                         "Date": st.column_config.DatetimeColumn(format="YYYY-MM-DD"),
                         "ROC200_Rank": st.column_config.NumberColumn(width="small"),
-                        "Symbol": st.column_config.TextColumn(width="small")
+                        "symbol": st.column_config.TextColumn(width="small")
                     },
                     hide_index=False
                 )
@@ -387,18 +381,27 @@ if __name__ == "__main__":
             # 固定メッセージを消す
             bt_area.empty()
 
+            # ===0817 デバッグ用 ===
+            #st.write("DEBUG: merged_df 件数", len(merged_df))
+            #st.write("DEBUG: candidates_by_date 日数", len(candidates_by_date))
+            #st.write("DEBUG: trades_df 件数", len(trades_df))
+
             # 銘柄別 Signal_Count + Trade_Count 表
             # Signal_Count: merged_dfから作成
-            signal_counts = merged_df["Symbol"].value_counts().reset_index()
-            signal_counts.columns = ["Symbol", "Signal_Count"]
+            signal_counts = merged_df["symbol"].value_counts().reset_index()
+            signal_counts.columns = ["symbol", "Signal_Count"]
+
+            # ---0817 デバッグ用: trades_df のカラムを確認 ---
+            #st.write("DEBUG: trades_df columns", trades_df.columns.tolist())
 
             # Trade_Count: trades_dfから作成
-            if "symbol" in trades_df.columns:
-                trades_df = trades_df.rename(columns={"symbol": "Symbol"})
-            trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
+            if not trades_df.empty:
+                trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
+            else:
+                trade_counts = pd.DataFrame(columns=["symbol", "Trade_Count"])
 
             # マージ
-            summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
+            summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(0)
             summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
             summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
 
@@ -406,31 +409,31 @@ if __name__ == "__main__":
                 st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
 
         else:
-            if not Symbols_input:
+            if not symbols_input:
                 st.error("銘柄を入力してください")
                 st.stop()
-            Symbols = [s.strip().upper() for s in Symbols_input.split(",")]
+            symbols = [s.strip().upper() for s in symbols_input.split(",")]
 
             # 手動入力モード
             data_dict = {}
             ind_progress_bar = st.progress(0)  
             ind_log_area = st.empty()
-            for Symbol in Symbols:
-                path = os.path.join("data_cache", f"{safe_filename(Symbol)}.csv")
+            for symbol in symbols:
+                path = os.path.join("data_cache", f"{safe_filename(symbol)}.csv")
                 if not os.path.exists(path):
-                    st.warning(f"{Symbol}: キャッシュなし（data_cache/{Symbol}.csv）")
+                    st.warning(f"{symbol}: キャッシュなし（data_cache/{symbol}.csv）")
                     continue
-                df = get_cached_data(Symbol)
+                df = get_cached_data(symbol)
                 if df is None or df.empty:
                     continue
                 prepared = strategy.prepare_data(
-                    {Symbol: df},
+                    {symbol: df},
                     progress_callback=lambda done, total: ind_progress_bar.progress(done / total),
                     log_callback=lambda msg: ind_log_area.text(msg)
                 )
-                df = prepared[Symbol]
+                df = prepared[symbol]
                 if not df.empty:
-                    data_dict[Symbol] = df
+                    data_dict[symbol] = df
 
             ind_progress_bar.empty()
 
@@ -530,23 +533,54 @@ if __name__ == "__main__":
             st.pyplot(plt)
 
             # 4. バックテスト結果の表示
-            # 📊 日別保有銘柄ヒートマップ生成
-            st.subheader("📊 System1：日別保有銘柄ヒートマップ")
-            heatmap_progress = st.progress(0)
-            heatmap_status = st.empty()
+            # 日別保有銘柄ヒートマップ生成の進捗表示
+            st.info("📊 日別保有銘柄ヒートマップ生成中...")
+            progress_heatmap = st.progress(0)
+            heatmap_log = st.empty()
 
-            holding_matrix = generate_holding_matrix(
-                results,
-                progress_callback=lambda done, total: (
-                    heatmap_progress.progress(done / total),
-                    heatmap_status.text(
-                        f"🔥 ヒートマップ作成中: {done}/{total} 件完了"
+            start_time = time.time()
+
+            # UIを即反映させるための短い遅延
+            time.sleep(0.1)
+
+            # ヒートマップ生成のために、results を日付単位で処理
+            unique_dates = sorted(results["entry_date"].dt.normalize().unique())
+            total_dates = len(unique_dates)
+
+
+            for i, date in enumerate(unique_dates, 1):
+                # 1日分の保有状況計算
+                sub_df = results[(results["entry_date"] <= date) & (results["exit_date"] >= date)]
+                # 進捗バー更新
+                progress_heatmap.progress(i / total_dates)
+                # 経過時間と残り時間の計算
+                elapsed = time.time() - start_time
+                remain = elapsed / i * (total_dates - i)
+
+                # ログ表示（10日ごと or 最終日）
+                if i % 10 == 0 or i == total_dates:
+                    heatmap_log.text(
+                        f"📊 日別保有銘柄ヒートマップ: {i}/{total_dates} 日処理完了"
+                        f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
                     )
-                )
-            )
+                time.sleep(0.01)  # ← 表示のための小さな遅延
 
-            heatmap_progress.empty()
-            heatmap_status.text("✅ ヒートマップ作成完了")
+            # 完了後に消去 → せずに「生成中」に切り替える
+            heatmap_log.text("✅ 日別保有銘柄データ処理完了。図を生成中...")
+            time.sleep(1.0)  # 少し待機してからヒートマップ生成
+            heatmap_log.text("📊 ヒートマップ描画中...")
+
+            # ヒートマップ生成＆表示
+            holding_matrix = generate_holding_matrix(results)
+
+            display_holding_heatmap(holding_matrix, title="System1：日別保有銘柄ヒートマップ")
+            # ダウンロード用生成完了
+            download_holding_csv(holding_matrix, filename="holding_status_system1.csv")
+
+            heatmap_log.text("✅ ヒートマップ生成完了")
+
+            # 完了後に消去
+            progress_heatmap.empty()
 
             # ✅ 自動保存用ディレクトリとファイル名を定義
             today_str = pd.Timestamp.today().date().isoformat()
@@ -560,7 +594,7 @@ if __name__ == "__main__":
 
             # ✅ signal_summaryの自動保存（存在する場合）
             if true_signal_summary:
-                signal_df = pd.DataFrame(sorted(true_signal_summary.items()), columns=["Symbol", "signal_count"])
+                signal_df = pd.DataFrame(sorted(true_signal_summary.items()), columns=["symbol", "signal_count"])
                 signal_dir = os.path.join(save_dir, "signals")
                 os.makedirs(signal_dir, exist_ok=True)
                 signal_path = os.path.join(signal_dir, f"system1_signals_{today_str}_{int(capital)}.csv")
@@ -590,12 +624,12 @@ if __name__ == "__main__":
 #単体実施
 def run_tab(spy_df):
     st.header("System1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）") 
-    Symbols_input = st.text_input(
+    symbols_input = st.text_input(
     "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
     "AAPL,MSFT,META,AMZN,GOOGL",
     key="system1_input"
     )
-    Symbols = [s.strip().upper() for s in Symbols_input.split(",")]
+    symbols = [s.strip().upper() for s in symbols_input.split(",")]
     capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital")
 
     if st.button("バックテスト実行", key="system1_button"):
@@ -606,17 +640,17 @@ def run_tab(spy_df):
         ind_log_area = st.empty()
 
         with st.spinner("データ取得中..."):
-            for Symbol in Symbols:
-                st.write(f"▶ 処理中: {Symbol}")
-                df = get_manual_data(Symbol)
+            for symbol in symbols:
+                st.write(f"▶ 処理中: {symbol}")
+                df = get_manual_data(symbol)
                 if df is not None:
                     prepared = strategy.prepare_data(
-                        {Symbol: df},
+                        {symbol: df},
                         progress_callback=lambda done, total: ind_progress_bar.progress(done / total),
                         log_callback=lambda msg: ind_log_area.text(msg)
                     )
-                    df = prepared[Symbol]
-                    data_dict[Symbol] = df
+                    df = prepared[symbol]
+                    data_dict[symbol] = df
         ind_progress_bar.empty()
         
         if spy_df is None or spy_df.empty:
@@ -645,9 +679,7 @@ def run_tab(spy_df):
         )
 
         # ② true_signal_summary を merged_df から作成
-        if "symbol" in merged_df.columns:
-            merged_df.rename(columns={"symbol": "Symbol"}, inplace=True)
-        true_signal_summary = merged_df["Symbol"].value_counts().to_dict()
+        true_signal_summary = merged_df["symbol"].value_counts().to_dict()
 
         # ③ バックテスト実行
         def progress_callback(i, total, start_time):
@@ -672,11 +704,13 @@ def run_tab(spy_df):
         bt_progress.empty()
 
         # ④ Signal_Count + Trade_Count 表
-        signal_counts = pd.DataFrame(sorted(true_signal_summary.items()), columns=["Symbol", "Signal_Count"])
-        if "symbol" in trades_df.columns:
-            trades_df = trades_df.rename(columns={"symbol": "Symbol"})
-        trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
-        summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
+        signal_counts = pd.DataFrame(sorted(true_signal_summary.items()), columns=["symbol", "Signal_Count"])
+        # Trade_Count: trades_dfから作成
+        if not trades_df.empty:
+            trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
+        else:
+            trade_counts = pd.DataFrame(columns=["symbol", "Trade_Count"])
+        summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(0)
         summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
         summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
         st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
