@@ -47,7 +47,8 @@ def app_body():
     if st.button("バックテスト実行"):
         # ===== データ取得フェーズ =====
         if use_auto:
-            select_tickers = get_all_tickers()[:100] 
+            select_tickers = get_all_tickers()[:1000] 
+            #select_tickers = get_all_tickers()
         else:
             if not symbols_input:
                 st.error("銘柄を入力してください")
@@ -56,13 +57,13 @@ def app_body():
 
         raw_data_dict = {}
         total = len(select_tickers)
-        data_progress = st.progress(0)
         data_log = st.empty()
         start_time = time.time()
 
         # データ取得開始メッセージ
         data_area = st.empty()
         data_area.info(f"📄 データ取得開始 | {total} 銘柄を処理中...")
+        data_progress = st.progress(0)
         log_area = st.empty()
 
         with ThreadPoolExecutor(max_workers=8) as executor:
@@ -105,10 +106,28 @@ def app_body():
 
         # ===== 候補生成 =====
         st.info("📊 セットアップ通過銘柄を抽出中...")
-        candidates_by_date = strategy.generate_candidates(prepared_dict)
+        cand_progress = st.progress(0)
+        cand_log = st.empty()
+
+        # session_state にログを蓄積
+        if "system3_log" not in st.session_state:
+            st.session_state["system3_log"] = ""
+
+        def cand_log_callback(msg):
+            st.session_state["system3_log"] += msg + "\n"
+            cand_log.text_area("セットアップ抽出ログ", st.session_state["system3_log"], height=300)
+
+        candidates_by_date = strategy.generate_candidates(
+            prepared_dict,
+            progress_callback=lambda done, total: cand_progress.progress(done / total),
+            log_callback=cand_log_callback
+        )
+
         if not candidates_by_date:
             st.warning("⚠️ セットアップ条件を満たす銘柄がありませんでした。")
             return
+
+        st.write(f"📊 セットアップ抽出完了 | {len(prepared_dict)} 銘柄を処理しました")
 
         # ---- シグナル件数サマリー ----
         signal_days = len(candidates_by_date)
@@ -238,9 +257,27 @@ def app_body():
 
         # ===== ヒートマップ =====
         st.subheader("📊 System3：日別保有銘柄ヒートマップ")
-        holding_matrix = generate_holding_matrix(trades_df)
+        heatmap_progress = st.progress(0)
+        heatmap_status = st.empty()
+
+        holding_matrix = generate_holding_matrix(
+            trades_df,
+            trade_progress_callback=lambda done, total: (
+                heatmap_progress.progress(done / (2*total)),  # 全体の前半を使う
+                heatmap_status.text(f"🔥 トレード処理中: {done}/{total} 件完了")
+            ),
+            matrix_progress_callback=lambda done, total: (
+                heatmap_progress.progress(0.5 + done / (2*total)),  # 後半を使う
+                heatmap_status.text(f"📊 マトリクス生成中: {done}/{total} 日完了")
+            )
+        )
+
+        heatmap_progress.empty()
+        heatmap_status.text("✅ ヒートマップ作成完了")
+
         display_holding_heatmap(holding_matrix, title="System3：日別保有銘柄ヒートマップ")
         download_holding_csv(holding_matrix, filename="holding_status_system3.csv")
+
 
         # ===== CSV自動保存 (System2準拠) =====
         today_str = pd.Timestamp.today().date().isoformat()

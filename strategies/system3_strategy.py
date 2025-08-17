@@ -74,11 +74,16 @@ class System3Strategy:
 
         return result_dict
 
-    def generate_candidates(self, prepared_dict):
+    def generate_candidates(self, prepared_dict,
+                            progress_callback=None, log_callback=None, batch_size=50):
         """
         Setup銘柄を抽出し、日別に Return_3D 昇順でランキング
         """
         candidates_by_date = {}
+        total = len(prepared_dict)
+        processed = 0
+        symbol_buffer = []
+        start_time = time.time()
 
         for sym, df in prepared_dict.items():
             setup_days = df[df["setup"] == 1]
@@ -94,6 +99,23 @@ class System3Strategy:
                 }
                 candidates_by_date.setdefault(entry_date, []).append(rec)
 
+            processed += 1
+            symbol_buffer.append(sym)
+
+            # ---- 進捗更新 ----
+            if progress_callback:
+                progress_callback(processed, total)
+            if (processed % batch_size == 0 or processed == total) and log_callback:
+                elapsed = time.time() - start_time
+                remain = (elapsed / processed) * (total - processed) if processed else 0
+                log_callback(
+                    f"📊 セットアップ通過銘柄抽出中: {processed}/{total} 件 完了"
+                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
+                    f"銘柄: {', '.join(symbol_buffer)}"
+                )
+                symbol_buffer.clear()
+
         # ランキング（下落幅大きい順 = Return_3Dが小さい順）
         for date in candidates_by_date:
             candidates_by_date[date] = sorted(
@@ -103,7 +125,7 @@ class System3Strategy:
         return candidates_by_date
 
     def run_backtest(self, prepared_dict, candidates_by_date, capital,
-                     on_progress=None, on_log=None):
+                    on_progress=None, on_log=None):
         """
         System3 バックテスト
         - 前日終値の7%下で指値

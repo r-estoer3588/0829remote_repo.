@@ -1,32 +1,39 @@
-# holding_tracker.py
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import defaultdict
 import streamlit as st
 
-def generate_holding_matrix(results_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    日次ごとの保有銘柄マトリックスを生成。
-    - 行: 日付（entry_date〜exit_date）
-    - 列: 銘柄シンボル
-    - 値: 1（保有中）、0（非保有）
-    """
+def generate_holding_matrix(results_df: pd.DataFrame, 
+                            trade_progress_callback=None, 
+                            matrix_progress_callback=None) -> pd.DataFrame:
     holding_dict = defaultdict(set)
-    for _, row in results_df.iterrows():
+    all_trades = list(results_df.iterrows())
+    total_trades = len(all_trades)
+
+    # フェーズ1: トレード処理
+    for i, (_, row) in enumerate(all_trades, 1):
         current_date = pd.to_datetime(row["entry_date"])
         end_date = pd.to_datetime(row["exit_date"])
         while current_date <= end_date:
             holding_dict[current_date.date()].add(row["symbol"])
             current_date += pd.Timedelta(days=1)
 
+        if trade_progress_callback and (i % 10 == 0 or i == total_trades):
+            trade_progress_callback(i, total_trades)
+
+    # フェーズ2: マトリクス生成
     all_dates = sorted(holding_dict.keys())
     all_symbols = sorted(set(results_df["symbol"].unique()))
     holding_matrix = pd.DataFrame(index=all_dates, columns=all_symbols)
 
-    for date in all_dates:
+    total_steps = len(all_dates)
+    for j, date in enumerate(all_dates, 1):
         for sym in all_symbols:
             holding_matrix.loc[date, sym] = 1 if sym in holding_dict[date] else 0
+
+        if matrix_progress_callback and (j % 10 == 0 or j == total_steps):
+            matrix_progress_callback(j, total_steps)
 
     return holding_matrix.fillna(0).astype(int)
 
@@ -50,6 +57,7 @@ def display_holding_heatmap(matrix: pd.DataFrame, title: str = "日別保有ヒ�
     ax.set_ylabel("日付")
     ax.set_title(title)
     st.pyplot(fig)
+
 
 def download_holding_csv(matrix: pd.DataFrame, filename: str = "holding_status.csv") -> None:
     """
