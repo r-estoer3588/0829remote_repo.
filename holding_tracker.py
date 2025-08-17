@@ -32,9 +32,11 @@ def generate_holding_matrix(results_df: pd.DataFrame,
         for sym in all_symbols:
             holding_matrix.loc[date, sym] = 1 if sym in holding_dict[date] else 0
 
-        if matrix_progress_callback and (j % 10 == 0 or j == total_steps):
-            matrix_progress_callback(j, total_steps)
-
+        if matrix_progress_callback:
+            ratio = j / total_steps
+            # 1%進んだタイミング or 最後の処理で更新
+            if int(ratio * 100) != int((j - 1) / total_steps * 100) or j == total_steps:
+                matrix_progress_callback(j, total_steps)
     return holding_matrix.fillna(0).astype(int)
 
 def display_holding_heatmap(matrix: pd.DataFrame, title: str = "日別保有ヒートマップ") -> None:
@@ -57,7 +59,6 @@ def display_holding_heatmap(matrix: pd.DataFrame, title: str = "日別保有ヒ�
     ax.set_ylabel("日付")
     ax.set_title(title)
     st.pyplot(fig)
-
 
 def download_holding_csv(matrix: pd.DataFrame, filename: str = "holding_status.csv") -> None:
     """
