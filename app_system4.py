@@ -1,300 +1,227 @@
 # app_system4.py
+import matplotlib.pyplot as plt
 import streamlit as st
 import pandas as pd
-import numpy as np
-import requests
-from io import StringIO
-from ta.trend import SMAIndicator
-from ta.momentum import RSIIndicator
-from ta.volatility import AverageTrueRange
-from alpha_vantage.timeseries import TimeSeries
-import matplotlib.pyplot as plt
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from common.utils import safe_filename, get_cached_data
+from tickers_loader import get_all_tickers
+from strategies.system4_strategy import System4Strategy
+from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
+from common.performance_summary import summarize_results
 
-setup_df_list = []
-ranked_df_list = []
-all_trades = []
+# ===============================
+# 戦略インスタンス
+# ===============================
+strategy = System4Strategy()
 
-API_KEY = "L88B2SED3UWSYXGN"
+# ===============================
+# タイトル & キャッシュクリア
+# ===============================
+if st.button("⚠️ Streamlitキャッシュ全クリア"):
+    st.cache_data.clear()
+    st.success("Streamlit cache cleared.")
 
-#差し替え
-@st.cache_data(ttl=86400)
-def get_stooq_data(symbol):
-    url = f"https://stooq.com/q/d/l/?s={symbol.lower()}.us&i=d"
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    df = pd.read_csv(StringIO(r.text))
-    df.columns = [c.capitalize() for c in df.columns]
-    df["Date"] = pd.to_datetime(df["Date"])
-    df.set_index("Date", inplace=True)
-    df = df.sort_index()
-    return df
+st.title("システム4：ロング・トレンド・ロー・ボラティリティ（複数銘柄）")
 
-#差し替え
-@st.cache_data(ttl=86400)
-def get_alpha_data(symbol):
-    ts = TimeSeries(key=API_KEY, output_format='pandas')
-    df, _ = ts.get_daily(symbol=symbol, outputsize='full')
-    df = df.rename(columns={
-        "1. open": "Open",
-        "2. high": "High",
-        "3. low": "Low",
-        "4. close": "Close",
-        "5. volume": "Volume"
-    })
-    df = df.sort_index()
-    return df
-
-#必要
-@st.cache_data
-def apply_indicators(df):
-    df = df.copy()
-    df["SMA200"] = SMAIndicator(df["Close"], window=200).sma_indicator()
-    df["ATR40"] = AverageTrueRange(df["High"], df["Low"], df["Close"], window=40).average_true_range()
-    df["RSI4"] = RSIIndicator(df["Close"], window=4).rsi()
-    df["HV20"] = np.log(df["Close"] / df["Close"].shift(1)).rolling(window=20).std() * np.sqrt(252) * 100
-    df["DollarVolume50"] = (df["Close"] * df["Volume"]).rolling(window=50).mean()
-    return df
-
-#必要
-def backtest_symbol(symbol, df, spy_df, capital):
-    df = df.copy().dropna()
-    spy_df = spy_df.copy().dropna()
-    trades = []
-
-    # Setup判定を先に追加
-    df["Setup"] = (
-        (df["Close"] > df["SMA200"]) &
-        (df["DollarVolume50"] > 100_000_000) &
-        (df["HV20"] >= 10) & (df["HV20"] <= 40)
-    )
-
-    setup_df = df[df["Setup"]].copy()
-    setup_df["symbol"] = symbol
-    ranked_df = setup_df.sort_values("RSI4")
-
-    df = df.copy().dropna()
-    spy_df = spy_df.copy().dropna()
-    trades = []
-
-    df["Setup"] = (
-        (df["Close"] > df["SMA200"]) &
-        (df["DollarVolume50"] > 100_000_000) &
-        (df["HV20"] >= 10) & (df["HV20"] <= 40)
-    )
-
-    spy_df["SMA200"] = SMAIndicator(spy_df["Close"], window=200).sma_indicator()
-    spy_condition = spy_df["Close"] > spy_df["SMA200"]
-
-    risk_per_trade = 0.02 * capital
-    max_position_value = 0.10 * capital
-
-    active_until = None
-    for i in range(1, len(df)):
-        date = df.index[i]
-        if active_until and date <= active_until:
-            continue
-        entry_price = df.at[date, "Open"]
-        atr = df.at[date, "ATR40"]
-        stop_price = entry_price - 1.5 * atr
-        shares = risk_per_trade / (entry_price - stop_price)
-        position_value = shares * entry_price
-        if position_value > max_position_value:
-            shares = max_position_value / entry_price
-        shares = int(shares)
-
-        # トレーリングストップ
-        trail_stop = entry_price * 0.8
-
-        # Exitルール
-        exit_price = None
-        exit_found = False
-        exit_price = None
-        exit_date = None
-        for j in range(i+1, min(i+30, len(df))):  # 最大30営業日で終了
-            next_close = df.iloc[j]["Close"]
-            trail_stop = max(trail_stop, next_close * 0.8)
-            if next_close < trail_stop:
-                exit_price = df.iloc[j]["Close"]
-                exit_date = df.index[j]
-                break
-        else:
-            exit_price = df.iloc[-1]["Close"]
-            exit_date = df.index[-1]
-        active_until = exit_date
-
-        pnl = (exit_price - entry_price) * shares
-        return_pct = pnl / capital * 100
-
-        trades.append({
-            "symbol": symbol,
-            "entry_date": date,
-            "exit_date": exit_date,
-            "entry": round(entry_price, 2),
-            "exit": round(exit_price, 2),
-            "shares": shares,
-            "pnl": round(pnl, 2),
-            "return_%": round(return_pct, 2)
-        })
-
-    return trades, setup_df, ranked_df
-
-
-#差し替え
-if __name__ == "__main__":
-    st.title("システム4：ロング・トレンド・ロー・ボラティリティ")
-
-    data_source = st.radio("データソース", ["Stooq", "Alpha Vantage"])
-    symbols_input = st.text_input("ティッカーをカンマ区切りで入力（例：AAPL,MSFT,NVDA）", "AAPL,MSFT,NVDA")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100)
-
-    if st.button("バックテスト実行"):
-        setup_df_list = []
-        ranked_df_list = []
-        all_trades = []
+# ===============================
+# バックテスト処理本体
+# ===============================
+def main_process(use_auto, capital, symbols_input):
+    # 1. ティッカー取得
+    if use_auto:
+        symbols = get_all_tickers()[:100]  # 上限100銘柄
+    else:
+        if not symbols_input:
+            st.error("銘柄を入力してください")
+            st.stop()
         symbols = [s.strip().upper() for s in symbols_input.split(",")]
 
-        with st.spinner("データ取得中..."):
-            spy_df = get_stooq_data("SPY") if data_source == "Stooq" else get_alpha_data("SPY")
-            spy_df = apply_indicators(spy_df)
+    # 2. データ取得
+    start_time = time.time()
+    data_dict = {}
+    total = len(symbols)
+    batch_size = 50
+    symbol_buffer = []
 
-            for symbol in symbols:
-                st.write(f"▶ 処理中: {symbol}")
-                try:
-                    df = get_stooq_data(symbol) if data_source == "Stooq" else get_alpha_data(symbol)
-                    if df is None or df.empty:
-                        st.warning(f"{symbol}: データ取得に失敗しました。")
-                        continue
-                    df = apply_indicators(df)
-                    trades, setup_df, ranked_df = backtest_symbol(symbol, df, spy_df, capital)
-                    setup_df_list.append(setup_df)
-                    ranked_df_list.append(ranked_df)
-                    all_trades.extend(trades)
-                    if data_source == "Alpha Vantage":
-                        time.sleep(12)
-                except Exception as e:
-                    st.error(f"{symbol}: エラーが発生しました - {e}")
+    data_area = st.empty()
+    data_area.info(f"📄 データ取得開始 | {total} 銘柄を処理中...")
+    progress_bar = st.progress(0)
+    log_area = st.empty()
 
-    
-    if setup_df_list:
-        st.subheader("セットアップ条件を満たした銘柄（Setup=True）")
-        setup_all = pd.concat(setup_df_list)
-        st.dataframe(setup_all[["symbol", "Close", "RSI4", "HV20", "DollarVolume50"]])
+    def load_symbol(symbol):
+        path = os.path.join("data_cache", f"{safe_filename(symbol)}.csv")
+        if not os.path.exists(path):
+            return symbol, None
+        return symbol, get_cached_data(symbol)
 
-    if ranked_df_list:
-        st.subheader("仕掛け候補（RSI4が低い順）")
-        ranked_all = pd.concat(ranked_df_list)
-        ranked_sorted = ranked_all.sort_values("RSI4")
-        st.dataframe(ranked_sorted[["symbol", "Close", "RSI4", "HV20"]])
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(load_symbol, sym): sym for sym in symbols}
+        for i, future in enumerate(as_completed(futures), 1):
+            sym, df = future.result()
+            if df is not None and not df.empty:
+                data_dict[sym] = df
+                symbol_buffer.append(sym)
 
-    if all_trades:
+            if i % batch_size == 0 or i == total:
+                elapsed = time.time() - start_time
+                remaining = (elapsed / i) * (total - i)
+                elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
+                remain_min, remain_sec = divmod(int(remaining), 60)
+                joined_symbols = ", ".join(symbol_buffer)
+                log_area.text(
+                    f"📄 データ取得: {i}/{total} 件 完了"
+                    f" | 経過: {elapsed_min}分{elapsed_sec}秒 / 残り: 約 {remain_min}分{remain_sec}秒\n"
+                    f"銘柄: {joined_symbols}"
+                )
+                progress_bar.progress(i / total)
+                symbol_buffer.clear()
+    progress_bar.empty()
 
-            results = pd.DataFrame(all_trades)
-            st.subheader("バックテスト結果")
-            st.dataframe(results)
+    if not data_dict:
+        st.error("有効な銘柄データがありません")
+        st.stop()
 
-            total_return = results["pnl"].sum()
-            win_rate = (results["return_%"] > 0).mean() * 100
-            st.metric("トレード回数", len(results))
-            st.metric("最終損益（USD）", f"{total_return:.2f}")
-            st.metric("勝率（％）", f"{win_rate:.2f}")
+    # 3. インジケーター計算
+    st.info("📊 インジケーター計算中...")
+    ind_progress = st.progress(0)
+    ind_log = st.empty()           # 進捗ログ用
+    ind_skip_log = st.empty()      # ⚠️ スキップ件数用 ← 追加
 
-            results["exit_date"] = pd.to_datetime(results["exit_date"])
-            results = results.sort_values("exit_date")
-            results["cumulative_pnl"] = results["pnl"].cumsum()
-            results["cum_max"] = results["cumulative_pnl"].cummax()
-            results["drawdown"] = results["cumulative_pnl"] - results["cum_max"]
-            max_dd = results["drawdown"].min()
-            st.metric("最大ドローダウン（USD）", f"{max_dd:.2f}")
+    prepared_dict = strategy.prepare_data(
+        data_dict,
+        progress_callback=lambda done, total: ind_progress.progress(done / total),
+        log_callback=lambda msg: ind_log.text(msg),
+        skip_callback=lambda msg: ind_skip_log.text(msg)   # ← 追加
+    )
+    ind_progress.empty()
 
-            st.subheader("累積損益グラフ")
-            plt.figure(figsize=(10, 4))
-            plt.plot(results["exit_date"], results["cumulative_pnl"], label="Cumulative PnL")
-            plt.xlabel("Date")
-            plt.ylabel("PnL (USD)")
-            plt.title("累積損益")
-            plt.legend()
-            st.pyplot(plt)
+    # 4. 候補生成
+    st.info("📊 セットアップ通過銘柄を抽出中...")
+    candidates_by_date = strategy.generate_candidates(prepared_dict)
+    if not candidates_by_date:
+        st.warning("セットアップ条件を満たす銘柄がありませんでした。")
+        st.stop()
 
-            csv = results.to_csv(index=False).encode("utf-8")
-            st.download_button("売買ログをCSVで保存", data=csv, file_name="trade_log_system4.csv", mime="text/csv")
-    else:
+    # 5. バックテスト
+    st.info("💹 バックテスト実行中...")
+    bt_progress = st.progress(0)
+    bt_log = st.empty()
+
+    def progress_callback(i, total, start_time):
+        bt_progress.progress(i / total)
+
+    def log_callback(i, total, start_time):
+        elapsed = time.time() - start_time
+        remain = (elapsed / i) * (total - i)
+        bt_log.text(
+            f"💹 バックテスト: {i}/{total} 日処理完了"
+            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+        )
+
+    results_df = strategy.run_backtest(
+        prepared_dict,
+        candidates_by_date,
+        capital,
+        on_progress=progress_callback,
+        on_log=log_callback
+    )
+    bt_progress.empty()
+
+    # 6. 結果表示
+    if results_df.empty:
         st.info("トレードは発生しませんでした。")
-#不要
+        return
+
+    st.subheader("バックテスト結果")
+    st.dataframe(results_df)
+
+    summary = summarize_results(results_df, capital)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("トレード回数", summary["trades"])
+    col2.metric("最終損益 (USD)", f"{summary['total_return']:.2f}")
+    col3.metric("勝率 (%)", f"{summary['win_rate']:.2f}")
+    col4.metric("最大ドローダウン (USD)", f"{summary['max_dd']:.2f}")
+
+    st.subheader("📈 累積損益グラフ")
+    plt.figure(figsize=(10, 4))
+    plt.plot(results_df["exit_date"], results_df["cumulative_pnl"], label="Cumulative PnL")
+    plt.xlabel("日付")
+    plt.ylabel("PnL (USD)")
+    plt.title("累積損益")
+    plt.legend()
+    st.pyplot(plt)
+
+    # 年次・月次・週次サマリー
+    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
+    yearly["exit_date"] = yearly["exit_date"].astype(str)
+    st.subheader("📅 年次サマリー")
+    st.dataframe(yearly)
+
+    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
+    monthly["exit_date"] = monthly["exit_date"].astype(str)
+    st.subheader("📅 月次サマリー")
+    st.dataframe(monthly)
+
+    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))["pnl"].sum().reset_index()
+    weekly["exit_date"] = weekly["exit_date"].astype(str)
+    st.subheader("📆 週次サマリー")
+    st.dataframe(weekly)
+
+    # ヒートマップ生成
+    st.info("📊 日別保有銘柄ヒートマップ生成中...")
+    holding_matrix = generate_holding_matrix(results_df)
+    display_holding_heatmap(holding_matrix, title="System4：日別保有銘柄ヒートマップ")
+    download_holding_csv(holding_matrix, filename="holding_status_system4.csv")
+
+    # 売買ログ保存
+    today_str = pd.Timestamp.today().date().isoformat()
+    save_dir = "results_csv"
+    os.makedirs(save_dir, exist_ok=True)
+    save_file = os.path.join(save_dir, f"system4_{today_str}_{int(capital)}.csv")
+    results_df.to_csv(save_file, index=False)
+    st.write(f"📂 売買ログを自動保存: {save_file}")
+
+    # データキャッシュ保存（System4専用フォルダ）
+    st.info("💾 System4 加工済日足データキャッシュ保存開始...")
+    cache_dir = os.path.join("data_cache", "system4")
+    os.makedirs(cache_dir, exist_ok=True)
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    total = len(prepared_dict)
+    for i, (sym, df) in enumerate(prepared_dict.items(), 1):
+        path = os.path.join(cache_dir, f"{safe_filename(sym)}.csv")
+        df.to_csv(path)
+        progress_bar.progress(i / total)
+        status_text.text(f"💾 System4キャッシュ保存中: {i}/{total} 件 完了")
+    status_text.text(f"💾 System4キャッシュ保存完了 ({total} 件)")
+    progress_bar.empty()
+    st.success("🔚 バックテスト終了")
+
+# ===============================
+# 通常モード
+# ===============================
+use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system4_auto_main")
+capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system4_capital_main")
+symbols_input = None
+if not use_auto:
+    symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system4_symbols_main")
+
+if st.button("バックテスト実行", key="system4_run_main"):
+    main_process(use_auto, capital, symbols_input)
+
+# ===============================
+# 統合モード用タブ呼び出し
+# ===============================
 def run_tab():
     st.header("System4：ロング・トレンド・ロー・ボラティリティ")
-    data_source = st.radio("データソース", ["Stooq", "Alpha Vantage"], key="system4_data_source")
-    symbols_input = st.text_input("ティッカーをカンマ区切りで入力（例：AAPL,MSFT,NVDA）", "AAPL,MSFT,NVDA", key="system4_symbols")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system4_capital")
+    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system4_auto_tab")
+    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system4_capital_tab")
+    symbols_input = None
+    if not use_auto:
+        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system4_symbols_tab")
 
-    if st.button("バックテスト実行", key="system4_button"):
-        setup_df_list = []
-        ranked_df_list = []
-        all_trades = []
-        symbols = [s.strip().upper() for s in symbols_input.split(",")]
-
-        with st.spinner("データ取得中..."):
-            spy_df = get_stooq_data("SPY") if data_source == "Stooq" else get_alpha_data("SPY")
-            spy_df = apply_indicators(spy_df)
-
-            for symbol in symbols:
-                st.write(f"▶ 処理中: {symbol}")
-                try:
-                    df = get_stooq_data(symbol) if data_source == "Stooq" else get_alpha_data(symbol)
-                    if df is None or df.empty:
-                        st.warning(f"{symbol}: データ取得に失敗しました。")
-                        continue
-                    df = apply_indicators(df)
-                    trades, setup_df, ranked_df = backtest_symbol(symbol, df, spy_df, capital)
-                    setup_df_list.append(setup_df)
-                    ranked_df_list.append(ranked_df)
-                    all_trades.extend(trades)
-                    if data_source == "Alpha Vantage":
-                        time.sleep(12)
-                except Exception as e:
-                    st.error(f"{symbol}: エラーが発生しました - {e}")
-
-        if setup_df_list:
-            st.subheader("セットアップ条件を満たした銘柄（Setup=True）")
-            setup_all = pd.concat(setup_df_list)
-            st.dataframe(setup_all[["symbol", "Close", "RSI4", "HV20", "DollarVolume50"]])
-
-        if ranked_df_list:
-            st.subheader("仕掛け候補（RSI4が低い順）")
-            ranked_all = pd.concat(ranked_df_list)
-            ranked_sorted = ranked_all.sort_values("RSI4")
-            st.dataframe(ranked_sorted[["symbol", "Close", "RSI4", "HV20"]])
-
-        if all_trades:
-            results = pd.DataFrame(all_trades)
-            st.subheader("バックテスト結果")
-            st.dataframe(results)
-
-            total_return = results["pnl"].sum()
-            win_rate = (results["return_%"] > 0).mean() * 100
-            st.metric("トレード回数", len(results))
-            st.metric("最終損益（USD）", f"{total_return:.2f}")
-            st.metric("勝率（％）", f"{win_rate:.2f}")
-
-            results["exit_date"] = pd.to_datetime(results["exit_date"])
-            results = results.sort_values("exit_date")
-            results["cumulative_pnl"] = results["pnl"].cumsum()
-            results["cum_max"] = results["cumulative_pnl"].cummax()
-            results["drawdown"] = results["cumulative_pnl"] - results["cum_max"]
-            max_dd = results["drawdown"].min()
-            st.metric("最大ドローダウン（USD）", f"{max_dd:.2f}")
-
-            st.subheader("累積損益グラフ")
-            plt.figure(figsize=(10, 4))
-            plt.plot(results["exit_date"], results["cumulative_pnl"], label="Cumulative PnL")
-            plt.xlabel("Date")
-            plt.ylabel("PnL (USD)")
-            plt.title("累積損益")
-            plt.legend()
-            st.pyplot(plt)
-
-            csv = results.to_csv(index=False).encode("utf-8")
-            st.download_button("売買ログをCSVで保存", data=csv, file_name="trade_log_system4.csv", mime="text/csv")
-        else:
-            st.info("トレードは発生しませんでした。")
+    if st.button("バックテスト実行", key="system4_run_tab"):
+        main_process(use_auto, capital, symbols_input)
