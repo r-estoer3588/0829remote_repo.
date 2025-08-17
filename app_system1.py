@@ -207,7 +207,7 @@ if __name__ == "__main__":
             raw_data_dict = {}
             total = len(select_tickers)
             batch_size = 50
-            Symbol_buffer = []
+            symbol_buffer = []
             # 進捗バー、進捗ログ作成
             data_area = st.empty()
             data_area.info(f"📄 データ取得開始 | {total} 銘柄を処理中...")
@@ -221,21 +221,21 @@ if __name__ == "__main__":
                     Symbol, df = future.result()
                     if df is not None and not df.empty:
                         raw_data_dict[Symbol] = df
-                        Symbol_buffer.append(Symbol)
+                        symbol_buffer.append(Symbol)
 
                     if i % batch_size == 0 or i == total:
                         elapsed = time.time() - start_time
                         remaining = (elapsed / i) * (total - i)
                         elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
                         remain_min, remain_sec = divmod(int(remaining), 60)
-                        joined_Symbols = ", ".join(Symbol_buffer)
+                        joined_symbols = ", ".join(symbol_buffer)
                         data_log_area.text(
                             f"📄 データ取得: {i}/{total} 件 完了"
                             f" | 経過: {elapsed_min}分{elapsed_sec}秒 / 残り: 約 {remain_min}分{remain_sec}秒\n"
-                            f"銘柄: {joined_Symbols}"
+                            f"銘柄: {joined_symbols}"
                         )
                         data_progress_bar.progress(i / total)
-                        Symbol_buffer.clear()
+                        symbol_buffer.clear()
             data_progress_bar.empty()  # データ取得フェーズ終了
 
             # 2. 加工処理フェーズ　(指標計算)
@@ -315,7 +315,7 @@ if __name__ == "__main__":
             for i, date in enumerate(unique_dates, start=1):
                 top100 = daily_df[daily_df["Date"] == date].sort_values("ROC200", ascending=False).head(100)
                 # Symbolカラム統一
-                if "Symbol" in top100.columns and "Symbol" not in top100.columns:
+                if "symbol" in top100.columns:
                     top100 = top100.rename(columns={"symbol": "Symbol"})
                 ranking_list.append(top100[["Date", "Symbol", "ROC200_Rank"]])
 
@@ -396,7 +396,6 @@ if __name__ == "__main__":
             if "symbol" in trades_df.columns:
                 trades_df = trades_df.rename(columns={"symbol": "Symbol"})
             trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
-            trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
 
             # マージ
             summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
@@ -674,8 +673,9 @@ def run_tab(spy_df):
 
         # ④ Signal_Count + Trade_Count 表
         signal_counts = pd.DataFrame(sorted(true_signal_summary.items()), columns=["Symbol", "Signal_Count"])
+        if "symbol" in trades_df.columns:
+            trades_df = trades_df.rename(columns={"symbol": "Symbol"})
         trade_counts = trades_df.groupby("Symbol").size().reset_index(name="Trade_Count")
-        trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
         summary_df = pd.merge(signal_counts, trade_counts, on="Symbol", how="outer").fillna(0)
         summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
         summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
