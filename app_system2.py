@@ -24,7 +24,8 @@ strategy = System2Strategy()
 # ===============================
 # タイトル & キャッシュクリア
 # ===============================
-if st.button("⚠️ Streamlitキャッシュ全クリア"):
+
+if st.button("⚠️ Streamlitキャッシュ全クリア", key="system2_clear_cache"):
     st.cache_data.clear()
     st.success("Streamlit cache cleared.")
 

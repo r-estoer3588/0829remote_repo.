@@ -17,7 +17,7 @@ matplotlib.rcParams['font.family'] = 'Meiryo'  # or 'IPAGothic'
 
 strategy = System3Strategy()
 
-if st.button("⚠️ Streamlitキャッシュ全クリア"):
+if st.button("⚠️ Streamlitキャッシュ全クリア", key="system3_clear_cache"):
     st.cache_data.clear()
     st.success("Streamlit cache cleared.")
 

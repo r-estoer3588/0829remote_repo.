@@ -23,7 +23,7 @@ strategy = System6Strategy()
 # ===============================
 # タイトル & キャッシュクリア
 # ===============================
-if st.button("⚠️ Streamlitキャッシュ全クリア"):
+if st.button("⚠️ Streamlitキャッシュ全クリア", key="system6_clear_cache"):
     st.cache_data.clear()
     st.success("Streamlit cache cleared.")
 

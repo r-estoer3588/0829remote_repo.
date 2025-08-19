@@ -9,6 +9,9 @@ import os
 from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
+# 全体にメイリオフォントを設定（Windows用）
+matplotlib.rcParams['font.family'] = 'Meiryo'
+
 import pandas_market_calendars as mcal
 from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
 import time
@@ -22,20 +25,65 @@ from common.utils import safe_filename, clean_date_column, get_cached_data, get_
 from strategies.system1_strategy import System1Strategy
 import threading
 
-
 # 戦略インスタンスを作成
 strategy = System1Strategy()
+
+def main_process(use_auto, capital, symbols_input=None, spy_df=None):
+    """
+    System1 のバックテストを実行する共通関数。
+    - use_auto: True=自動ティッカー取得, False=手動入力
+    - capital: 総資金
+    - symbols_input: 手動入力時のティッカー文字列
+    - spy_df: SPYキャッシュ（統合モードから渡される）
+    """
+    # SPYデータチェック
+    if spy_df is None:
+        spy_df = get_spy_data_cached()
+    if spy_df is None or spy_df.empty:
+        st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
+        st.stop()
+
+    # ティッカー決定
+    if use_auto:
+        tickers = get_all_tickers()[:10]  # 暫定で上位10銘柄
+    else:
+        if not symbols_input:
+            st.error("銘柄を入力してください")
+            st.stop()
+        tickers = [s.strip().upper() for s in symbols_input.split(",")]
+
+    # データ取得
+    data_dict = {}
+    for sym in tickers:
+        df = get_cached_data(sym)
+        if df is not None and not df.empty:
+            prepared = strategy.prepare_data({sym: df})
+            data_dict[sym] = prepared[sym]
+
+    if not data_dict:
+        st.error("有効な銘柄データがありません。")
+        st.stop()
+
+    # 候補生成
+    candidates_by_date, merged_df = strategy.generate_candidates(data_dict, spy_df)
+
+    # バックテスト実行
+    trades_df = strategy.run_backtest(data_dict, candidates_by_date, capital)
+
+    return trades_df
+
 
 #警告抑制
 logging.getLogger('streamlit.runtime.scriptrunner.script_run_context').setLevel(logging.ERROR)
 
-# 全体にメイリオフォントを設定（Windows用）
-matplotlib.rcParams['font.family'] = 'Meiryo'
-
-#キャッシュクリア
-if st.button("⚠️ Streamlitキャッシュ全クリア"):
+# ===============================
+# タイトル & キャッシュクリア
+# ===============================
+if st.button("⚠️ Streamlitキャッシュ全クリア", key="system1_clear_cache"):
     st.cache_data.clear()
     st.success("Streamlit cache cleared.")
+
+st.title("システム1：ロング・トレンド・ハイ・モメンタム（複数銘柄）")
 
 def is_last_trading_day(latest_date, today=None):
     # NYSEカレンダー取得
@@ -157,21 +205,20 @@ def summarize_signals(trades_df):
 
 #統合実施用
 if __name__ == "__main__":
-    st.title("システム1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）")
+    # ===============================
+    # 通常モード
+    # ===============================
+    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system1_auto_main")
+
     debug_mode = st.checkbox("詳細ログを表示（System1）", value=False, key="system1_debug")
-
-    use_auto = st.checkbox("自動ティッカー取得（System1フィルター適用）", value=True)
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100)
-
-    # 🔽 ここを追加：手動入力UIは use_auto=False のときだけ描画
+    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_main")
     symbols_input = None
     if not use_auto:
-        symbols_input = st.text_input(
-            "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
-            "AAPL,MSFT,META,AMZN,GOOGL"
-    )
+        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system1_symbols_main")
+
     spy_df = None  # 初期化
-    if st.button("バックテスト実行"):
+    if st.button("バックテスト実行", key="system1_run_main"):
+        main_process(use_auto, capital, symbols_input)
         spy_df = get_spy_data_cached()
         if spy_df is None or spy_df.empty:
             st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
@@ -621,18 +668,20 @@ if __name__ == "__main__":
             progress_bar.empty()
             st.success("🔚 バックテスト終了")
 
-#単体実施
+# ===============================
+# 統合モード用タブ呼び出し
+# ===============================
 def run_tab(spy_df):
-    st.header("System1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）") 
-    symbols_input = st.text_input(
-    "ティッカーをカンマ区切りで入力（例：AAPL,MSFT,META）",
-    "AAPL,MSFT,META,AMZN,GOOGL",
-    key="system1_input"
-    )
-    symbols = [s.strip().upper() for s in symbols_input.split(",")]
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital")
+    st.header("System1：ロング・トレンド・ハイ・モメンタム")
+    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system1_auto_tab")
+    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_tab")
+    symbols_input = None
+    if not use_auto:
+        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system1_symbols_tab")
 
-    if st.button("バックテスト実行", key="system1_button"):
+    if st.button("バックテスト実行", key="system1_run_tab"):
+        main_process(use_auto, capital, symbols_input, spy_df=spy_df)
+        symbols = [s.strip().upper() for s in symbols_input.split(",")]
         data_dict = {}
 
         # 🔽 追加：進捗バーとログ領域を定義
