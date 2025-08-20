@@ -8,11 +8,15 @@ from ta.momentum import ROCIndicator
 
 def prepare_data_vectorized_system1(
     raw_data_dict,
-    reuse_indicators=True,
     progress_callback=None,
     log_callback=None,
+    skip_callback=None,
     batch_size=50,
+    reuse_indicators=True,
+    **kwargs,
 ):
+    # skip_callbackは現状使わないが、共通UI対応のため受け取れるようにしておく
+
     """
     System1用のインジケータ計算（UI非依存版）
     - reuse_indicators: Trueなら既存CSVの指標列を再利用

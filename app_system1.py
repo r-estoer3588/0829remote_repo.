@@ -1,4 +1,5 @@
 import threading
+from common.ui_components import run_backtest_app
 from strategies.system1_strategy import System1Strategy
 from common.utils import (
     safe_filename,
@@ -809,21 +810,31 @@ if __name__ == "__main__":
 # ===============================
 # 統合モード用タブ呼び出し
 # ===============================
-def run_tab(spy_df):
-    st.header("System1：ロング・トレンド・ハイ・モメンタム")
-    use_auto = st.checkbox(
-        "自動ティッカー取得（全銘柄）", value=True, key="system1_auto_tab"
+# def run_tab(spy_df):
+#     st.header("System1：ロング・トレンド・ハイ・モメンタム")
+#     use_auto = st.checkbox(
+#         "自動ティッカー取得（全銘柄）", value=True, key="system1_auto_tab"
+#     )
+#     capital = st.number_input(
+#         "総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_tab"
+#     )
+#     symbols_input = None
+#     if not use_auto:
+#         symbols_input = st.text_input(
+#             "ティッカーをカンマ区切りで入力",
+#             "AAPL,MSFT,TSLA,NVDA,META",
+#             key="system1_symbols_tab",
+#         )
+
+
+def run_tab():
+    strategy = System1Strategy()
+    run_backtest_app(
+        strategy,
+        system_name="System1",
+        system_title="システム1：ロング・トレンド・ハイ・モメンタム（複数銘柄対応）",
+        limit_symbols=5000,
     )
-    capital = st.number_input(
-        "総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_tab"
-    )
-    symbols_input = None
-    if not use_auto:
-        symbols_input = st.text_input(
-            "ティッカーをカンマ区切りで入力",
-            "AAPL,MSFT,TSLA,NVDA,META",
-            key="system1_symbols_tab",
-        )
 
     # ===============================
     # 開発者オプション

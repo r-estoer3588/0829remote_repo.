@@ -6,27 +6,46 @@ from .system1 import (
     prepare_data_vectorized_system1,
     generate_roc200_ranking_system1,
     execute_backtest_from_candidates,
-    get_total_days_system1,  # ← 追加
+    get_total_days_system1,
 )
+
+"""
+システム1（ロング・トレンド・ハイ・モメンタム）戦略クラス
+"""
 
 
 class System1Strategy(StrategyBase):
-    """
-    システム1（ロング・トレンド・ハイ・モメンタム）戦略クラス
-    """
+    def prepare_data(self, raw_data_dict, **kwargs):
+        progress_callback = kwargs.pop("progress_callback", None)
+        log_callback = kwargs.pop("log_callback", None)
+        skip_callback = kwargs.pop("skip_callback", None)
 
-    def prepare_data(self, raw_data_dict: dict, **kwargs) -> dict:
-        return prepare_data_vectorized_system1(raw_data_dict, **kwargs)
+        return prepare_data_vectorized_system1(
+            raw_data_dict,
+            progress_callback=progress_callback,
+            log_callback=log_callback,
+            skip_callback=skip_callback,
+            **kwargs,
+        )
 
-    def generate_candidates(self, data_dict: dict, market_df: pd.DataFrame, **kwargs):
-        return generate_roc200_ranking_system1(data_dict, market_df, **kwargs)
+    def generate_candidates(self, prepared_dict, market_df=None, **kwargs):
+        if market_df is None:
+            market_df = prepared_dict.get("SPY")
+            if market_df is None:
+                raise ValueError("SPYデータが必要ですが見つかりませんでした。")
+        return generate_roc200_ranking_system1(prepared_dict, market_df, **kwargs)
 
     # def run_backtest(self, data_dict: dict, candidates_by_date: dict, capital: float, **kwargs) -> pd.DataFrame:
     # return execute_backtest_from_candidates(data_dict, candidates_by_date,
     # capital, **kwargs)
 
     def run_backtest(
-        self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
+        self,
+        prepared_dict,
+        candidates_by_date,
+        capital,
+        on_progress=None,
+        on_log=None,
     ):
 
         total_days = len(candidates_by_date)
