@@ -16,8 +16,7 @@ def summarize_results(results_df, capital):
     # 累積PnLとドローダウンを追加
     results_df["cumulative_pnl"] = results_df["pnl"].cumsum()
     results_df["cum_max"] = results_df["cumulative_pnl"].cummax()
-    results_df["drawdown"] = results_df["cumulative_pnl"] - \
-        results_df["cum_max"]
+    results_df["drawdown"] = results_df["cumulative_pnl"] - results_df["cum_max"]
 
     total_return = results_df["pnl"].sum()
     win_rate = (results_df["return_%"] > 0).mean() * 100

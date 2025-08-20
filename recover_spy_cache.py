@@ -28,15 +28,17 @@ def fetch_and_cache_spy_from_eodhd(folder="data_cache"):
         print(f"[INFO] 取得件数: {len(df)}")
 
         df["date"] = pd.to_datetime(df["date"])
-        df = df.rename(columns={
-            "date": "Date",
-            "open": "Open",
-            "high": "High",
-            "low": "Low",
-            "close": "Close",
-            "adjusted_close": "AdjClose",
-            "volume": "Volume"
-        })
+        df = df.rename(
+            columns={
+                "date": "Date",
+                "open": "Open",
+                "high": "High",
+                "low": "Low",
+                "close": "Close",
+                "adjusted_close": "AdjClose",
+                "volume": "Volume",
+            }
+        )
 
         os.makedirs(folder, exist_ok=True)
         df.to_csv(path, index=False)

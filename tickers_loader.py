@@ -14,11 +14,9 @@ FAILED_LIST = "eodhd_failed_symbols.csv"
 def load_failed_symbols():
     if os.path.exists(FAILED_LIST):
         # CSVの1列目のみをリスト化（headerなしの場合はheader=None指定）
-        return set(
-            pd.read_csv(
-                FAILED_LIST,
-                header=None)[0].astype(str).str.upper())
+        return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
     return set()
+
 
 # 日次キャッシュ（24時間）
 
@@ -40,10 +38,13 @@ def get_all_tickers():
     nasdaq_df = load_tickers(nasdaq_url)
     other_df = load_tickers(other_url)
 
-    all_symbols = pd.concat([
-        nasdaq_df[["Symbol"]],
-        other_df[["ACT Symbol"]].rename(columns={"ACT Symbol": "Symbol"})
-    ], ignore_index=True)
+    all_symbols = pd.concat(
+        [
+            nasdaq_df[["Symbol"]],
+            other_df[["ACT Symbol"]].rename(columns={"ACT Symbol": "Symbol"}),
+        ],
+        ignore_index=True,
+    )
 
     all_symbols = all_symbols.dropna().drop_duplicates().reset_index(drop=True)
     symbols_list = all_symbols["Symbol"].astype(str).str.upper().tolist()
@@ -98,7 +99,8 @@ def filter_symbols_by_system1(data_dict):
                         0):.2f}>{
                             latest.get(
                                 'SMA50',
-                                0):.2f} ({trend_ok})")
+                                0):.2f} ({trend_ok})"
+            )
 
         if close_ok and volume_ok and trend_ok:
             result[symbol] = df
@@ -111,14 +113,16 @@ def filter_symbols_by_system1(data_dict):
             remaining = avg_time * (total - i)
             mins, secs = divmod(remaining, 60)
             st.write(
-                f"進捗: {i}/{total} | 経過時間: {elapsed:.1f}秒 | 推定残り: {int(mins)}分{int(secs)}秒")
+                f"進捗: {i}/{total} | 経過時間: {elapsed:.1f}秒 | 推定残り: {int(mins)}分{int(secs)}秒"
+            )
             last_log_time = current_time
 
     total_elapsed = time.time() - start_time
     st.write(
         f"✅ フィルター処理完了：{total}件中 {
             len(result)}件通過 | 総処理時間: {
-            total_elapsed:.1f}秒")
+            total_elapsed:.1f}秒"
+    )
 
     return result
 

@@ -1,4 +1,3 @@
-
 import os
 import time
 import pandas as pd
@@ -14,7 +13,7 @@ API_KEY = os.getenv("EODHD_API_KEY")
 def get_all_symbols():
     urls = [
         "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
-        "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+        "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
     ]
     symbols = set()
     for url in urls:
@@ -42,15 +41,21 @@ def fetch_history(symbol):
             return None
         df = pd.DataFrame(data)
         df["date"] = pd.to_datetime(df["date"])
-        df = df.rename(columns={
-            "date": "Date",
-            "open": "Open",
-            "high": "High",
-            "low": "Low",
-            "close": "Close",
-            "adjusted_close": "AdjClose",
-            "volume": "Volume"
-        }).set_index("Date").sort_index()
+        df = (
+            df.rename(
+                columns={
+                    "date": "Date",
+                    "open": "Open",
+                    "high": "High",
+                    "low": "Low",
+                    "close": "Close",
+                    "adjusted_close": "AdjClose",
+                    "volume": "Volume",
+                }
+            )
+            .set_index("Date")
+            .sort_index()
+        )
         return df
     except Exception as e:
         print(f"{symbol}: {e}")
@@ -58,9 +63,28 @@ def fetch_history(symbol):
 
 
 RESERVED_WORDS = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
 }
 
 
@@ -94,11 +118,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
-        futures = [
-            executor.submit(
-                save_history,
-                s,
-                output_dir) for s in symbols]
+        futures = [executor.submit(save_history, s, output_dir) for s in symbols]
         for i, future in enumerate(as_completed(futures), 1):
             future.result()
             time.sleep(1.2)

@@ -1,5 +1,9 @@
 # app_system2.py
-from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
+from holding_tracker import (
+    generate_holding_matrix,
+    display_holding_heatmap,
+    download_holding_csv,
+)
 import numpy as np
 from strategies.system2_strategy import System2Strategy
 from tickers_loader import get_all_tickers
@@ -11,8 +15,9 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+
 # 日本語フォントを設定（WindowsならMS GothicやMeiryoが確実）
-plt.rcParams['font.family'] = 'Meiryo'  # 'MS Gothic' でも可
+plt.rcParams["font.family"] = "Meiryo"  # 'MS Gothic' でも可
 
 
 # ===============================
@@ -101,8 +106,10 @@ def main_process(use_auto, capital, symbols_input):
     ind_progress = st.progress(0)
     ind_log = st.empty()
     prepared_dict = strategy.prepare_data(
-        data_dict, progress_callback=lambda done, total: ind_progress.progress(
-            done / total), log_callback=lambda msg: ind_log.text(msg))
+        data_dict,
+        progress_callback=lambda done, total: ind_progress.progress(done / total),
+        log_callback=lambda msg: ind_log.text(msg),
+    )
     ind_progress.empty()
 
     # 4. 候補生成
@@ -134,29 +141,26 @@ def main_process(use_auto, capital, symbols_input):
         candidates_by_date,
         capital,
         on_progress=progress_callback,
-        on_log=log_callback
+        on_log=log_callback,
     )
     bt_progress.empty()
 
     # Signal_Count + Trade_Count 表
     signal_counts = {
-        sym: df["setup"].sum() for sym,
-        df in prepared_dict.items() if "setup" in df.columns}
-    signal_df = pd.DataFrame(
-        signal_counts.items(), columns=[
-            "Symbol", "Signal_Count"])
-    trade_counts = results_df.groupby(
-        "symbol").size().reset_index(name="Trade_Count")
+        sym: df["setup"].sum()
+        for sym, df in prepared_dict.items()
+        if "setup" in df.columns
+    }
+    signal_df = pd.DataFrame(signal_counts.items(), columns=["Symbol", "Signal_Count"])
+    trade_counts = results_df.groupby("symbol").size().reset_index(name="Trade_Count")
     trade_counts.rename(columns={"symbol": "Symbol"}, inplace=True)
-    summary_df = pd.merge(
-        signal_df,
-        trade_counts,
-        on="Symbol",
-        how="outer").fillna(0)
+    summary_df = pd.merge(signal_df, trade_counts, on="Symbol", how="outer").fillna(0)
     summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
     summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
 
-    with st.expander("📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False):
+    with st.expander(
+        "📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False
+    ):
         st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
 
     # 6. 結果表示
@@ -180,17 +184,15 @@ def main_process(use_auto, capital, symbols_input):
     results_df = results_df.sort_values("exit_date")
     results_df["cumulative_pnl"] = results_df["pnl"].cumsum()
     results_df["cum_max"] = results_df["cumulative_pnl"].cummax()
-    results_df["drawdown"] = results_df["cumulative_pnl"] - \
-        results_df["cum_max"]
+    results_df["drawdown"] = results_df["cumulative_pnl"] - results_df["cum_max"]
     max_dd = results_df["drawdown"].min()
     col4.metric("最大ドローダウン (USD)", f"{max_dd:,.2f}")
 
     st.subheader("📈 累積損益グラフ")
     plt.figure(figsize=(10, 4))
     plt.plot(
-        results_df["exit_date"],
-        results_df["cumulative_pnl"],
-        label="Cumulative PnL")
+        results_df["exit_date"], results_df["cumulative_pnl"], label="Cumulative PnL"
+    )
     plt.xlabel("日付")
     plt.ylabel("PnL (USD)")
     plt.title("累積損益")
@@ -205,15 +207,13 @@ def main_process(use_auto, capital, symbols_input):
         atr_df["entry_date"] = atr_df.index
         atr_lookup.append(atr_df)
     atr_lookup = pd.concat(atr_lookup)
-    results_df = results_df.merge(
-        atr_lookup, on=[
-            "symbol", "entry_date"], how="left")
+    results_df = results_df.merge(atr_lookup, on=["symbol", "entry_date"], how="left")
 
     results_df["risk_per_share"] = 3 * results_df["ATR10"]
-    results_df["r_multiple"] = results_df["pnl"] / \
-        (results_df["shares"] * results_df["risk_per_share"])
-    r_values = results_df["r_multiple"].replace(
-        [np.inf, -np.inf], pd.NA).dropna()
+    results_df["r_multiple"] = results_df["pnl"] / (
+        results_df["shares"] * results_df["risk_per_share"]
+    )
+    r_values = results_df["r_multiple"].replace([np.inf, -np.inf], pd.NA).dropna()
     r_values = r_values[(r_values > -5) & (r_values < 20)]
 
     st.subheader("📊 R倍率ヒストグラム（-5R～+5R）")
@@ -225,20 +225,29 @@ def main_process(use_auto, capital, symbols_input):
     st.pyplot(plt)
 
     # 年次・月次・週次サマリー
-    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))[
-        "pnl"].sum().reset_index()
+    yearly = (
+        results_df.groupby(results_df["exit_date"].dt.to_period("Y"))["pnl"]
+        .sum()
+        .reset_index()
+    )
     yearly["exit_date"] = yearly["exit_date"].astype(str)
     st.subheader("📅 年次サマリー")
     st.dataframe(yearly)
 
-    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))[
-        "pnl"].sum().reset_index()
+    monthly = (
+        results_df.groupby(results_df["exit_date"].dt.to_period("M"))["pnl"]
+        .sum()
+        .reset_index()
+    )
     monthly["exit_date"] = monthly["exit_date"].astype(str)
     st.subheader("📅 月次サマリー")
     st.dataframe(monthly)
 
-    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))[
-        "pnl"].sum().reset_index()
+    weekly = (
+        results_df.groupby(results_df["exit_date"].dt.to_period("W"))["pnl"]
+        .sum()
+        .reset_index()
+    )
     weekly["exit_date"] = weekly["exit_date"].astype(str)
     st.subheader("📆 週次サマリー")
     st.dataframe(weekly)
@@ -254,8 +263,10 @@ def main_process(use_auto, capital, symbols_input):
     save_dir = "results_csv"
     os.makedirs(save_dir, exist_ok=True)
     save_file = os.path.join(
-        save_dir, f"system2_{today_str}_{
-            int(capital)}.csv")
+        save_dir,
+        f"system2_{today_str}_{
+            int(capital)}.csv",
+    )
     results_df.to_csv(save_file, index=False)
     st.write(f"📂 売買ログを自動保存: {save_file}")
 
@@ -264,8 +275,10 @@ def main_process(use_auto, capital, symbols_input):
         signal_dir = os.path.join(save_dir, "signals")
         os.makedirs(signal_dir, exist_ok=True)
         signal_path = os.path.join(
-            signal_dir, f"system2_signals_{today_str}_{
-                int(capital)}.csv")
+            signal_dir,
+            f"system2_signals_{today_str}_{
+                int(capital)}.csv",
+        )
         summary_df.to_csv(signal_path, index=False)
         st.write(f"✅ signal件数も保存済み: {signal_path}")
 
@@ -293,19 +306,19 @@ def main_process(use_auto, capital, symbols_input):
 # ===============================
 # 通常モード
 # ===============================
-use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system2_auto_main")
+use_auto = st.checkbox(
+    "自動ティッカー取得（全銘柄）", value=True, key="system2_auto_main"
+)
 capital = st.number_input(
-    "総資金（USD）",
-    min_value=1000,
-    value=1000,
-    step=100,
-    key="system2_capital_main")
+    "総資金（USD）", min_value=1000, value=1000, step=100, key="system2_capital_main"
+)
 symbols_input = None
 if not use_auto:
     symbols_input = st.text_input(
         "ティッカーをカンマ区切りで入力",
         "AAPL,MSFT,TSLA,NVDA,META",
-        key="system2_symbols_main")
+        key="system2_symbols_main",
+    )
 
 if st.button("バックテスト実行", key="system2_run_main"):
     main_process(use_auto, capital, symbols_input)
@@ -317,21 +330,18 @@ if st.button("バックテスト実行", key="system2_run_main"):
 def run_tab():
     st.header("System2：ショート RSIスラスト")
     use_auto = st.checkbox(
-        "自動ティッカー取得（全銘柄）",
-        value=True,
-        key="system2_auto_tab")
+        "自動ティッカー取得（全銘柄）", value=True, key="system2_auto_tab"
+    )
     capital = st.number_input(
-        "総資金（USD）",
-        min_value=1000,
-        value=1000,
-        step=100,
-        key="system2_capital_tab")
+        "総資金（USD）", min_value=1000, value=1000, step=100, key="system2_capital_tab"
+    )
     symbols_input = None
     if not use_auto:
         symbols_input = st.text_input(
             "ティッカーをカンマ区切りで入力",
             "AAPL,MSFT,TSLA,NVDA,META",
-            key="system2_symbols_tab")
+            key="system2_symbols_tab",
+        )
 
     if st.button("バックテスト実行", key="system2_run_tab"):
         main_process(use_auto, capital, symbols_input)

@@ -18,24 +18,21 @@ class System2Strategy:
     """
 
     def prepare_data(
-            self,
-            raw_data_dict,
-            progress_callback=None,
-            log_callback=None,
-            batch_size=50):
+        self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
+    ):
         total_symbols = len(raw_data_dict)
         processed = 0
         start_time = time.time()
         symbol_buffer = []
         result_dict = {}
-        skipped_count = 0   # 追加: スキップ件数カウント
+        skipped_count = 0  # 追加: スキップ件数カウント
 
         for sym, df in raw_data_dict.items():
             df = df.copy()
 
             # --- データ不足チェック ---
             if len(df) < 20:
-                skipped_count += 1   # ログは残さずカウントだけ
+                skipped_count += 1  # ログは残さずカウントだけ
                 processed += 1
                 continue
 
@@ -43,23 +40,24 @@ class System2Strategy:
                 # --- インジケーター計算 ---
                 df["RSI3"] = RSIIndicator(df["Close"], window=3).rsi()
                 df["ADX7"] = ADXIndicator(
-                    df["High"], df["Low"], df["Close"], window=7).adx()
+                    df["High"], df["Low"], df["Close"], window=7
+                ).adx()
                 df["ATR10"] = AverageTrueRange(
-                    df["High"], df["Low"], df["Close"], window=10).average_true_range()
+                    df["High"], df["Low"], df["Close"], window=10
+                ).average_true_range()
             except Exception:
-                skipped_count += 1   # 計算失敗もスキップ扱い
+                skipped_count += 1  # 計算失敗もスキップ扱い
                 processed += 1
                 continue
 
             # --- その他の指標 ---
             df["DollarVolume20"] = (
-                df["Close"] *
-                df["Volume"]).rolling(
-                window=20).mean()
+                (df["Close"] * df["Volume"]).rolling(window=20).mean()
+            )
             df["ATR_Ratio"] = df["ATR10"] / df["Close"]
-            df["TwoDayUp"] = (
-                df["Close"] > df["Close"].shift(1)) & (
-                df["Close"].shift(1) > df["Close"].shift(2))
+            df["TwoDayUp"] = (df["Close"] > df["Close"].shift(1)) & (
+                df["Close"].shift(1) > df["Close"].shift(2)
+            )
 
             # --- セットアップ条件 ---
             df["setup"] = (
@@ -78,8 +76,9 @@ class System2Strategy:
             if progress_callback:
                 progress_callback(processed, total_symbols)
 
-            if (processed % batch_size == 0 or processed ==
-                    total_symbols) and log_callback:
+            if (
+                processed % batch_size == 0 or processed == total_symbols
+            ) and log_callback:
                 elapsed = time.time() - start_time
                 remaining = (elapsed / processed) * (total_symbols - processed)
                 elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
@@ -94,7 +93,9 @@ class System2Strategy:
 
         # --- 最後にスキップ件数をまとめて表示 ---
         if skipped_count > 0 and log_callback:
-            log_callback(f"⚠️ データ不足・計算失敗でスキップされた銘柄: {skipped_count} 件")
+            log_callback(
+                f"⚠️ データ不足・計算失敗でスキップされた銘柄: {skipped_count} 件"
+            )
 
         return result_dict
 
@@ -122,12 +123,8 @@ class System2Strategy:
         return candidates_by_date
 
     def run_backtest(
-            self,
-            data_dict,
-            candidates_by_date,
-            capital,
-            on_progress=None,
-            on_log=None):
+        self, data_dict, candidates_by_date, capital, on_progress=None, on_log=None
+    ):
         risk_per_trade = 0.02 * capital
         max_position_value = 0.10 * capital
         results = []
@@ -137,7 +134,8 @@ class System2Strategy:
         start_time = time.time()
 
         for i, (date, candidates) in enumerate(
-                sorted(candidates_by_date.items()), start=1):
+            sorted(candidates_by_date.items()), start=1
+        ):
             # --- コールバックで進捗通知 ---
             if on_progress:
                 on_progress(i, total_days, start_time)
@@ -145,8 +143,7 @@ class System2Strategy:
                 on_log(i, total_days, start_time)
 
             # 保有中リスト更新
-            active_positions = [
-                p for p in active_positions if p["exit_date"] >= date]
+            active_positions = [p for p in active_positions if p["exit_date"] >= date]
             available_slots = 10 - len(active_positions)
             if available_slots <= 0:
                 continue
@@ -172,8 +169,10 @@ class System2Strategy:
 
                 atr = df.iloc[entry_idx - 1]["ATR10"]
                 stop_price = entry_price + 3 * atr
-                shares = min(risk_per_trade / (stop_price - entry_price),
-                             max_position_value / entry_price)
+                shares = min(
+                    risk_per_trade / (stop_price - entry_price),
+                    max_position_value / entry_price,
+                )
                 shares = int(shares)
                 if shares <= 0:
                     continue
@@ -199,34 +198,45 @@ class System2Strategy:
                     # 利食い（4%以上利益）
                     gain = (entry_price - close) / entry_price
                     if gain >= 0.04:
-                        exit_date = df.index[idx2 + 1] if idx2 + \
-                            1 < len(df) else df.index[idx2]
-                        exit_price = df.loc[exit_date]["Open"] if exit_date in df.index else close
+                        exit_date = (
+                            df.index[idx2 + 1] if idx2 + 1 < len(df) else df.index[idx2]
+                        )
+                        exit_price = (
+                            df.loc[exit_date]["Open"]
+                            if exit_date in df.index
+                            else close
+                        )
                         break
                 else:
                     # 2日後未達なら翌日決済
                     idx2 = entry_idx + 2
                     if idx2 < len(df):
-                        exit_date = df.index[idx2 + 1] if idx2 + \
-                            1 < len(df) else df.index[idx2]
-                        exit_price = df.loc[exit_date]["Open"] if exit_date in df.index else df.iloc[idx2]["Close"]
+                        exit_date = (
+                            df.index[idx2 + 1] if idx2 + 1 < len(df) else df.index[idx2]
+                        )
+                        exit_price = (
+                            df.loc[exit_date]["Open"]
+                            if exit_date in df.index
+                            else df.iloc[idx2]["Close"]
+                        )
 
                 if exit_price is None or exit_date is None:
                     continue
 
                 pnl = (entry_price - exit_price) * shares
-                results.append({
-                    "symbol": c["symbol"],
-                    "entry_date": entry_date,
-                    "exit_date": exit_date,
-                    "entry_price": round(entry_price, 2),
-                    "exit_price": round(exit_price, 2),
-                    "shares": shares,
-                    "pnl": round(pnl, 2),
-                    "return_%": round((pnl / capital) * 100, 2)
-                })
+                results.append(
+                    {
+                        "symbol": c["symbol"],
+                        "entry_date": entry_date,
+                        "exit_date": exit_date,
+                        "entry_price": round(entry_price, 2),
+                        "exit_price": round(exit_price, 2),
+                        "shares": shares,
+                        "pnl": round(pnl, 2),
+                        "return_%": round((pnl / capital) * 100, 2),
+                    }
+                )
 
-                active_positions.append(
-                    {"symbol": c["symbol"], "exit_date": exit_date})
+                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
 
         return pd.DataFrame(results)

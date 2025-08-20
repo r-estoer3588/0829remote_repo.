@@ -1,4 +1,3 @@
-
 import os
 import time
 import pandas as pd
@@ -32,13 +31,12 @@ def append_to_cache(df, output_dir="data_cache"):
             "Low": row["low"],
             "Close": row["close"],
             "AdjClose": row["adjusted_close"],
-            "Volume": row["volume"]
+            "Volume": row["volume"],
         }
         new_df = pd.DataFrame([new_row]).set_index("Date")
         if os.path.exists(path):
             try:
-                existing = pd.read_csv(
-                    path, parse_dates=["Date"]).set_index("Date")
+                existing = pd.read_csv(path, parse_dates=["Date"]).set_index("Date")
                 if new_row["Date"] not in existing.index:
                     updated = pd.concat([existing, new_df]).sort_index()
                     updated.to_csv(path)

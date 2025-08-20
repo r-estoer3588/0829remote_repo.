@@ -5,9 +5,28 @@ from datetime import datetime
 
 # Windows予約語（safe_filename用）
 RESERVED_WORDS = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
 }
 
 
@@ -20,9 +39,7 @@ def safe_filename(symbol: str) -> str:
     return symbol
 
 
-def clean_date_column(
-        df: pd.DataFrame,
-        col_name: str = "Date") -> pd.DataFrame:
+def clean_date_column(df: pd.DataFrame, col_name: str = "Date") -> pd.DataFrame:
     """
     指定されたDate列を正規化（datetime化・昇順ソート）して返す
     """

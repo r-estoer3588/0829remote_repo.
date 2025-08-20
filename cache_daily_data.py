@@ -16,21 +16,14 @@ FAILED_LIST = "eodhd_failed_symbols.csv"
 
 def load_failed_symbols():
     if os.path.exists(FAILED_LIST):
-        return set(
-            pd.read_csv(
-                FAILED_LIST,
-                header=None)[0].astype(str).str.upper())
+        return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
     return set()
 
 
 def save_failed_symbols(new_failed):
     old_failed = load_failed_symbols()
     updated_failed = old_failed | set([s.upper() for s in new_failed])
-    pd.Series(
-        list(updated_failed)).to_csv(
-        FAILED_LIST,
-        index=False,
-        header=False)
+    pd.Series(list(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
 
 
 # .envからAPIキーを読み込み（相対的なパス）
@@ -42,14 +35,14 @@ logging.basicConfig(
     filename="cache_log.txt",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
 def get_all_symbols():
     urls = [
         "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
-        "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+        "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
     ]
     symbols = set()
     for url in urls:
@@ -91,15 +84,17 @@ def get_eodhd_data(symbol):
             return None
         df = pd.DataFrame(data)
         df["date"] = pd.to_datetime(df["date"])
-        df = df.rename(columns={
-            "date": "Date",
-            "open": "Open",
-            "high": "High",
-            "low": "Low",
-            "close": "Close",
-            "adjusted_close": "AdjClose",
-            "volume": "Volume"
-        })
+        df = df.rename(
+            columns={
+                "date": "Date",
+                "open": "Open",
+                "high": "High",
+                "low": "Low",
+                "close": "Close",
+                "adjusted_close": "AdjClose",
+                "volume": "Volume",
+            }
+        )
         df.set_index("Date", inplace=True)
         df = df.sort_index()
         return df
@@ -109,9 +104,28 @@ def get_eodhd_data(symbol):
 
 
 RESERVED_WORDS = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
 }
 
 
@@ -167,7 +181,8 @@ def cache_data(symbols, output_dir="data_cache", max_workers=5):
     api_count = sum(1 for _, _, used_api in results_list if used_api)
     print(
         f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {
-            len(failed)}件")
+            len(failed)}件"
+    )
 
 
 if __name__ == "__main__":

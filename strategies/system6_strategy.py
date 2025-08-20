@@ -12,8 +12,14 @@ class System6Strategy:
     # ===============================
     # インジケーター計算
     # ===============================
-    def prepare_data(self, raw_data_dict, progress_callback=None,
-                     log_callback=None, skip_callback=None, batch_size=50):
+    def prepare_data(
+        self,
+        raw_data_dict,
+        progress_callback=None,
+        log_callback=None,
+        skip_callback=None,
+        batch_size=50,
+    ):
         result_dict = {}
         total = len(raw_data_dict)
         start_time = time.time()
@@ -30,21 +36,20 @@ class System6Strategy:
             try:
                 # ---- インジケーター計算 ----
                 df["ATR10"] = AverageTrueRange(
-                    df["High"], df["Low"], df["Close"], window=10).average_true_range()
-                df["DollarVolume50"] = (
-                    df["Close"] * df["Volume"]).rolling(50).mean()
+                    df["High"], df["Low"], df["Close"], window=10
+                ).average_true_range()
+                df["DollarVolume50"] = (df["Close"] * df["Volume"]).rolling(50).mean()
                 df["Return6D"] = df["Close"].pct_change(6)
-                df["UpTwoDays"] = (
-                    (df["Close"] > df["Close"].shift(1)) &
-                    (df["Close"].shift(1) > df["Close"].shift(2))
+                df["UpTwoDays"] = (df["Close"] > df["Close"].shift(1)) & (
+                    df["Close"].shift(1) > df["Close"].shift(2)
                 )
 
                 # ---- セットアップ条件 ----
                 df["setup"] = (
-                    (df["Close"] > 5) &
-                    (df["DollarVolume50"] > 10_000_000) &
-                    (df["Return6D"] > 0.20) &
-                    (df["UpTwoDays"])
+                    (df["Close"] > 5)
+                    & (df["DollarVolume50"] > 10_000_000)
+                    & (df["Return6D"] > 0.20)
+                    & (df["UpTwoDays"])
                 ).astype(int)
 
                 result_dict[sym] = df
@@ -57,15 +62,15 @@ class System6Strategy:
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed %
-                    batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total) and log_callback:
                 log_progress(
                     processed,
                     total,
                     start_time,
                     buffer,
                     "📊 インジケーター計算",
-                    log_callback)
+                    log_callback,
+                )
                 buffer.clear()
 
         if skipped > 0:
@@ -81,12 +86,13 @@ class System6Strategy:
     # 候補銘柄抽出
     # ===============================
     def generate_candidates(
-            self,
-            prepared_dict,
-            progress_callback=None,
-            log_callback=None,
-            skip_callback=None,
-            batch_size=50):
+        self,
+        prepared_dict,
+        progress_callback=None,
+        log_callback=None,
+        skip_callback=None,
+        batch_size=50,
+    ):
         candidates_by_date = {}
         total = len(prepared_dict)
         start_time = time.time()
@@ -115,22 +121,21 @@ class System6Strategy:
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed %
-                    batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total) and log_callback:
                 log_progress(
                     processed,
                     total,
                     start_time,
                     buffer,
                     "📊 セットアップ抽出",
-                    log_callback)
+                    log_callback,
+                )
                 buffer.clear()
 
         for date in candidates_by_date:
             candidates_by_date[date] = sorted(
-                candidates_by_date[date],
-                key=lambda x: x["Return6D"],
-                reverse=True)
+                candidates_by_date[date], key=lambda x: x["Return6D"], reverse=True
+            )
 
         if skipped > 0:
             msg = f"⚠️ 候補抽出中にスキップ: {skipped} 件"
@@ -144,8 +149,9 @@ class System6Strategy:
     # ===============================
     # バックテスト実行
     # ===============================
-    def run_backtest(self, prepared_dict, candidates_by_date, capital,
-                     on_progress=None, on_log=None):
+    def run_backtest(
+        self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
+    ):
         risk_per_trade = 0.02 * capital
         max_pos_value = 0.10 * capital
 
@@ -153,15 +159,13 @@ class System6Strategy:
         total_days = len(candidates_by_date)
         start_time = time.time()
 
-        for i, (date, candidates) in enumerate(
-                sorted(candidates_by_date.items()), 1):
+        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
             if on_progress:
                 on_progress(i, total_days, start_time)
             if on_log and (i % 20 == 0 or i == total_days):
                 on_log(i, total_days, start_time)
 
-            active_positions = [
-                p for p in active_positions if p["exit_date"] >= date]
+            active_positions = [p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
                 continue
@@ -182,7 +186,7 @@ class System6Strategy:
 
                 shares = min(
                     risk_per_trade / max(stop_price - entry_price, 1e-6),
-                    max_pos_value / entry_price
+                    max_pos_value / entry_price,
                 )
                 shares = int(shares)
                 if shares <= 0:
@@ -202,7 +206,8 @@ class System6Strategy:
                         exit_date = df.index[min(idx2 + 1, len(df) - 1)]
                         if "Open" in df.columns:
                             exit_price = df.loc[exit_date].get(
-                                "Open", df.loc[exit_date]["Close"])
+                                "Open", df.loc[exit_date]["Close"]
+                            )
                         else:
                             exit_price = df.loc[exit_date]["Close"]
                         break
@@ -212,8 +217,7 @@ class System6Strategy:
                     idx2 = min(entry_idx + 3, len(df) - 1)
                     exit_date = df.index[idx2]
                     if "Open" in df.columns:
-                        exit_price = df.iloc[idx2].get(
-                            "Open", df.iloc[idx2]["Close"])
+                        exit_price = df.iloc[idx2].get("Open", df.iloc[idx2]["Close"])
                     else:
                         exit_price = df.iloc[idx2]["Close"]
 
@@ -224,17 +228,18 @@ class System6Strategy:
                 pnl = (entry_price - exit_price) * shares
                 return_pct = pnl / capital * 100
 
-                results.append({
-                    "symbol": c["symbol"],
-                    "entry_date": entry_date,
-                    "exit_date": exit_date,
-                    "entry_price": entry_price,
-                    "exit_price": round(exit_price, 2),
-                    "shares": shares,
-                    "pnl": round(pnl, 2),
-                    "return_%": round(return_pct, 2)
-                })
-                active_positions.append(
-                    {"symbol": c["symbol"], "exit_date": exit_date})
+                results.append(
+                    {
+                        "symbol": c["symbol"],
+                        "entry_date": entry_date,
+                        "exit_date": exit_date,
+                        "entry_price": entry_price,
+                        "exit_price": round(exit_price, 2),
+                        "shares": shares,
+                        "pnl": round(pnl, 2),
+                        "return_%": round(return_pct, 2),
+                    }
+                )
+                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
 
         return pd.DataFrame(results)
