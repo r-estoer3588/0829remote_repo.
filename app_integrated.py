@@ -27,7 +27,9 @@ from cache_daily_data import get_cached_data
 st.title("📊 統合バックテスト&実運用：System1〜7")
 
 # --- 表示モード選択 ---
-display_mode = st.radio("表示モード", ["戦略別テスト", "一括実行"], key="display_mode_selector")
+display_mode = st.radio(
+    "表示モード", [
+        "戦略別テスト", "一括実行"], key="display_mode_selector")
 
 # =========================================================
 # 戦略別テストモード
@@ -78,57 +80,75 @@ if display_mode == "一括実行":
 
         # --- System1 ---
         s1 = System1Strategy()
-        prepared = s1.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s1.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates, _ = s1.generate_candidates(prepared, spy_df)
-        df1 = s1.run_backtest(prepared, candidates, capital,
-                              on_progress=lambda d, t, stt: progress.progress((sys_done + d/t)/total_systems))
+        df1 = s1.run_backtest(
+            prepared,
+            candidates,
+            capital,
+            on_progress=lambda d,
+            t,
+            stt: progress.progress(
+                (sys_done + d / t) / total_systems))
         all_results.append(df1)
         sys_done += 1
 
         # --- System2 ---
         s2 = System2Strategy()
-        prepared = s2.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s2.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates = s2.generate_candidates(prepared)
         df2 = s2.run_backtest(prepared, candidates, capital)
         all_results.append(df2)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- System3 ---
         s3 = System3Strategy()
-        prepared = s3.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s3.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates = s3.generate_candidates(prepared)
         df3 = s3.run_backtest(prepared, candidates, capital)
         all_results.append(df3)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- System4 ---
         s4 = System4Strategy()
-        prepared = s4.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s4.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates = s4.generate_candidates(prepared)
         df4 = s4.run_backtest(prepared, candidates, capital)
         all_results.append(df4)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- System5 ---
         s5 = System5Strategy()
-        prepared = s5.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s5.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates = s5.generate_candidates(prepared)
         df5 = s5.run_backtest(prepared, candidates, capital)
         all_results.append(df5)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- System6 ---
         s6 = System6Strategy()
-        prepared = s6.prepare_data(raw_data_dict, log_callback=lambda m: log_area.text(m))
+        prepared = s6.prepare_data(
+            raw_data_dict,
+            log_callback=lambda m: log_area.text(m))
         candidates = s6.generate_candidates(prepared)
         df6 = s6.run_backtest(prepared, candidates, capital)
         all_results.append(df6)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- System7 ---
         s7 = System7Strategy()
@@ -137,7 +157,7 @@ if display_mode == "一括実行":
         df7 = s7.run_backtest(prepared, candidates, capital)
         all_results.append(df7)
         sys_done += 1
-        progress.progress(sys_done/total_systems)
+        progress.progress(sys_done / total_systems)
 
         # --- 結果まとめ ---
         final_df = pd.concat(all_results, ignore_index=True)

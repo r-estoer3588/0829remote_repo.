@@ -4,12 +4,18 @@ import time
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 
+
 class System3Strategy:
     """
     System3: ロング・ミーン・リバージョン・セルオフ
     """
 
-    def prepare_data(self, data_dict, progress_callback=None, log_callback=None, batch_size=50):
+    def prepare_data(
+            self,
+            data_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         result_dict = {}
         total = len(data_dict)
         start_time = time.time()
@@ -27,8 +33,10 @@ class System3Strategy:
                 continue
 
             try:
-                df["SMA150"] = SMAIndicator(df["Close"], window=150).sma_indicator()
-                df["ATR10"] = AverageTrueRange(df["High"], df["Low"], df["Close"], window=10).average_true_range()
+                df["SMA150"] = SMAIndicator(
+                    df["Close"], window=150).sma_indicator()
+                df["ATR10"] = AverageTrueRange(
+                    df["High"], df["Low"], df["Close"], window=10).average_true_range()
                 df["Return_3D"] = df["Close"].pct_change(3)
                 df["AvgVolume50"] = df["Volume"].rolling(50).mean()
                 df["ATR_Ratio"] = df["ATR10"] / df["Close"]
@@ -53,13 +61,14 @@ class System3Strategy:
             # ---- 進捗ログ ----
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed)
                 log_callback(
                     f"📊 指標計算: {processed}/{total} 件 完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
+                    f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                    f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒\n"
                     f"銘柄: {', '.join(symbol_buffer)}"
                 )
                 symbol_buffer.clear()
@@ -74,8 +83,12 @@ class System3Strategy:
 
         return result_dict
 
-    def generate_candidates(self, prepared_dict,
-                            progress_callback=None, log_callback=None, batch_size=50):
+    def generate_candidates(
+            self,
+            prepared_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         """
         Setup銘柄を抽出し、日別に Return_3D 昇順でランキング
         """
@@ -105,13 +118,15 @@ class System3Strategy:
             # ---- 進捗更新 ----
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
-                remain = (elapsed / processed) * (total - processed) if processed else 0
+                remain = (elapsed / processed) * \
+                    (total - processed) if processed else 0
                 log_callback(
                     f"📊 セットアップ通過銘柄抽出中: {processed}/{total} 件 完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
+                    f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                    f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒\n"
                     f"銘柄: {', '.join(symbol_buffer)}"
                 )
                 symbol_buffer.clear()
@@ -125,7 +140,7 @@ class System3Strategy:
         return candidates_by_date
 
     def run_backtest(self, prepared_dict, candidates_by_date, capital,
-                    on_progress=None, on_log=None):
+                     on_progress=None, on_log=None):
         """
         System3 バックテスト
         - 前日終値の7%下で指値
@@ -142,14 +157,16 @@ class System3Strategy:
         total_days = len(candidates_by_date)
         start_time = time.time()
 
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
+        for i, (date, candidates) in enumerate(
+                sorted(candidates_by_date.items()), 1):
             if on_progress:
                 on_progress(i, total_days, start_time)
             if on_log and (i % 20 == 0 or i == total_days):
                 on_log(i, total_days, start_time)
 
             # ---- 保有銘柄更新 ----
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
+            active_positions = [
+                p for p in active_positions if p["exit_date"] >= date]
             available_slots = 10 - len(active_positions)
             if available_slots <= 0:
                 continue
@@ -190,7 +207,8 @@ class System3Strategy:
                     future_close = df.iloc[entry_idx + offset]["Close"]
                     gain = (future_close - entry_price) / entry_price
                     if gain >= 0.04:  # 利確
-                        exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
+                        exit_date = df.index[min(
+                            entry_idx + offset + 1, len(df) - 1)]
                         exit_price = df.loc[exit_date, "Close"]
                         break
                 else:

@@ -5,6 +5,7 @@ from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from ta.momentum import ROCIndicator
 
+
 def prepare_data_vectorized_system1(
     raw_data_dict,
     reuse_indicators=True,
@@ -29,7 +30,8 @@ def prepare_data_vectorized_system1(
     for sym, df in raw_data_dict.items():
         required_cols = ["SMA25", "SMA50", "ROC200", "ATR20", "DollarVolume20"]
 
-        if reuse_indicators and all(col in df.columns for col in required_cols):
+        if reuse_indicators and all(
+                col in df.columns for col in required_cols):
             if not df[required_cols].isnull().any().any():
                 result_dict[sym] = df
                 symbol_buffer.append(sym)
@@ -71,7 +73,8 @@ def prepare_data_vectorized_system1(
                 pass
 
         # バッチごとにログ更新
-        if (processed % batch_size == 0 or processed == total_symbols) and log_callback:
+        if (processed % batch_size == 0 or processed ==
+                total_symbols) and log_callback:
             elapsed = time.time() - start_time
             remaining = (elapsed / processed) * (total_symbols - processed)
             elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
@@ -88,6 +91,7 @@ def prepare_data_vectorized_system1(
             symbol_buffer.clear()
 
     return result_dict
+
 
 def get_total_days_system1(data_dict):
     """
@@ -114,7 +118,10 @@ def get_total_days_system1(data_dict):
     return len(sorted(all_dates))
 
 
-def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwargs):
+def generate_roc200_ranking_system1(
+        data_dict: dict,
+        spy_df: pd.DataFrame,
+        **kwargs):
     """
     ROC200ランキングとSPYフィルター通過銘柄を日別に返す（バックテストは行わない）
     """
@@ -134,14 +141,19 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
 
     # SPYフィルター
     spy_df = spy_df.copy()
-    spy_df["SMA100"] = SMAIndicator(spy_df["Close"], window=100).sma_indicator()
-    spy_df = spy_df[["Close", "SMA100"]].reset_index().rename(columns={"Date": "date"})
+    spy_df["SMA100"] = SMAIndicator(
+        spy_df["Close"], window=100).sma_indicator()
+    spy_df = spy_df[["Close", "SMA100"]].reset_index().rename(columns={
+        "Date": "date"})
 
     merged = pd.merge_asof(
         all_signals_df.sort_values("Date"),
-        spy_df.rename(columns={"Close": "Close_SPY", "SMA100": "SMA100_SPY"}).sort_values("date"),
-        left_on="Date", right_on="date"
-    )
+        spy_df.rename(
+            columns={
+                "Close": "Close_SPY",
+                "SMA100": "SMA100_SPY"}).sort_values("date"),
+        left_on="Date",
+        right_on="date")
     merged = merged[merged["Close_SPY"] > merged["SMA100_SPY"]].copy()
 
     merged["entry_date_norm"] = merged["entry_date"].dt.normalize()
@@ -152,7 +164,12 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
 
     return candidates_by_date, merged
 
-def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, capital: float, **kwargs):
+
+def execute_backtest_from_candidates(
+        data_dict: dict,
+        candidates_by_date: dict,
+        capital: float,
+        **kwargs):
     """
     ROC200ランキング済みの candidates_by_date を受け取り、バックテストを実行
     """
@@ -163,7 +180,8 @@ def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, 
     total_days = len(candidates_by_date)
     start_time = time.time()
 
-    for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
+    for i, (date, candidates) in enumerate(
+            sorted(candidates_by_date.items()), start=1):
         if kwargs.get("progress_bar"):
             kwargs["progress_bar"].progress(i / total_days)
         if kwargs.get("log_area") and (i % 10 == 0 or i == total_days):
@@ -171,10 +189,11 @@ def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, 
             remain = elapsed / i * (total_days - i)
             kwargs["log_area"].text(
                 f"💹 バックテスト: {i}/{total_days} 日処理完了"
-                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
 
-        active_positions = [p for p in active_positions if p["exit_date"] >= date]
+        active_positions = [
+            p for p in active_positions if p["exit_date"] >= date]
         available_slots = 10 - len(active_positions)
         if available_slots <= 0:
             continue
@@ -211,7 +230,8 @@ def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, 
                     exit_date = df.index[j]
                     break
 
-            shares = min(risk_per_trade / max(atr, 1e-6), max_position_size / entry_price)
+            shares = min(risk_per_trade / max(atr, 1e-6),
+                         max_position_size / entry_price)
             pnl = (exit_price - entry_price) * shares
             results.append({
                 "symbol": c["symbol"],
@@ -223,8 +243,9 @@ def execute_backtest_from_candidates(data_dict: dict, candidates_by_date: dict, 
                 "pnl": round(pnl, 2),
                 "return_%": round((pnl / capital) * 100, 2)
             })
-            active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
+            active_positions.append(
+                {"symbol": c["symbol"], "exit_date": exit_date})
 
-    #0817デバッグ用
-    #print("DEBUG: first result sample", results[0] if results else "EMPTY")
+    # 0817デバッグ用
+    # print("DEBUG: first result sample", results[0] if results else "EMPTY")
     return results

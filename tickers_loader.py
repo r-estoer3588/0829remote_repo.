@@ -10,13 +10,19 @@ import os
 
 FAILED_LIST = "eodhd_failed_symbols.csv"
 
+
 def load_failed_symbols():
     if os.path.exists(FAILED_LIST):
         # CSVの1列目のみをリスト化（headerなしの場合はheader=None指定）
-        return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
+        return set(
+            pd.read_csv(
+                FAILED_LIST,
+                header=None)[0].astype(str).str.upper())
     return set()
 
 # 日次キャッシュ（24時間）
+
+
 @st.cache_data(ttl=86400)
 def get_all_tickers():
     nasdaq_url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqlisted.txt"
@@ -50,7 +56,6 @@ def get_all_tickers():
     return symbols_filtered
 
 
-
 # System1用のフィルター関数（例）
 def filter_symbols_by_system1(data_dict):
     result = {}
@@ -82,7 +87,18 @@ def filter_symbols_by_system1(data_dict):
         volume_ok = latest.get("DollarVolume20", 0) > 50_000_000
         trend_ok = latest.get("SMA25", 0) > latest.get("SMA50", 0)
         if debug_mode:
-            st.write(f"{symbol}: Close={latest['Close']:.2f} ({close_ok}), Volume={latest.get('DollarVolume20', 0):.0f} ({volume_ok}), Trend={latest.get('SMA25', 0):.2f}>{latest.get('SMA50', 0):.2f} ({trend_ok})")
+            st.write(
+                f"{symbol}: Close={
+                    latest['Close']:.2f} ({close_ok}), Volume={
+                    latest.get(
+                        'DollarVolume20',
+                        0):.0f} ({volume_ok}), Trend={
+                    latest.get(
+                        'SMA25',
+                        0):.2f}>{
+                            latest.get(
+                                'SMA50',
+                                0):.2f} ({trend_ok})")
 
         if close_ok and volume_ok and trend_ok:
             result[symbol] = df
@@ -94,13 +110,18 @@ def filter_symbols_by_system1(data_dict):
             avg_time = elapsed / i
             remaining = avg_time * (total - i)
             mins, secs = divmod(remaining, 60)
-            st.write(f"進捗: {i}/{total} | 経過時間: {elapsed:.1f}秒 | 推定残り: {int(mins)}分{int(secs)}秒")
+            st.write(
+                f"進捗: {i}/{total} | 経過時間: {elapsed:.1f}秒 | 推定残り: {int(mins)}分{int(secs)}秒")
             last_log_time = current_time
 
     total_elapsed = time.time() - start_time
-    st.write(f"✅ フィルター処理完了：{total}件中 {len(result)}件通過 | 総処理時間: {total_elapsed:.1f}秒")
+    st.write(
+        f"✅ フィルター処理完了：{total}件中 {
+            len(result)}件通過 | 総処理時間: {
+            total_elapsed:.1f}秒")
 
     return result
+
 
 # テスト実行用
 if __name__ == "__main__":

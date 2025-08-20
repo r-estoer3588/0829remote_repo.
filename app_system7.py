@@ -1,17 +1,17 @@
+from common.performance_summary import summarize_results
+from strategies.system7_strategy import System7Strategy
+from tickers_loader import get_all_tickers
+from common.utils import safe_filename, get_cached_data
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+import os
+import pandas as pd
+import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 # 日本語フォントを設定（WindowsならMS GothicやMeiryoが確実）
 plt.rcParams['font.family'] = 'Meiryo'
 
-import streamlit as st
-import pandas as pd
-import os
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from common.utils import safe_filename, get_cached_data
-from tickers_loader import get_all_tickers
-from strategies.system7_strategy import System7Strategy
-from common.performance_summary import summarize_results
 
 # ===============================
 # 戦略インスタンス
@@ -30,6 +30,8 @@ st.title("システム7：ショート・カタストロフィーヘッジ（SPY
 # ===============================
 # バックテスト処理本体
 # ===============================
+
+
 def main_process(use_auto, capital, symbols_input, single_mode=False):
     # ---- 1. ティッカー取得 ----
     if use_auto:
@@ -90,10 +92,11 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
 
     prepared_dict = strategy.prepare_data(
         data_dict,
-        progress_callback=lambda done, total: ind_progress.progress(done / total),
+        progress_callback=lambda done,
+        total: ind_progress.progress(
+            done / total),
         log_callback=lambda msg: ind_log.text(msg),
-        skip_callback=lambda msg: ind_skip.warning(msg)
-    )
+        skip_callback=lambda msg: ind_skip.warning(msg))
     ind_progress.empty()
 
     # ---- デバッグ確認 ----
@@ -102,7 +105,7 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
     #     st.dataframe(df.loc["2020-02-01":"2020-03-31", ["Close", "min_50", "setup"]])
     #     st.write("デバッグ: 2022年")
     #     st.dataframe(df.loc["2022-01-01":"2022-12-31", ["Close", "min_50", "setup"]])
-    
+
     # ---- 4. 候補生成 ----
     st.info("📊 セットアップ抽出中...")
     cand_progress = st.progress(0)
@@ -111,10 +114,11 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
 
     candidates_by_date = strategy.generate_candidates(
         prepared_dict,
-        progress_callback=lambda done, total: cand_progress.progress(done / total),
+        progress_callback=lambda done,
+        total: cand_progress.progress(
+            done / total),
         log_callback=lambda msg: cand_log.text(msg),
-        skip_callback=lambda msg: cand_skip.warning(msg)
-    )
+        skip_callback=lambda msg: cand_skip.warning(msg))
     cand_progress.empty()
 
     if not candidates_by_date:
@@ -134,8 +138,8 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
         remain = elapsed / i * (total - i)
         bt_log.text(
             f"💹 バックテスト: {i}/{total} 日完了"
-            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+            f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+            f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
         )
 
     results_df = strategy.run_backtest(
@@ -166,7 +170,10 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
     # ---- 累積損益グラフ ----
     st.subheader("📈 累積損益")
     plt.figure(figsize=(10, 4))
-    plt.plot(results_df["exit_date"], results_df["cumulative_pnl"], label="Cumulative PnL")
+    plt.plot(
+        results_df["exit_date"],
+        results_df["cumulative_pnl"],
+        label="Cumulative PnL")
     plt.xlabel("日付")
     plt.ylabel("PnL (USD)")
     plt.title("累積損益")
@@ -174,17 +181,20 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
     st.pyplot(plt)
 
     # ---- 年次・月次・週次サマリー ----
-    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
+    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))[
+        "pnl"].sum().reset_index()
     yearly["exit_date"] = yearly["exit_date"].astype(str)
     st.subheader("📅 年次サマリー")
     st.dataframe(yearly)
 
-    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
+    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))[
+        "pnl"].sum().reset_index()
     monthly["exit_date"] = monthly["exit_date"].astype(str)
     st.subheader("📅 月次サマリー")
     st.dataframe(monthly)
 
-    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))["pnl"].sum().reset_index()
+    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))[
+        "pnl"].sum().reset_index()
     weekly["exit_date"] = weekly["exit_date"].astype(str)
     st.subheader("📆 週次サマリー")
     st.dataframe(weekly)
@@ -193,7 +203,9 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
     today_str = pd.Timestamp.today().date().isoformat()
     save_dir = "results_csv"
     os.makedirs(save_dir, exist_ok=True)
-    save_file = os.path.join(save_dir, f"system7_{today_str}_{int(capital)}.csv")
+    save_file = os.path.join(
+        save_dir, f"system7_{today_str}_{
+            int(capital)}.csv")
     results_df.to_csv(save_file, index=False)
     st.write(f"📂 売買ログを自動保存: {save_file}")
 
@@ -215,12 +227,21 @@ def main_process(use_auto, capital, symbols_input, single_mode=False):
     progress_bar.empty()
     st.success(f"🔚 バックテスト終了 | {len(prepared_dict)} 銘柄キャッシュ保存済")
 
+
 # ===============================
 # 単独モード
 # ===============================
 use_auto = st.checkbox("自動ティッカー取得（SPY専用）", value=True, key="system7_auto_main")
-capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system7_capital_main")
-single_mode = st.checkbox("単独運用モード（資金100%使用）", value=False, key="system7_single_mode_main")
+capital = st.number_input(
+    "総資金（USD）",
+    min_value=1000,
+    value=1000,
+    step=100,
+    key="system7_capital_main")
+single_mode = st.checkbox(
+    "単独運用モード（資金100%使用）",
+    value=False,
+    key="system7_single_mode_main")
 
 if st.button("バックテスト実行", key="system7_run_main"):
     main_process(use_auto, capital, None, single_mode=single_mode)
@@ -228,11 +249,24 @@ if st.button("バックテスト実行", key="system7_run_main"):
 # ===============================
 # 統合タブモード
 # ===============================
+
+
 def run_tab():
     st.header("System7：ショート・カタストロフィーヘッジ（SPY専用）")
-    use_auto = st.checkbox("自動ティッカー取得（SPY専用）", value=True, key="system7_auto_tab")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system7_capital_tab")
-    single_mode = st.checkbox("単独運用モード（資金100%使用）", value=False, key="system7_single_mode_tab")
+    use_auto = st.checkbox(
+        "自動ティッカー取得（SPY専用）",
+        value=True,
+        key="system7_auto_tab")
+    capital = st.number_input(
+        "総資金（USD）",
+        min_value=1000,
+        value=1000,
+        step=100,
+        key="system7_capital_tab")
+    single_mode = st.checkbox(
+        "単独運用モード（資金100%使用）",
+        value=False,
+        key="system7_single_mode_tab")
 
     if st.button("バックテスト実行", key="system7_run_tab"):
         main_process(use_auto, capital, None, single_mode=single_mode)

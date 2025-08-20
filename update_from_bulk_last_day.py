@@ -9,6 +9,7 @@ from datetime import datetime
 load_dotenv()
 API_KEY = os.getenv("EODHD_API_KEY")
 
+
 def fetch_bulk_last_day():
     url = f"https://eodhistoricaldata.com/api/eod-bulk-last-day/US?api_token={API_KEY}&fmt=json"
     r = requests.get(url, timeout=30)
@@ -16,6 +17,7 @@ def fetch_bulk_last_day():
         print("Error fetching bulk data:", r.status_code)
         return None
     return pd.DataFrame(r.json())
+
 
 def append_to_cache(df, output_dir="data_cache"):
     count = 0
@@ -35,7 +37,8 @@ def append_to_cache(df, output_dir="data_cache"):
         new_df = pd.DataFrame([new_row]).set_index("Date")
         if os.path.exists(path):
             try:
-                existing = pd.read_csv(path, parse_dates=["Date"]).set_index("Date")
+                existing = pd.read_csv(
+                    path, parse_dates=["Date"]).set_index("Date")
                 if new_row["Date"] not in existing.index:
                     updated = pd.concat([existing, new_df]).sort_index()
                     updated.to_csv(path)
@@ -47,12 +50,14 @@ def append_to_cache(df, output_dir="data_cache"):
             count += 1
     print(f"✅ {count} files updated.")
 
+
 def main():
     df = fetch_bulk_last_day()
     if df is None or df.empty:
         print("No data to update.")
         return
     append_to_cache(df)
+
 
 if __name__ == "__main__":
     main()

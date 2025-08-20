@@ -10,6 +10,7 @@ RESERVED_WORDS = {
     "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
 }
 
+
 def safe_filename(symbol: str) -> str:
     """
     Windows予約語を避けたファイル名を返す
@@ -18,7 +19,10 @@ def safe_filename(symbol: str) -> str:
         return symbol + "_RESV"
     return symbol
 
-def clean_date_column(df: pd.DataFrame, col_name: str = "Date") -> pd.DataFrame:
+
+def clean_date_column(
+        df: pd.DataFrame,
+        col_name: str = "Date") -> pd.DataFrame:
     """
     指定されたDate列を正規化（datetime化・昇順ソート）して返す
     """
@@ -27,6 +31,7 @@ def clean_date_column(df: pd.DataFrame, col_name: str = "Date") -> pd.DataFrame:
     df[col_name] = pd.to_datetime(df[col_name])
     df = df.sort_values(col_name).reset_index(drop=True)
     return df
+
 
 def get_cached_data(symbol: str, folder: str = "data_cache") -> pd.DataFrame:
     """
@@ -44,6 +49,7 @@ def get_cached_data(symbol: str, folder: str = "data_cache") -> pd.DataFrame:
     except Exception as e:
         print(f"{symbol}: 読み込み失敗 - {e}")
         return None
+
 
 def get_manual_data(symbol: str, folder: str = "data_cache") -> pd.DataFrame:
     """

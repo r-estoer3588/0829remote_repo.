@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 load_dotenv()
 API_KEY = os.getenv("EODHD_API_KEY")
 
+
 def get_all_symbols():
     urls = [
         "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
@@ -28,6 +29,7 @@ def get_all_symbols():
         except Exception as e:
             print(f"Error fetching {url}: {e}")
     return sorted(symbols)
+
 
 def fetch_history(symbol):
     url = f"https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
@@ -54,16 +56,19 @@ def fetch_history(symbol):
         print(f"{symbol}: {e}")
         return None
 
+
 RESERVED_WORDS = {
     "CON", "PRN", "AUX", "NUL",
     "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
     "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
 }
 
+
 def safe_filename(symbol):
     if symbol.upper() in RESERVED_WORDS:
         return symbol + "_RESV"
     return symbol
+
 
 def save_history(symbol, output_dir):
     safe_symbol = safe_filename(symbol)
@@ -78,6 +83,7 @@ def save_history(symbol, output_dir):
     else:
         print(f"{symbol}: failed")
 
+
 def main():
     start_time = time.time()
     print("📅 開始:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -88,17 +94,22 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     with ThreadPoolExecutor(max_workers=1) as executor:
-        futures = [executor.submit(save_history, s, output_dir) for s in symbols]
+        futures = [
+            executor.submit(
+                save_history,
+                s,
+                output_dir) for s in symbols]
         for i, future in enumerate(as_completed(futures), 1):
             future.result()
             time.sleep(1.2)
             if i % 1000 == 0:
                 print("Sleeping 1 hour to avoid rate limits...")
                 time.sleep(3600)
-    
+
     elapsed = time.time() - start_time
     mins, secs = divmod(int(elapsed), 60)
     print(f"✅ 完了！処理時間: {mins}分{secs}秒")
+
 
 if __name__ == "__main__":
     main()

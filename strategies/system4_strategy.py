@@ -6,6 +6,7 @@ from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from common.backtest_utils import log_progress   # ← 共通ユーティリティ呼び出し
 
+
 class System4Strategy:
     """
     システム4：ロング・トレンド・ロー・ボラティリティ
@@ -14,7 +15,12 @@ class System4Strategy:
     # ===============================
     # インジケーター計算
     # ===============================
-    def prepare_data(self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50):
+    def prepare_data(
+            self,
+            raw_data_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         result_dict = {}
         total = len(raw_data_dict)
         start_time = time.time()
@@ -30,12 +36,18 @@ class System4Strategy:
 
             try:
                 # ---- インジケーター計算 ----
-                df["SMA200"] = SMAIndicator(df["Close"], window=200).sma_indicator()
-                df["ATR14"] = AverageTrueRange(df["High"], df["Low"], df["Close"], window=14).average_true_range()
-                df["ATR40"] = AverageTrueRange(df["High"], df["Low"], df["Close"], window=40).average_true_range()
+                df["SMA200"] = SMAIndicator(
+                    df["Close"], window=200).sma_indicator()
+                df["ATR14"] = AverageTrueRange(
+                    df["High"], df["Low"], df["Close"], window=14).average_true_range()
+                df["ATR40"] = AverageTrueRange(
+                    df["High"], df["Low"], df["Close"], window=40).average_true_range()
                 df["HV20"] = (
-                    np.log(df["Close"] / df["Close"].shift(1)).rolling(20).std() * np.sqrt(252) * 100
-                )
+                    np.log(
+                        df["Close"] /
+                        df["Close"].shift(1)).rolling(20).std() *
+                    np.sqrt(252) *
+                    100)
                 df["AvgVolume50"] = df["Volume"].rolling(50).mean()
                 df["ATR14_Ratio"] = df["ATR14"] / df["Close"]
 
@@ -56,8 +68,15 @@ class System4Strategy:
             # 進捗ログ
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
-                log_progress(processed, total, start_time, buffer, "📊 インジケーター計算", log_callback)
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
+                log_progress(
+                    processed,
+                    total,
+                    start_time,
+                    buffer,
+                    "📊 インジケーター計算",
+                    log_callback)
 
         if skipped > 0 and log_callback:
             log_callback(f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件")
@@ -67,7 +86,12 @@ class System4Strategy:
     # ===============================
     # 候補銘柄抽出
     # ===============================
-    def generate_candidates(self, prepared_dict, progress_callback=None, log_callback=None, batch_size=50):
+    def generate_candidates(
+            self,
+            prepared_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         candidates_by_date = {}
         total = len(prepared_dict)
         processed, skipped = 0, 0
@@ -96,8 +120,15 @@ class System4Strategy:
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
-                log_progress(processed, total, start_time, buffer, "📊 セットアップ抽出", log_callback)
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
+                log_progress(
+                    processed,
+                    total,
+                    start_time,
+                    buffer,
+                    "📊 セットアップ抽出",
+                    log_callback)
 
         if skipped > 0 and log_callback:
             log_callback(f"⚠️ 候補抽出中にスキップ: {skipped} 件")
@@ -115,7 +146,8 @@ class System4Strategy:
         total_days = len(candidates_by_date)
         start_time = time.time()
 
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
+        for i, (date, candidates) in enumerate(
+                sorted(candidates_by_date.items()), 1):
             # ---- 進捗更新 ----
             if on_progress:
                 on_progress(i, total_days, start_time)
@@ -123,7 +155,8 @@ class System4Strategy:
                 on_log(i, total_days, start_time)
 
             # ---- 保有銘柄整理（10銘柄上限） ----
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
+            active_positions = [
+                p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
                 continue
@@ -159,7 +192,8 @@ class System4Strategy:
                     future_close = df.iloc[idx2]["Close"]
                     gain = (future_close - entry_price) / entry_price
                     if gain >= 0.10:
-                        exit_date = df.index[min(idx2 + 1, len(df) - 1)]  # 翌日大引け
+                        exit_date = df.index[min(
+                            idx2 + 1, len(df) - 1)]  # 翌日大引け
                         exit_price = df.loc[exit_date, "Close"]
                         break
 
@@ -177,6 +211,7 @@ class System4Strategy:
                     "pnl": round(pnl, 2),
                     "return_%": round((pnl / capital) * 100, 2)
                 })
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
+                active_positions.append(
+                    {"symbol": c["symbol"], "exit_date": exit_date})
 
         return pd.DataFrame(results)

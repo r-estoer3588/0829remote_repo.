@@ -5,6 +5,7 @@ from ta.trend import SMAIndicator, ADXIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 
+
 class System5Strategy:
     """
     システム5：ロング・ミーンリバージョン・ハイADXリバーサル
@@ -13,7 +14,12 @@ class System5Strategy:
     # ===============================
     # インジケーター計算
     # ===============================
-    def prepare_data(self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50):
+    def prepare_data(
+            self,
+            raw_data_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         result_dict = {}
         total = len(raw_data_dict)
         processed, skipped = 0, 0
@@ -29,12 +35,16 @@ class System5Strategy:
 
             try:
                 # ---- インジケーター ----
-                df["SMA100"] = SMAIndicator(df["Close"], window=100).sma_indicator()
-                df["ATR10"] = AverageTrueRange(df["High"], df["Low"], df["Close"], window=10).average_true_range()
-                df["ADX7"] = ADXIndicator(df["High"], df["Low"], df["Close"], window=7).adx()
+                df["SMA100"] = SMAIndicator(
+                    df["Close"], window=100).sma_indicator()
+                df["ATR10"] = AverageTrueRange(
+                    df["High"], df["Low"], df["Close"], window=10).average_true_range()
+                df["ADX7"] = ADXIndicator(
+                    df["High"], df["Low"], df["Close"], window=7).adx()
                 df["RSI3"] = RSIIndicator(df["Close"], window=3).rsi()
                 df["AvgVolume50"] = df["Volume"].rolling(50).mean()
-                df["DollarVolume50"] = (df["Close"] * df["Volume"]).rolling(50).mean()
+                df["DollarVolume50"] = (
+                    df["Close"] * df["Volume"]).rolling(50).mean()
                 df["ATR_Pct"] = df["ATR10"] / df["Close"]
 
                 # ---- セットアップ ----
@@ -58,7 +68,8 @@ class System5Strategy:
             if progress_callback:
                 progress_callback(processed, total)
             # ログ更新
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
                 remaining = (elapsed / processed) * (total - processed)
                 em, es = divmod(int(elapsed), 60)
@@ -78,7 +89,12 @@ class System5Strategy:
     # ===============================
     # 候補銘柄抽出
     # ===============================
-    def generate_candidates(self, prepared_dict, progress_callback=None, log_callback=None, batch_size=50):
+    def generate_candidates(
+            self,
+            prepared_dict,
+            progress_callback=None,
+            log_callback=None,
+            batch_size=50):
         candidates_by_date = {}
         total = len(prepared_dict)
         processed, skipped = 0, 0
@@ -107,7 +123,8 @@ class System5Strategy:
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed %
+                    batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
                 remaining = (elapsed / processed) * (total - processed)
                 em, es = divmod(int(elapsed), 60)
@@ -124,7 +141,10 @@ class System5Strategy:
 
         # ADX7 降順ランキング
         for date in candidates_by_date:
-            candidates_by_date[date] = sorted(candidates_by_date[date], key=lambda x: x["ADX7"], reverse=True)
+            candidates_by_date[date] = sorted(
+                candidates_by_date[date],
+                key=lambda x: x["ADX7"],
+                reverse=True)
 
         return candidates_by_date
 
@@ -139,7 +159,8 @@ class System5Strategy:
         total_days = len(candidates_by_date)
         start_time = time.time()
 
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
+        for i, (date, candidates) in enumerate(
+                sorted(candidates_by_date.items()), 1):
             # 進捗表示
             if on_progress:
                 on_progress(i, total_days, start_time)
@@ -147,7 +168,8 @@ class System5Strategy:
                 on_log(i, total_days, start_time)
 
             # 同時保有管理（最大10銘柄）
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
+            active_positions = [
+                p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
                 continue
@@ -182,8 +204,10 @@ class System5Strategy:
                 for offset in range(1, 7):
                     if entry_idx + offset >= len(df):
                         break
-                    if (df.iloc[entry_idx + offset]["Close"] - entry_price) >= atr:
-                        exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
+                    if (df.iloc[entry_idx + offset]
+                            ["Close"] - entry_price) >= atr:
+                        exit_date = df.index[min(
+                            entry_idx + offset + 1, len(df) - 1)]
                         exit_price = df.loc[exit_date, "Open"]
                         break
                 if exit_price is None:
@@ -202,6 +226,7 @@ class System5Strategy:
                     "pnl": round(pnl, 2),
                     "return_%": round((pnl / capital) * 100, 2)
                 })
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
+                active_positions.append(
+                    {"symbol": c["symbol"], "exit_date": exit_date})
 
         return pd.DataFrame(results)

@@ -13,15 +13,25 @@ from indicators_common import add_indicators
 
 FAILED_LIST = "eodhd_failed_symbols.csv"
 
+
 def load_failed_symbols():
     if os.path.exists(FAILED_LIST):
-        return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
+        return set(
+            pd.read_csv(
+                FAILED_LIST,
+                header=None)[0].astype(str).str.upper())
     return set()
+
 
 def save_failed_symbols(new_failed):
     old_failed = load_failed_symbols()
     updated_failed = old_failed | set([s.upper() for s in new_failed])
-    pd.Series(list(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
+    pd.Series(
+        list(updated_failed)).to_csv(
+        FAILED_LIST,
+        index=False,
+        header=False)
+
 
 # .envからAPIキーを読み込み（相対的なパス）
 load_dotenv(dotenv_path=r".env")
@@ -34,6 +44,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+
 
 def get_all_symbols():
     urls = [
@@ -54,6 +65,7 @@ def get_all_symbols():
             logging.error(f"取得失敗: {url} - {e}")
     return sorted(symbols)
 
+
 def get_with_retry(url, retries=3, delay=2):
     for i in range(retries):
         try:
@@ -62,9 +74,10 @@ def get_with_retry(url, retries=3, delay=2):
                 return r
             logging.warning(f"ステータスコード {r.status_code} - {url}")
         except Exception as e:
-            logging.warning(f"試行{i+1}回目のエラー: {e}")
+            logging.warning(f"試行{i + 1}回目のエラー: {e}")
         time.sleep(delay)
     return None
+
 
 def get_eodhd_data(symbol):
     url = f"https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
@@ -94,17 +107,20 @@ def get_eodhd_data(symbol):
         logging.error(f"{symbol}: データ整形中のエラー - {e}")
         return None
 
+
 RESERVED_WORDS = {
     "CON", "PRN", "AUX", "NUL",
     "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
     "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
 }
 
+
 def safe_filename(symbol):
     # Windows予約語を避ける（大文字小文字無視）
     if symbol.upper() in RESERVED_WORDS:
         return symbol + "_RESV"
     return symbol
+
 
 def cache_single(symbol, output_dir):
     safe_symbol = safe_filename(symbol)
@@ -121,6 +137,7 @@ def cache_single(symbol, output_dir):
     else:
         return f"{symbol}: failed to fetch", True
 
+
 def cache_data(symbols, output_dir="data_cache", max_workers=5):
     os.makedirs(output_dir, exist_ok=True)
     failed = []
@@ -133,25 +150,28 @@ def cache_data(symbols, output_dir="data_cache", max_workers=5):
         for i, future in enumerate(as_completed(futures)):
             result, used_api = future.result()
             symbol = futures[future]
-            results_list.append((symbol, result, used_api)) 
+            results_list.append((symbol, result, used_api))
             logging.info(result)
             print(f"[{i}] {result}")
             if "failed" in result:
                 failed.append(futures[future])
             if used_api:
                 time.sleep(1.5)  # API使用時のみスロットリング
-    
+
     # ブラックリストへ追記
     if failed:
         save_failed_symbols(failed)
-    
+
     # 処理件数のログ（results_listから集計）
     cached_count = sum(1 for _, _, used_api in results_list if not used_api)
     api_count = sum(1 for _, _, used_api in results_list if used_api)
-    print(f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {len(failed)}件")
+    print(
+        f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {
+            len(failed)}件")
+
 
 if __name__ == "__main__":
-    #symbols = get_all_symbols()[:3]  # 無料プラン対策（テスト用）
+    # symbols = get_all_symbols()[:3]  # 無料プラン対策（テスト用）
     symbols = get_all_symbols()
     # ブラックリスト除外
     failed_symbols = load_failed_symbols()

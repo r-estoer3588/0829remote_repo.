@@ -3,6 +3,7 @@ from ta.volatility import AverageTrueRange
 import time
 import pandas as pd
 
+
 class System7Strategy:
     """
     System7：カタストロフィーヘッジ（SPY専用）
@@ -12,7 +13,12 @@ class System7Strategy:
     - 利確: SPYが直近70日高値を更新した翌日の寄付で決済
     """
 
-    def prepare_data(self, data_dict, progress_callback=None, log_callback=None, skip_callback=None):
+    def prepare_data(
+            self,
+            data_dict,
+            progress_callback=None,
+            log_callback=None,
+            skip_callback=None):
         """
         SPY専用なので data_dict から1銘柄だけ処理する。
         app_system7.py が system6 と同じ呼び出し方をしてもエラーにならないよう、
@@ -24,7 +30,8 @@ class System7Strategy:
             df["ATR50"] = AverageTrueRange(
                 df["High"], df["Low"], df["Close"], window=50
             ).average_true_range()
-            df["min_50"] = df["Close"].shift(1).rolling(window=50).min().round(4)
+            df["min_50"] = df["Close"].shift(
+                1).rolling(window=50).min().round(4)
             df["Close_r"] = df["Close"].round(4)
             df["setup"] = (df["Close_r"] <= df["min_50"]).astype(int)
             df["max_70"] = df["Close"].rolling(window=70).max()
@@ -41,7 +48,12 @@ class System7Strategy:
 
         return prepared_dict
 
-    def generate_candidates(self, prepared_dict, progress_callback=None, log_callback=None, skip_callback=None):
+    def generate_candidates(
+            self,
+            prepared_dict,
+            progress_callback=None,
+            log_callback=None,
+            skip_callback=None):
         """
         セットアップ条件を満たした日の翌営業日を候補日として抽出
         """
@@ -82,7 +94,8 @@ class System7Strategy:
         total_days = len(candidates_by_date)
         start_time = time.time()
 
-        for i, (entry_date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
+        for i, (entry_date, candidates) in enumerate(
+                sorted(candidates_by_date.items()), 1):
             for c in candidates:
                 entry_price = df.loc[entry_date, "Open"]
                 atr = c["ATR50"]
@@ -93,12 +106,14 @@ class System7Strategy:
                     shares = int(capital // entry_price)
                 else:
                     risk_per_trade = 0.02 * capital
-                    position_value = risk_per_trade / (stop_price - entry_price) * entry_price
+                    position_value = risk_per_trade / \
+                        (stop_price - entry_price) * entry_price
                     max_position_value = 0.20 * capital
                     if position_value > max_position_value:
                         shares = int(max_position_value // entry_price)
                     else:
-                        shares = int(risk_per_trade / (stop_price - entry_price))
+                        shares = int(risk_per_trade /
+                                     (stop_price - entry_price))
 
                 if shares <= 0:
                     continue
@@ -123,7 +138,8 @@ class System7Strategy:
                     exit_date = df.index[-1]
                     exit_price = df.iloc[-1]["Close"]
 
-                pnl = (entry_price - exit_price) * shares  # ショートなので entry - exit
+                pnl = (entry_price - exit_price) * \
+                    shares  # ショートなので entry - exit
                 return_pct = pnl / capital * 100
 
                 results.append({

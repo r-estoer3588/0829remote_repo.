@@ -1,3 +1,15 @@
+import threading
+from strategies.system1_strategy import System1Strategy
+from common.utils import safe_filename, clean_date_column, get_cached_data, get_manual_data
+import subprocess
+from datetime import time as dtime
+from indicators_common import add_indicators
+import matplotlib.ticker as mticker
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
+import pandas_market_calendars as mcal
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,21 +24,10 @@ import matplotlib.pyplot as plt
 # 全体にメイリオフォントを設定（Windows用）
 matplotlib.rcParams['font.family'] = 'Meiryo'
 
-import pandas_market_calendars as mcal
-from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import logging
-import matplotlib.ticker as mticker
-from indicators_common import add_indicators
-from datetime import time as dtime
-import subprocess
-from common.utils import safe_filename, clean_date_column, get_cached_data, get_manual_data
-from strategies.system1_strategy import System1Strategy
-import threading
 
 # 戦略インスタンスを作成
 strategy = System1Strategy()
+
 
 def main_process(use_auto, capital, symbols_input=None, spy_df=None):
     """
@@ -65,7 +66,8 @@ def main_process(use_auto, capital, symbols_input=None, spy_df=None):
         st.stop()
 
     # 候補生成
-    candidates_by_date, merged_df = strategy.generate_candidates(data_dict, spy_df)
+    candidates_by_date, merged_df = strategy.generate_candidates(
+        data_dict, spy_df)
 
     # バックテスト実行
     trades_df = strategy.run_backtest(data_dict, candidates_by_date, capital)
@@ -73,8 +75,9 @@ def main_process(use_auto, capital, symbols_input=None, spy_df=None):
     return trades_df
 
 
-#警告抑制
-logging.getLogger('streamlit.runtime.scriptrunner.script_run_context').setLevel(logging.ERROR)
+# 警告抑制
+logging.getLogger(
+    'streamlit.runtime.scriptrunner.script_run_context').setLevel(logging.ERROR)
 
 # ===============================
 # タイトル & キャッシュクリア
@@ -85,6 +88,7 @@ if st.button("⚠️ Streamlitキャッシュ全クリア", key="system1_clear_c
 
 st.title("システム1：ロング・トレンド・ハイ・モメンタム（複数銘柄）")
 
+
 def is_last_trading_day(latest_date, today=None):
     # NYSEカレンダー取得
     nyse = mcal.get_calendar('NYSE')
@@ -92,24 +96,37 @@ def is_last_trading_day(latest_date, today=None):
         today = pd.Timestamp.today().normalize()
 
     # 今週の直近の営業日リストを生成
-    schedule = nyse.schedule(start_date=today - pd.Timedelta(days=7), end_date=today)
+    schedule = nyse.schedule(
+        start_date=today -
+        pd.Timedelta(
+            days=7),
+        end_date=today)
     valid_days = schedule.index.normalize()
 
     # SPYデータの最新日付が有効な営業日か判定
     return latest_date.normalize() == valid_days[-1]
+
 
 def get_latest_nyse_trading_day(today=None):
     nyse = mcal.get_calendar('NYSE')
     if today is None:
         today = pd.Timestamp.today().normalize()
     # スケジュールは今日+1日もカバー（米国がまだ月曜朝になっていない場合用）
-    sched = nyse.schedule(start_date=today - pd.Timedelta(days=7), end_date=today + pd.Timedelta(days=1))
+    sched = nyse.schedule(
+        start_date=today -
+        pd.Timedelta(
+            days=7),
+        end_date=today +
+        pd.Timedelta(
+            days=1))
     valid_days = sched.index.normalize()
     # 今日より前の直近の営業日（たいてい金曜か当日）
     last_trading_day = valid_days[valid_days <= today].max()
     return last_trading_day
 
 # 例：SPY取得時
+
+
 def get_spy_data_cached(folder="data_cache"):
     path = os.path.join(folder, "SPY.csv")
     if os.path.exists(path):
@@ -174,23 +191,29 @@ def get_spy_data_cached(folder="data_cache"):
         st.error("❌ SPY.csv が存在しません")
         return None
 
+
 @st.cache_data
 def get_spy_with_indicators(spy_df=None):
     if spy_df is None:
         spy_df = get_spy_data_cached()
     if spy_df is not None and not spy_df.empty:
-        spy_df["SMA100"] = SMAIndicator(spy_df["Close"], window=100).sma_indicator()
-        spy_df["SMA200"] = SMAIndicator(spy_df["Close"], window=200).sma_indicator()
+        spy_df["SMA100"] = SMAIndicator(
+            spy_df["Close"], window=100).sma_indicator()
+        spy_df["SMA200"] = SMAIndicator(
+            spy_df["Close"], window=200).sma_indicator()
         spy_df["spy_filter"] = (spy_df["Close"] > spy_df["SMA200"]).astype(int)
     return spy_df
 
 # 並列処理でデータを取得
+
+
 def load_symbol(symbol):
     path = os.path.join("data_cache", f"{safe_filename(symbol)}.csv")
     if not os.path.exists(path):
         return symbol, None
     df = get_cached_data(symbol)
     return symbol, df
+
 
 def summarize_signals(trades_df):
     """trades_dfをsymbolとsignalで集計しDataFrameを返す"""
@@ -203,15 +226,27 @@ def summarize_signals(trades_df):
         .sort_values(["signal", "count"], ascending=[True, False])
     )
 
-#統合実施用
+
+# 統合実施用
 if __name__ == "__main__":
     # ===============================
     # 通常モード
     # ===============================
-    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system1_auto_main")
+    use_auto = st.checkbox(
+        "自動ティッカー取得（全銘柄）",
+        value=True,
+        key="system1_auto_main")
 
-    debug_mode = st.checkbox("詳細ログを表示（System1）", value=False, key="system1_debug")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_main")
+    debug_mode = st.checkbox(
+        "詳細ログを表示（System1）",
+        value=False,
+        key="system1_debug")
+    capital = st.number_input(
+        "総資金（USD）",
+        min_value=1000,
+        value=1000,
+        step=100,
+        key="system1_capital_main")
     symbols_input = None
 
     # 0820 ここで銘柄数上限を指定
@@ -236,9 +271,11 @@ if __name__ == "__main__":
     # これで選択された数を反映
     select_tickers = all_tickers[:max_symbols]
 
-
     if not use_auto:
-        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system1_symbols_main")
+        symbols_input = st.text_input(
+            "ティッカーをカンマ区切りで入力",
+            "AAPL,MSFT,TSLA,NVDA,META",
+            key="system1_symbols_main")
 
     spy_df = None  # 初期化
     if st.button("バックテスト実行", key="system1_run_main"):
@@ -246,7 +283,7 @@ if __name__ == "__main__":
         if spy_df is None or spy_df.empty:
             st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
             st.stop()
-        
+
         main_process(use_auto, capital, symbols_input, spy_df=spy_df)
 
         max_workers = 8  # 調整可
@@ -266,8 +303,10 @@ if __name__ == "__main__":
             if spy_df is None or spy_df.empty:
                 st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
                 st.stop()
-            spy_df["SMA200"] = SMAIndicator(spy_df["Close"], window=200).sma_indicator()
-            spy_df["spy_filter"] = (spy_df["Close"] > spy_df["SMA200"]).astype(int)
+            spy_df["SMA200"] = SMAIndicator(
+                spy_df["Close"], window=200).sma_indicator()
+            spy_df["spy_filter"] = (
+                spy_df["Close"] > spy_df["SMA200"]).astype(int)
 
             # 1. データ取得フェーズ
             # 設定
@@ -284,7 +323,10 @@ if __name__ == "__main__":
             data_log_area = st.empty()
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {executor.submit(load_symbol, sym): sym for sym in select_tickers}
+                futures = {
+                    executor.submit(
+                        load_symbol,
+                        sym): sym for sym in select_tickers}
                 for i, future in enumerate(as_completed(futures), 1):
                     symbol, df = future.result()
                     if df is not None and not df.empty:
@@ -309,19 +351,20 @@ if __name__ == "__main__":
             # 2. 加工処理フェーズ　(指標計算)
             # 設定
             start_time = time.time()
-            batch_size = 50    
+            batch_size = 50
             # 進捗バー、進捗ログ作成
             ind_area = st.empty()
             ind_area.info(f"📊 指標計算開始 | {len(raw_data_dict)} 銘柄を処理中...")
             ind_progress_bar = st.progress(0)
             ind_log_area = st.empty()
-        
+
             data_dict = strategy.prepare_data(
                 raw_data_dict,
-                progress_callback=lambda done, total: ind_progress_bar.progress(done / total),
+                progress_callback=lambda done,
+                total: ind_progress_bar.progress(
+                    done / total),
                 log_callback=lambda msg: ind_log_area.text(msg),
-                batch_size=batch_size
-            )
+                batch_size=batch_size)
             ind_progress_bar.empty()
 
             st.write("📊 指標計算完了"
@@ -329,7 +372,7 @@ if __name__ == "__main__":
             if not data_dict:
                 st.error("有効な銘柄データがありません。")
                 st.stop()
-            
+
             # 3. ROC200ランキング作成フェーズ
             # 設定
             start_time = time.time()
@@ -342,8 +385,8 @@ if __name__ == "__main__":
             # total_days を先に計算して初期表示
             total_days = strategy.get_total_days(data_dict)
 
-
-            roc_log.text(f"📊 ROC200ランキング: 0/{total_days} 日処理開始... | 残り: 計算中...")
+            roc_log.text(
+                f"📊 ROC200ランキング: 0/{total_days} 日処理開始... | 残り: 計算中...")
 
             def progress_callback_roc(i, total, start_time):
                 roc_progress.progress(i / total)
@@ -353,8 +396,8 @@ if __name__ == "__main__":
                 remain = (elapsed / i) * (total - i)
                 roc_log.text(
                     f"📊 ROC200計算: {i}/{total} 銘柄処理完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                    f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                    f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
                 )
 
             candidates_by_date, merged_df = strategy.generate_candidates(
@@ -376,11 +419,13 @@ if __name__ == "__main__":
             total_days = len(unique_dates)
 
             # ROC200ランク列を追加
-            daily_df["ROC200_Rank"] = daily_df.groupby("Date")["ROC200"].rank(ascending=False, method="first")
+            daily_df["ROC200_Rank"] = daily_df.groupby(
+                "Date")["ROC200"].rank(ascending=False, method="first")
 
             ranking_list = []
             for i, date in enumerate(unique_dates, start=1):
-                top100 = daily_df[daily_df["Date"] == date].sort_values("ROC200", ascending=False).head(100)
+                top100 = daily_df[daily_df["Date"] == date].sort_values(
+                    "ROC200", ascending=False).head(100)
                 # symbolカラム統一
                 ranking_list.append(top100[["Date", "symbol", "ROC200_Rank"]])
 
@@ -390,16 +435,17 @@ if __name__ == "__main__":
                     remain = elapsed / i * (total_days - i)
                     roc_log.text(
                         f"📊 ROC200ランキング: {i}/{total_days} 日処理完了"
-                        f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                        f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
                     )
-                    time.sleep(0.01) # ← 表示のための小さな遅延
+                    time.sleep(0.01)  # ← 表示のための小さな遅延
 
             roc_progress.empty()
             roc200_ranking_df = pd.concat(ranking_list, ignore_index=True)
 
             # === ここから5年フィルタ＆表示 ===
             five_years_ago = pd.Timestamp.now() - pd.DateOffset(years=5)
-            roc200_display_df = roc200_ranking_df[roc200_ranking_df["Date"] >= five_years_ago]
+            roc200_display_df = roc200_ranking_df[roc200_ranking_df["Date"]
+                                                  >= five_years_ago]
 
             with st.expander("📊 日別ROC200ランキング（直近5年 / 上位100銘柄）"):
                 st.dataframe(
@@ -415,10 +461,13 @@ if __name__ == "__main__":
             roc_progress.empty()
             roc_log.empty()
 
-
             # CSVエクスポート
             csv = roc200_ranking_df.to_csv(index=False).encode("utf-8")
-            st.download_button("全期間データをCSVで保存", data=csv, file_name="roc200_ranking_all.csv", mime="text/csv")
+            st.download_button(
+                "全期間データをCSVで保存",
+                data=csv,
+                file_name="roc200_ranking_all.csv",
+                mime="text/csv")
 
             # 固定メッセージを表示
             bt_area = st.empty()
@@ -436,8 +485,8 @@ if __name__ == "__main__":
                 remain = (elapsed / i) * (total - i)
                 bt_log_area.text(
                     f"💹 バックテスト: {i}/{total} 日処理完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                    f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                    f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
                 )
 
             # --- バックテスト実行 ---
@@ -453,9 +502,9 @@ if __name__ == "__main__":
             bt_area.empty()
 
             # ===0817 デバッグ用 ===
-            #st.write("DEBUG: merged_df 件数", len(merged_df))
-            #st.write("DEBUG: candidates_by_date 日数", len(candidates_by_date))
-            #st.write("DEBUG: trades_df 件数", len(trades_df))
+            # st.write("DEBUG: merged_df 件数", len(merged_df))
+            # st.write("DEBUG: candidates_by_date 日数", len(candidates_by_date))
+            # st.write("DEBUG: trades_df 件数", len(trades_df))
 
             # 銘柄別 Signal_Count + Trade_Count 表
             # Signal_Count: merged_dfから作成
@@ -463,21 +512,29 @@ if __name__ == "__main__":
             signal_counts.columns = ["symbol", "Signal_Count"]
 
             # ---0817 デバッグ用: trades_df のカラムを確認 ---
-            #st.write("DEBUG: trades_df columns", trades_df.columns.tolist())
+            # st.write("DEBUG: trades_df columns", trades_df.columns.tolist())
 
             # Trade_Count: trades_dfから作成
             if not trades_df.empty:
-                trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
+                trade_counts = trades_df.groupby(
+                    "symbol").size().reset_index(name="Trade_Count")
             else:
                 trade_counts = pd.DataFrame(columns=["symbol", "Trade_Count"])
 
             # マージ
-            summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(0)
+            summary_df = pd.merge(
+                signal_counts,
+                trade_counts,
+                on="symbol",
+                how="outer").fillna(0)
             summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
             summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
 
             with st.expander("📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False):
-                st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
+                st.dataframe(
+                    summary_df.sort_values(
+                        "Signal_Count",
+                        ascending=False))
 
         else:
             if not symbols_input:
@@ -487,10 +544,12 @@ if __name__ == "__main__":
 
             # 手動入力モード
             data_dict = {}
-            ind_progress_bar = st.progress(0)  
+            ind_progress_bar = st.progress(0)
             ind_log_area = st.empty()
             for symbol in symbols:
-                path = os.path.join("data_cache", f"{safe_filename(symbol)}.csv")
+                path = os.path.join(
+                    "data_cache", f"{
+                        safe_filename(symbol)}.csv")
                 if not os.path.exists(path):
                     st.warning(f"{symbol}: キャッシュなし（data_cache/{symbol}.csv）")
                     continue
@@ -512,7 +571,8 @@ if __name__ == "__main__":
             if spy_df is None or spy_df.empty:
                 st.error("SPYデータの取得に失敗しました。")
                 st.stop()
-            spy_df["SMA100"] = SMAIndicator(spy_df["Close"], window=100).sma_indicator()
+            spy_df["SMA100"] = SMAIndicator(
+                spy_df["Close"], window=100).sma_indicator()
 
             if not data_dict:
                 st.error("有効な銘柄データがありません。")
@@ -545,13 +605,17 @@ if __name__ == "__main__":
             results = trades_df.sort_values("exit_date")
             results["cumulative_pnl"] = results["pnl"].cumsum()
             results["cum_max"] = results["cumulative_pnl"].cummax()
-            results["drawdown"] = results["cumulative_pnl"] - results["cum_max"]
+            results["drawdown"] = results["cumulative_pnl"] - \
+                results["cum_max"]
             max_dd = results["drawdown"].min()
             col4.metric("最大ドローダウン (USD)", f"{max_dd:,.2f}")
 
             st.subheader("累積損益グラフ")
             plt.figure(figsize=(10, 4))
-            plt.plot(results["exit_date"], results["cumulative_pnl"], label="Cumulative PnL")
+            plt.plot(
+                results["exit_date"],
+                results["cumulative_pnl"],
+                label="Cumulative PnL")
 
             min_pnl = results["cumulative_pnl"].min()
             max_pnl = results["cumulative_pnl"].max()
@@ -564,7 +628,10 @@ if __name__ == "__main__":
             ax.yaxis.set_major_locator(mticker.MultipleLocator(500))
 
             # 次にフォーマットを設定（K表記）
-            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${x*1e-3:.0f}K"))
+            ax.yaxis.set_major_formatter(
+                mticker.FuncFormatter(
+                    lambda x, _: f"${
+                        x * 1e-3:.0f}K"))
 
             plt.xlabel("日付")
             plt.ylabel("損益 (USD)")
@@ -573,27 +640,32 @@ if __name__ == "__main__":
             st.pyplot(plt)
 
             # ✅ 追加：R倍率計算（5ATRをリスク基準とする）
-            results["r_multiple"] = results["pnl"] / (results["shares"] * 5 * results["entry_price"] * 0.02)
+            results["r_multiple"] = results["pnl"] / \
+                (results["shares"] * 5 * results["entry_price"] * 0.02)
 
             # ✅ 年次・月次・週次パフォーマンス
-            yearly = results.groupby(results["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
+            yearly = results.groupby(results["exit_date"].dt.to_period("Y"))[
+                "pnl"].sum().reset_index()
             yearly["exit_date"] = yearly["exit_date"].astype(str)
             st.subheader("📅 年次サマリー")
             st.dataframe(yearly)
 
-            monthly = results.groupby(results["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
+            monthly = results.groupby(results["exit_date"].dt.to_period("M"))[
+                "pnl"].sum().reset_index()
             monthly["exit_date"] = monthly["exit_date"].astype(str)
             st.subheader("📅 月次サマリー")
             st.dataframe(monthly)
 
-            weekly = results.groupby(results["exit_date"].dt.to_period("W"))["pnl"].sum().reset_index()
+            weekly = results.groupby(results["exit_date"].dt.to_period("W"))[
+                "pnl"].sum().reset_index()
             weekly["exit_date"] = weekly["exit_date"].astype(str)
             st.subheader("📆 週次サマリー")
             st.dataframe(weekly)
 
             # 📊 R倍率ヒストグラム（-5R〜+20Rに制限）
             st.subheader("📊 R倍率ヒストグラム（-5R～+20R）")
-            r_values = results["r_multiple"].replace([np.inf, -np.inf], np.nan).dropna()
+            r_values = results["r_multiple"].replace(
+                [np.inf, -np.inf], np.nan).dropna()
             r_values = r_values[(r_values > -5) & (r_values < 20)]
 
             plt.figure(figsize=(8, 4))
@@ -615,13 +687,14 @@ if __name__ == "__main__":
             time.sleep(0.1)
 
             # ヒートマップ生成のために、results を日付単位で処理
-            unique_dates = sorted(results["entry_date"].dt.normalize().unique())
+            unique_dates = sorted(
+                results["entry_date"].dt.normalize().unique())
             total_dates = len(unique_dates)
-
 
             for i, date in enumerate(unique_dates, 1):
                 # 1日分の保有状況計算
-                sub_df = results[(results["entry_date"] <= date) & (results["exit_date"] >= date)]
+                sub_df = results[(results["entry_date"] <= date)
+                                 & (results["exit_date"] >= date)]
                 # 進捗バー更新
                 progress_heatmap.progress(i / total_dates)
                 # 経過時間と残り時間の計算
@@ -632,7 +705,7 @@ if __name__ == "__main__":
                 if i % 10 == 0 or i == total_dates:
                     heatmap_log.text(
                         f"📊 日別保有銘柄ヒートマップ: {i}/{total_dates} 日処理完了"
-                        f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                        f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
                     )
                 time.sleep(0.01)  # ← 表示のための小さな遅延
 
@@ -644,9 +717,12 @@ if __name__ == "__main__":
             # ヒートマップ生成＆表示
             holding_matrix = generate_holding_matrix(results)
 
-            display_holding_heatmap(holding_matrix, title="System1：日別保有銘柄ヒートマップ")
+            display_holding_heatmap(
+                holding_matrix, title="System1：日別保有銘柄ヒートマップ")
             # ダウンロード用生成完了
-            download_holding_csv(holding_matrix, filename="holding_status_system1.csv")
+            download_holding_csv(
+                holding_matrix,
+                filename="holding_status_system1.csv")
 
             heatmap_log.text("✅ ヒートマップ生成完了")
 
@@ -657,7 +733,9 @@ if __name__ == "__main__":
             today_str = pd.Timestamp.today().date().isoformat()
             save_dir = "results_csv"
             os.makedirs(save_dir, exist_ok=True)
-            save_file = os.path.join(save_dir, f"system1_{today_str}_{int(capital)}.csv")
+            save_file = os.path.join(
+                save_dir, f"system1_{today_str}_{
+                    int(capital)}.csv")
 
             # ✅ 売買ログを自動保存
             results.to_csv(save_file, index=False)
@@ -665,10 +743,17 @@ if __name__ == "__main__":
 
             # ✅ signal_summaryの自動保存（存在する場合）
             if true_signal_summary:
-                signal_df = pd.DataFrame(sorted(true_signal_summary.items()), columns=["symbol", "signal_count"])
+                signal_df = pd.DataFrame(
+                    sorted(
+                        true_signal_summary.items()),
+                    columns=[
+                        "symbol",
+                        "signal_count"])
                 signal_dir = os.path.join(save_dir, "signals")
                 os.makedirs(signal_dir, exist_ok=True)
-                signal_path = os.path.join(signal_dir, f"system1_signals_{today_str}_{int(capital)}.csv")
+                signal_path = os.path.join(
+                    signal_dir, f"system1_signals_{today_str}_{
+                        int(capital)}.csv")
                 signal_df.to_csv(signal_path, index=False)
                 st.write(f"✅ signal件数も保存済み: {signal_path}")
 
@@ -695,13 +780,26 @@ if __name__ == "__main__":
 # ===============================
 # 統合モード用タブ呼び出し
 # ===============================
+
+
 def run_tab(spy_df):
     st.header("System1：ロング・トレンド・ハイ・モメンタム")
-    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system1_auto_tab")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_tab")
+    use_auto = st.checkbox(
+        "自動ティッカー取得（全銘柄）",
+        value=True,
+        key="system1_auto_tab")
+    capital = st.number_input(
+        "総資金（USD）",
+        min_value=1000,
+        value=1000,
+        step=100,
+        key="system1_capital_tab")
     symbols_input = None
     if not use_auto:
-        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system1_symbols_tab")
+        symbols_input = st.text_input(
+            "ティッカーをカンマ区切りで入力",
+            "AAPL,MSFT,TSLA,NVDA,META",
+            key="system1_symbols_tab")
 
     if st.button("バックテスト実行", key="system1_run_tab"):
         main_process(use_auto, capital, symbols_input, spy_df=spy_df)
@@ -725,7 +823,7 @@ def run_tab(spy_df):
                     df = prepared[symbol]
                     data_dict[symbol] = df
         ind_progress_bar.empty()
-        
+
         if spy_df is None or spy_df.empty:
             st.error("SPYデータの取得に失敗しました。")
             return
@@ -741,8 +839,8 @@ def run_tab(spy_df):
             remain = (elapsed / i) * (total - i)
             roc_log.text(
                 f"📊 ROC200計算: {i}/{total} 銘柄処理完了"
-                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
 
         candidates_by_date, merged_df = strategy.generate_candidates(
@@ -763,8 +861,8 @@ def run_tab(spy_df):
             remain = (elapsed / i) * (total - i)
             bt_log_area.text(
                 f"💹 バックテスト: {i}/{total} 日処理完了"
-                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
 
         trades_df = strategy.run_backtest(
@@ -777,13 +875,23 @@ def run_tab(spy_df):
         bt_progress.empty()
 
         # ④ Signal_Count + Trade_Count 表
-        signal_counts = pd.DataFrame(sorted(true_signal_summary.items()), columns=["symbol", "Signal_Count"])
+        signal_counts = pd.DataFrame(
+            sorted(
+                true_signal_summary.items()),
+            columns=[
+                "symbol",
+                "Signal_Count"])
         # Trade_Count: trades_dfから作成
         if not trades_df.empty:
-            trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
+            trade_counts = trades_df.groupby(
+                "symbol").size().reset_index(name="Trade_Count")
         else:
             trade_counts = pd.DataFrame(columns=["symbol", "Trade_Count"])
-        summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(0)
+        summary_df = pd.merge(
+            signal_counts,
+            trade_counts,
+            on="symbol",
+            how="outer").fillna(0)
         summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
         summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
         st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
@@ -807,13 +915,17 @@ def run_tab(spy_df):
             results = results.sort_values("exit_date")
             results["cumulative_pnl"] = results["pnl"].cumsum()
             results["cum_max"] = results["cumulative_pnl"].cummax()
-            results["drawdown"] = results["cumulative_pnl"] - results["cum_max"]
+            results["drawdown"] = results["cumulative_pnl"] - \
+                results["cum_max"]
             max_dd = results["drawdown"].min()
             st.metric("最大ドローダウン（USD）", f"{max_dd:.2f}")
 
             st.subheader("累積損益グラフ")
             plt.figure(figsize=(10, 4))
-            plt.plot(results["exit_date"], results["cumulative_pnl"], label="Cumulative PnL")
+            plt.plot(
+                results["exit_date"],
+                results["cumulative_pnl"],
+                label="Cumulative PnL")
             plt.xlabel("日付")
             plt.ylabel("損益 (USD)")
             plt.title("累積損益")
@@ -822,8 +934,15 @@ def run_tab(spy_df):
 
             # バックテスト実行後の Streamlit セクション内に追記
             holding_matrix = generate_holding_matrix(results)
-            display_holding_heatmap(holding_matrix, title="System1：日別保有銘柄ヒートマップ")
-            download_holding_csv(holding_matrix, filename="holding_status_system1.csv")
+            display_holding_heatmap(
+                holding_matrix, title="System1：日別保有銘柄ヒートマップ")
+            download_holding_csv(
+                holding_matrix,
+                filename="holding_status_system1.csv")
 
             csv = results.to_csv(index=False).encode("utf-8")
-            st.download_button("売買ログをCSVで保存", data=csv, file_name="trade_log_system1.csv", mime="text/csv")
+            st.download_button(
+                "売買ログをCSVで保存",
+                data=csv,
+                file_name="trade_log_system1.csv",
+                mime="text/csv")

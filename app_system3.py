@@ -31,11 +31,17 @@ def load_symbol(symbol):
     return symbol, df
 
 # ===== Streamlit 本体 =====
+
+
 def app_body():
     st.title("システム3：ロング・ミーン・リバージョン・セルオフ")
 
     use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True)
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=1000)
+    capital = st.number_input(
+        "総資金（USD）",
+        min_value=1000,
+        value=1000,
+        step=1000)
 
     symbols_input = None
     if not use_auto:
@@ -47,13 +53,14 @@ def app_body():
     if st.button("バックテスト実行"):
         # ===== データ取得フェーズ =====
         if use_auto:
-            select_tickers = get_all_tickers()[:100] 
-            #select_tickers = get_all_tickers()
+            select_tickers = get_all_tickers()[:100]
+            # select_tickers = get_all_tickers()
         else:
             if not symbols_input:
                 st.error("銘柄を入力してください")
                 return
-            select_tickers = [s.strip().upper() for s in symbols_input.split(",")]
+            select_tickers = [s.strip().upper()
+                              for s in symbols_input.split(",")]
 
         raw_data_dict = {}
         total = len(select_tickers)
@@ -67,7 +74,10 @@ def app_body():
         log_area = st.empty()
 
         with ThreadPoolExecutor(max_workers=8) as executor:
-            futures = {executor.submit(load_symbol, sym): sym for sym in select_tickers}
+            futures = {
+                executor.submit(
+                    load_symbol,
+                    sym): sym for sym in select_tickers}
             for i, future in enumerate(as_completed(futures), 1):
                 symbol, df = future.result()
                 if df is not None and not df.empty:
@@ -79,7 +89,8 @@ def app_body():
                 remain_min, remain_sec = divmod(int(remain), 60)
 
                 if i % 50 == 0 or i == total:
-                    joined_symbols = ", ".join(list(raw_data_dict.keys())[-50:])
+                    joined_symbols = ", ".join(
+                        list(raw_data_dict.keys())[-50:])
                     log_area.text(
                         f"📄 データ取得: {i}/{total} 件 完了"
                         f" | 経過: {elapsed_min}分{elapsed_sec}秒"
@@ -98,10 +109,8 @@ def app_body():
         ind_progress = st.progress(0)
         ind_log = st.empty()
         prepared_dict = strategy.prepare_data(
-            raw_data_dict,
-            progress_callback=lambda done, total: ind_progress.progress(done / total),
-            log_callback=lambda msg: ind_log.text(msg),
-        )
+            raw_data_dict, progress_callback=lambda done, total: ind_progress.progress(
+                done / total), log_callback=lambda msg: ind_log.text(msg), )
         ind_progress.empty()
 
         # ===== 候補生成 =====
@@ -115,13 +124,14 @@ def app_body():
 
         def cand_log_callback(msg):
             st.session_state["system3_log"] += msg + "\n"
-            cand_log.text_area("セットアップ抽出ログ", st.session_state["system3_log"], height=300)
+            cand_log.text_area(
+                "セットアップ抽出ログ",
+                st.session_state["system3_log"],
+                height=300)
 
         candidates_by_date = strategy.generate_candidates(
-            prepared_dict,
-            progress_callback=lambda done, total: cand_progress.progress(done / total),
-            log_callback=cand_log_callback
-        )
+            prepared_dict, progress_callback=lambda done, total: cand_progress.progress(
+                done / total), log_callback=cand_log_callback)
 
         if not candidates_by_date:
             st.warning("⚠️ セットアップ条件を満たす銘柄がありませんでした。")
@@ -150,17 +160,24 @@ def app_body():
             remain = (elapsed / i) * (total - i)
             bt_log.text(
                 f"💹 バックテスト: {i}/{total} 日処理完了"
-                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
 
         trades_df = strategy.run_backtest(
             prepared_dict,
             candidates_by_date,
             capital,
-            on_progress=lambda i, total, start: bt_progress.progress(i / total),
-            on_log=lambda i, total, start: log_callback(i, total, start)
-        )
+            on_progress=lambda i,
+            total,
+            start: bt_progress.progress(
+                i / total),
+            on_log=lambda i,
+            total,
+            start: log_callback(
+                i,
+                total,
+                start))
         bt_progress.empty()
 
         # ===== 銘柄別シグナル発生件数とトレード件数 =====
@@ -172,14 +189,16 @@ def app_body():
         trade_counts = trades_df["symbol"].value_counts().to_dict()
 
         summary_data = []
-        for sym in sorted(set(signal_counts.keys()) | set(trade_counts.keys())):
+        for sym in sorted(set(signal_counts.keys()) |
+                          set(trade_counts.keys())):
             summary_data.append({
                 "Symbol": sym,
                 "Signal_Count": signal_counts.get(sym, 0),
                 "Trade_Count": trade_counts.get(sym, 0)
             })
 
-        summary_df = pd.DataFrame(summary_data).sort_values("Signal_Count", ascending=False)
+        summary_df = pd.DataFrame(summary_data).sort_values(
+            "Signal_Count", ascending=False)
 
         with st.expander("📊 銘柄別シグナル発生件数とトレード件数（全期間）", expanded=False):
             st.dataframe(summary_df, height=400)
@@ -199,7 +218,8 @@ def app_body():
         trades_df = trades_df.sort_values("exit_date")
         trades_df["cumulative_pnl"] = trades_df["pnl"].cumsum()
         trades_df["cum_max"] = trades_df["cumulative_pnl"].cummax()
-        trades_df["drawdown"] = trades_df["cumulative_pnl"] - trades_df["cum_max"]
+        trades_df["drawdown"] = trades_df["cumulative_pnl"] - \
+            trades_df["cum_max"]
         max_dd = trades_df["drawdown"].min()
 
         col1, col2, col3, col4 = st.columns(4)
@@ -213,7 +233,8 @@ def app_body():
         trades_df = trades_df.sort_values("exit_date")
         trades_df["cumulative_pnl"] = trades_df["pnl"].cumsum()
         trades_df["cum_max"] = trades_df["cumulative_pnl"].cummax()
-        trades_df["drawdown"] = trades_df["cumulative_pnl"] - trades_df["cum_max"]
+        trades_df["drawdown"] = trades_df["cumulative_pnl"] - \
+            trades_df["cum_max"]
 
         # ===== サマリー用カラム追加=====
         trades_df["year"] = trades_df["exit_date"].dt.year
@@ -222,8 +243,18 @@ def app_body():
 
         st.subheader("📈 累積損益グラフ")
         plt.figure(figsize=(10, 4))
-        plt.plot(trades_df["exit_date"], trades_df["cumulative_pnl"], color="blue", label="累積損益")
-        plt.fill_between(trades_df["exit_date"], trades_df["drawdown"], 0, color="red", alpha=0.2, label="ドローダウン")
+        plt.plot(
+            trades_df["exit_date"],
+            trades_df["cumulative_pnl"],
+            color="blue",
+            label="累積損益")
+        plt.fill_between(
+            trades_df["exit_date"],
+            trades_df["drawdown"],
+            0,
+            color="red",
+            alpha=0.2,
+            label="ドローダウン")
         plt.xlabel("日付")
         plt.ylabel("損益 (USD)")
         plt.legend()
@@ -263,11 +294,11 @@ def app_body():
         holding_matrix = generate_holding_matrix(
             trades_df,
             trade_progress_callback=lambda done, total: (
-                heatmap_progress.progress(done / (2*total)),  # 全体の前半を使う
+                heatmap_progress.progress(done / (2 * total)),  # 全体の前半を使う
                 heatmap_status.text(f"🔥 トレード処理中: {done}/{total} 件完了")
             ),
             matrix_progress_callback=lambda done, total: (
-                heatmap_progress.progress(0.5 + done / (2*total)),  # 後半を使う
+                heatmap_progress.progress(0.5 + done / (2 * total)),  # 後半を使う
                 heatmap_status.text(f"📊 マトリクス生成中: {done}/{total} 日完了")
             )
         )
@@ -276,8 +307,9 @@ def app_body():
         heatmap_status.text("✅ ヒートマップ作成完了")
 
         display_holding_heatmap(holding_matrix, title="System3：日別保有銘柄ヒートマップ")
-        download_holding_csv(holding_matrix, filename="holding_status_system3.csv")
-
+        download_holding_csv(
+            holding_matrix,
+            filename="holding_status_system3.csv")
 
         # ===== CSV自動保存 (System2準拠) =====
         today_str = pd.Timestamp.today().date().isoformat()
@@ -285,7 +317,9 @@ def app_body():
         os.makedirs(save_dir, exist_ok=True)
 
         # 売買ログ保存
-        trade_file = os.path.join(save_dir, f"system3_{today_str}_{int(capital)}.csv")
+        trade_file = os.path.join(
+            save_dir, f"system3_{today_str}_{
+                int(capital)}.csv")
         trades_df.to_csv(trade_file, index=False)
         st.write(f"📂 売買ログを自動保存: {trade_file}")
 
@@ -295,17 +329,21 @@ def app_body():
             for sym, df in prepared_dict.items()
             if "setup" in df.columns
         }
-        signal_df = pd.DataFrame(signal_counts.items(), columns=["Symbol", "Signal_Count"])
+        signal_df = pd.DataFrame(
+            signal_counts.items(), columns=[
+                "Symbol", "Signal_Count"])
 
         signal_dir = os.path.join(save_dir, "signals")
         os.makedirs(signal_dir, exist_ok=True)
-        signal_path = os.path.join(signal_dir, f"system3_signals_{today_str}_{int(capital)}.csv")
+        signal_path = os.path.join(
+            signal_dir, f"system3_signals_{today_str}_{
+                int(capital)}.csv")
         signal_df.to_csv(signal_path, index=False)
         st.write(f"✅ signal件数も保存済み: {signal_path}")
 
         # ===== キャッシュ保存メッセージ（System2準拠） =====
         st.info("💾 System3加工済日足データキャッシュ保存開始…")
-        #0817 データ容量不足になるので後でキャッシュ共通化する
+        # 0817 データ容量不足になるので後でキャッシュ共通化する
         cache_dir = os.path.join("data_cache", "systemX")
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -324,8 +362,10 @@ def app_body():
         # ===== 終了メッセージ =====
         st.success("🔚 バックテスト終了")
 
+
 def run_tab():
     app_body()
+
 
 if __name__ == "__main__":
     app_body()

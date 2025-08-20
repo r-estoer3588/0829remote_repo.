@@ -1,18 +1,18 @@
+from common.performance_summary import summarize_results
+from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
+from strategies.system4_strategy import System4Strategy
+from tickers_loader import get_all_tickers
+from common.utils import safe_filename, get_cached_data
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+import os
+import pandas as pd
+import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 # 日本語フォントを設定（WindowsならMS GothicやMeiryoが確実）
 plt.rcParams['font.family'] = 'Meiryo'  # 'MS Gothic' でも可
 
-import streamlit as st
-import pandas as pd
-import os
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from common.utils import safe_filename, get_cached_data
-from tickers_loader import get_all_tickers
-from strategies.system4_strategy import System4Strategy
-from holding_tracker import generate_holding_matrix, display_holding_heatmap, download_holding_csv
-from common.performance_summary import summarize_results
 
 # ===============================
 # 戦略インスタンス
@@ -31,11 +31,13 @@ st.title("システム4：ロング・トレンド・ロー・ボラティリテ
 # ===============================
 # バックテスト処理本体
 # ===============================
+
+
 def main_process(use_auto, capital, symbols_input):
     # 1. ティッカー取得
     if use_auto:
         symbols = get_all_tickers()[:100]  # 上限100銘柄
-        #symbols = get_all_tickers()
+        # symbols = get_all_tickers()
     else:
         if not symbols_input:
             st.error("銘柄を入力してください")
@@ -95,10 +97,11 @@ def main_process(use_auto, capital, symbols_input):
 
     prepared_dict = strategy.prepare_data(
         data_dict,
-        progress_callback=lambda done, total: ind_progress.progress(done / total),
+        progress_callback=lambda done,
+        total: ind_progress.progress(
+            done / total),
         log_callback=lambda msg: ind_log.text(msg),
-        skip_callback=lambda msg: ind_skip_log.text(msg)
-    )
+        skip_callback=lambda msg: ind_skip_log.text(msg))
     ind_progress.empty()
 
     # 4. 候補生成
@@ -108,10 +111,8 @@ def main_process(use_auto, capital, symbols_input):
     cand_log = st.empty()
 
     candidates_by_date = strategy.generate_candidates(
-        prepared_dict,
-        progress_callback=lambda done, total: cand_progress.progress(done / total),
-        log_callback=lambda msg: cand_log.text(msg),
-    )
+        prepared_dict, progress_callback=lambda done, total: cand_progress.progress(
+            done / total), log_callback=lambda msg: cand_log.text(msg), )
     cand_progress.empty()
 
     if not candidates_by_date:
@@ -133,8 +134,8 @@ def main_process(use_auto, capital, symbols_input):
         remain = (elapsed / i) * (total - i)
         bt_log.text(
             f"💹 バックテスト: {i}/{total} 日処理完了"
-            f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-            f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+            f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+            f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
         )
 
     results_df = strategy.run_backtest(
@@ -163,7 +164,10 @@ def main_process(use_auto, capital, symbols_input):
 
     st.subheader("📈 累積損益グラフ")
     plt.figure(figsize=(10, 4))
-    plt.plot(results_df["exit_date"], results_df["cumulative_pnl"], label="Cumulative PnL")
+    plt.plot(
+        results_df["exit_date"],
+        results_df["cumulative_pnl"],
+        label="Cumulative PnL")
     plt.xlabel("日付")
     plt.ylabel("PnL (USD)")
     plt.title("累積損益")
@@ -171,17 +175,20 @@ def main_process(use_auto, capital, symbols_input):
     st.pyplot(plt)
 
     # 年次・月次・週次サマリー
-    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
+    yearly = results_df.groupby(results_df["exit_date"].dt.to_period("Y"))[
+        "pnl"].sum().reset_index()
     yearly["exit_date"] = yearly["exit_date"].astype(str)
     st.subheader("📅 年次サマリー")
     st.dataframe(yearly)
 
-    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
+    monthly = results_df.groupby(results_df["exit_date"].dt.to_period("M"))[
+        "pnl"].sum().reset_index()
     monthly["exit_date"] = monthly["exit_date"].astype(str)
     st.subheader("📅 月次サマリー")
     st.dataframe(monthly)
 
-    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))["pnl"].sum().reset_index()
+    weekly = results_df.groupby(results_df["exit_date"].dt.to_period("W"))[
+        "pnl"].sum().reset_index()
     weekly["exit_date"] = weekly["exit_date"].astype(str)
     st.subheader("📆 週次サマリー")
     st.dataframe(weekly)
@@ -203,7 +210,8 @@ def main_process(use_auto, capital, symbols_input):
 
     for i, date in enumerate(unique_dates, 1):
         # 1日分の保有状況計算
-        sub_df = results_df[(results_df["entry_date"] <= date) & (results_df["exit_date"] >= date)]
+        sub_df = results_df[(results_df["entry_date"] <= date)
+                            & (results_df["exit_date"] >= date)]
         # 進捗更新
         progress_heatmap.progress(i / total_dates)
 
@@ -213,7 +221,7 @@ def main_process(use_auto, capital, symbols_input):
         if i % 10 == 0 or i == total_dates:
             heatmap_log.text(
                 f"📊 日別保有銘柄ヒートマップ: {i}/{total_dates} 日処理完了"
-                f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒 / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
         time.sleep(0.01)
 
@@ -236,13 +244,15 @@ def main_process(use_auto, capital, symbols_input):
     today_str = pd.Timestamp.today().date().isoformat()
     save_dir = "results_csv"
     os.makedirs(save_dir, exist_ok=True)
-    save_file = os.path.join(save_dir, f"system4_{today_str}_{int(capital)}.csv")
+    save_file = os.path.join(
+        save_dir, f"system4_{today_str}_{
+            int(capital)}.csv")
     results_df.to_csv(save_file, index=False)
     st.write(f"📂 売買ログを自動保存: {save_file}")
 
     # データキャッシュ保存（System4専用フォルダ）
     st.info("💾 System4 加工済日足データキャッシュ保存開始...")
-    #0817 データ容量不足になるので後でキャッシュ共通化する
+    # 0817 データ容量不足になるので後でキャッシュ共通化する
     cache_dir = os.path.join("data_cache", "systemX")
     os.makedirs(cache_dir, exist_ok=True)
     progress_bar = st.progress(0)
@@ -257,14 +267,23 @@ def main_process(use_auto, capital, symbols_input):
     progress_bar.empty()
     st.success("🔚 バックテスト終了")
 
+
 # ===============================
 # 通常モード
 # ===============================
 use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system4_auto_main")
-capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system4_capital_main")
+capital = st.number_input(
+    "総資金（USD）",
+    min_value=1000,
+    value=1000,
+    step=100,
+    key="system4_capital_main")
 symbols_input = None
 if not use_auto:
-    symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system4_symbols_main")
+    symbols_input = st.text_input(
+        "ティッカーをカンマ区切りで入力",
+        "AAPL,MSFT,TSLA,NVDA,META",
+        key="system4_symbols_main")
 
 if st.button("バックテスト実行", key="system4_run_main"):
     main_process(use_auto, capital, symbols_input)
@@ -272,13 +291,26 @@ if st.button("バックテスト実行", key="system4_run_main"):
 # ===============================
 # 統合モード用タブ呼び出し
 # ===============================
+
+
 def run_tab():
     st.header("System4：ロング・トレンド・ロー・ボラティリティ")
-    use_auto = st.checkbox("自動ティッカー取得（全銘柄）", value=True, key="system4_auto_tab")
-    capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system4_capital_tab")
+    use_auto = st.checkbox(
+        "自動ティッカー取得（全銘柄）",
+        value=True,
+        key="system4_auto_tab")
+    capital = st.number_input(
+        "総資金（USD）",
+        min_value=1000,
+        value=1000,
+        step=100,
+        key="system4_capital_tab")
     symbols_input = None
     if not use_auto:
-        symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system4_symbols_tab")
+        symbols_input = st.text_input(
+            "ティッカーをカンマ区切りで入力",
+            "AAPL,MSFT,TSLA,NVDA,META",
+            key="system4_symbols_tab")
 
     if st.button("バックテスト実行", key="system4_run_tab"):
         main_process(use_auto, capital, symbols_input)

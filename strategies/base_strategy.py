@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 
+
 class StrategyBase(ABC):
     """
     全戦略共通の抽象基底クラス。
@@ -14,11 +15,20 @@ class StrategyBase(ABC):
         pass
 
     @abstractmethod
-    def generate_candidates(self, data_dict: dict, market_df: pd.DataFrame, **kwargs):
+    def generate_candidates(
+            self,
+            data_dict: dict,
+            market_df: pd.DataFrame,
+            **kwargs):
         """日別仕掛け候補を生成"""
         pass
 
     @abstractmethod
-    def run_backtest(self, data_dict: dict, candidates_by_date: dict, capital: float, **kwargs) -> pd.DataFrame:
+    def run_backtest(
+            self,
+            data_dict: dict,
+            candidates_by_date: dict,
+            capital: float,
+            **kwargs) -> pd.DataFrame:
         """仕掛け候補に基づいてバックテストを実行"""
         pass

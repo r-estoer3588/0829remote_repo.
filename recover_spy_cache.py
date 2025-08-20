@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("EODHD_API_KEY")
 
+
 def fetch_and_cache_spy_from_eodhd(folder="data_cache"):
     symbol = "SPY"
     url = f"https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
@@ -45,6 +46,7 @@ def fetch_and_cache_spy_from_eodhd(folder="data_cache"):
     except Exception as e:
         msg = f"❌ 例外が発生しました: {e}"
         print(msg, file=sys.stderr)
+
 
 if __name__ == "__main__":
     fetch_and_cache_spy_from_eodhd()
