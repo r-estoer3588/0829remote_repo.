@@ -98,6 +98,47 @@ if st.button("⚠️ Streamlitキャッシュ全クリア", key="system1_clear_c
 
 st.title("システム1：ロング・トレンド・ハイ・モメンタム（複数銘柄）")
 
+# ===============================
+# 入力UIを共通順序に整理
+# ===============================
+use_auto = st.checkbox(
+    "ティッカー取得モード / 🔲個別指定モード", value=True, key="system1_auto_main"
+)
+
+capital = st.number_input(
+    "総資金（USD）",
+    min_value=1000,
+    value=1000,
+    step=100,
+    key="system1_capital_main",
+)
+
+all_tickers = get_all_tickers()
+max_allowed = len(all_tickers)
+default_value = min(10, max_allowed)
+
+max_symbols = st.number_input(
+    "取得銘柄数（上限）",
+    min_value=10,
+    max_value=max_allowed,
+    value=default_value,
+    step=50,
+    key="system1_limit",
+)
+
+if st.checkbox("全銘柄を対象に実施", key="system1_all"):
+    max_symbols = max_allowed
+
+select_tickers = all_tickers[:max_symbols]
+
+symbols_input = None
+if not use_auto:
+    symbols_input = st.text_input(
+        "ティッカーをカンマ区切りで入力",
+        "AAPL,MSFT,TSLA,NVDA,META",
+        key="system1_symbols_main",
+    )
+
 
 def is_last_trading_day(latest_date, today=None):
     # NYSEカレンダー取得
@@ -231,54 +272,16 @@ def summarize_signals(trades_df):
 # 統合実施用
 if __name__ == "__main__":
     # ===============================
-    # 通常モード
+    # 開発者オプション
     # ===============================
-    use_auto = st.checkbox(
-        "自動ティッカー取得（全銘柄）", value=True, key="system1_auto_main"
-    )
-
-    debug_mode = st.checkbox(
-        "詳細ログを表示（System1）", value=False, key="system1_debug"
-    )
-    capital = st.number_input(
-        "総資金（USD）",
-        min_value=1000,
-        value=1000,
-        step=100,
-        key="system1_capital_main",
-    )
-    symbols_input = None
-
-    # 0820 ここで銘柄数上限を指定
-    all_tickers = get_all_tickers()
-    max_allowed = len(all_tickers)  # 例: 11702
-    default_value = min(1000, max_allowed)
-
-    # 🔹 上限値を選ぶUI
-    max_symbols = st.number_input(
-        "取得銘柄数（上限）",
-        min_value=10,
-        max_value=max_allowed,
-        value=default_value,
-        step=50,
-        key="systemX_limit",
-    )
-
-    # 🔹 全銘柄選択オプション
-    if st.checkbox("全銘柄を対象にする", key="systemX_all"):
-        max_symbols = max_allowed
-
-    # これで選択された数を反映
-    select_tickers = all_tickers[:max_symbols]
-
-    if not use_auto:
-        symbols_input = st.text_input(
-            "ティッカーをカンマ区切りで入力",
-            "AAPL,MSFT,TSLA,NVDA,META",
-            key="system1_symbols_main",
+    with st.expander("⚙️ 開発者オプション"):
+        debug_mode = st.checkbox(
+            "詳細ログを表示（System1）", value=False, key="system1_debug"
         )
 
-    spy_df = None  # 初期化
+    # ===============================
+    # 通常モード
+    # ===============================
     if st.button("バックテスト実行", key="system1_run_main"):
         spy_df = get_spy_data_cached()
         if spy_df is None or spy_df.empty:
@@ -802,11 +805,10 @@ if __name__ == "__main__":
             progress_bar.empty()
             st.success("🔚 バックテスト終了")
 
+
 # ===============================
 # 統合モード用タブ呼び出し
 # ===============================
-
-
 def run_tab(spy_df):
     st.header("System1：ロング・トレンド・ハイ・モメンタム")
     use_auto = st.checkbox(
@@ -821,6 +823,14 @@ def run_tab(spy_df):
             "ティッカーをカンマ区切りで入力",
             "AAPL,MSFT,TSLA,NVDA,META",
             key="system1_symbols_tab",
+        )
+
+    # ===============================
+    # 開発者オプション
+    # ===============================
+    with st.expander("⚙️ 開発者オプション"):
+        debug_mode = st.checkbox(
+            "詳細ログを表示（System1）", value=False, key="system1_debug"
         )
 
     if st.button("バックテスト実行", key="system1_run_tab"):
