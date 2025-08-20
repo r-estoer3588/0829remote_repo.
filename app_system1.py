@@ -242,11 +242,13 @@ if __name__ == "__main__":
 
     spy_df = None  # 初期化
     if st.button("バックテスト実行", key="system1_run_main"):
-        main_process(use_auto, capital, symbols_input)
         spy_df = get_spy_data_cached()
         if spy_df is None or spy_df.empty:
             st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
             st.stop()
+        
+        main_process(use_auto, capital, symbols_input, spy_df=spy_df)
+
         max_workers = 8  # 調整可
         all_tickers = get_all_tickers()
         # バックテスト実行ボタン押下後の処理開始直後に追加
