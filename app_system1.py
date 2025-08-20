@@ -213,6 +213,30 @@ if __name__ == "__main__":
     debug_mode = st.checkbox("詳細ログを表示（System1）", value=False, key="system1_debug")
     capital = st.number_input("総資金（USD）", min_value=1000, value=1000, step=100, key="system1_capital_main")
     symbols_input = None
+
+    # 0820 ここで銘柄数上限を指定
+    all_tickers = get_all_tickers()
+    max_allowed = len(all_tickers)   # 例: 11702
+    default_value = min(1000, max_allowed)
+
+    # 🔹 上限値を選ぶUI
+    max_symbols = st.number_input(
+        "取得銘柄数（上限）",
+        min_value=10,
+        max_value=max_allowed,
+        value=default_value,
+        step=50,
+        key="systemX_limit"
+    )
+
+    # 🔹 全銘柄選択オプション
+    if st.checkbox("全銘柄を対象にする", key="systemX_all"):
+        max_symbols = max_allowed
+
+    # これで選択された数を反映
+    select_tickers = all_tickers[:max_symbols]
+
+
     if not use_auto:
         symbols_input = st.text_input("ティッカーをカンマ区切りで入力", "AAPL,MSFT,TSLA,NVDA,META", key="system1_symbols_main")
 
@@ -233,8 +257,6 @@ if __name__ == "__main__":
         ind_log_area = st.empty()
 
         if use_auto:
-            # 🔽 (0809実装用)ここで銘柄数上限100に制限
-            select_tickers = get_all_tickers()[:10]  
             data_dict = {}
             log_container = st.container()  # 複数行保持用
             start_time = time.time()
