@@ -5,9 +5,9 @@ from .base_strategy import StrategyBase
 from .system1 import (
     prepare_data_vectorized_system1,
     generate_roc200_ranking_system1,
-    execute_backtest_from_candidates,
     get_total_days_system1,
 )
+from common.backtest_utils import simulate_trades_with_risk
 
 """
 システム1（ロング・トレンド・ハイ・モメンタム）戦略クラス
@@ -35,37 +35,29 @@ class System1Strategy(StrategyBase):
                 raise ValueError("SPYデータが必要ですが見つかりませんでした。")
         return generate_roc200_ranking_system1(prepared_dict, market_df, **kwargs)
 
-    # def run_backtest(self, data_dict: dict, candidates_by_date: dict, capital: float, **kwargs) -> pd.DataFrame:
-    # return execute_backtest_from_candidates(data_dict, candidates_by_date,
-    # capital, **kwargs)
-
     def run_backtest(
-        self,
-        prepared_dict,
-        candidates_by_date,
-        capital,
-        on_progress=None,
-        on_log=None,
+        self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
 
-        total_days = len(candidates_by_date)
-        start_time = time.time()
+        # --- バックテスト実行（trades_df, logs_df の2つを返す） ---
+        trades_df, logs_df = simulate_trades_with_risk(
+            candidates_by_date,
+            prepared_dict,
+            capital,
+            self,  # ← strategy ではなく self を渡す
+            on_progress=on_progress,
+            on_log=on_log,
+        )
 
-        all_trades = []
-        for i, (date, candidates) in enumerate(candidates_by_date.items(), 1):
-            trades = execute_backtest_from_candidates(
-                prepared_dict, {date: candidates}, capital
-            )
-            all_trades.extend(trades)
+        # --- ログ出力（資金推移ログをUIへ流す） ---
+        if on_log and not logs_df.empty:
+            for _, row in logs_df.iterrows():
+                on_log(
+                    f"💰 {row['date'].date()} | 資金: {row['capital']:.2f} USD "
+                    f"| 保有: {row['active_count']}"
+                )
 
-            # --- コールバックを呼ぶだけ（UIは知らない） ---
-            if on_progress:
-                on_progress(i, total_days, start_time)
-
-            if on_log:
-                on_log(i, total_days, start_time)
-
-        return pd.DataFrame(all_trades)
+        return trades_df
 
     def get_total_days(self, data_dict: dict) -> int:
         """日別ROC200ランキングの総日数を返す"""

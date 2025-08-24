@@ -3,13 +3,13 @@ import streamlit as st
 import pandas as pd
 
 # --- 各システムのUIタブ呼び出し ---
-from app_system1 import run_tab as run_tab1, get_spy_data_cached
-from app_system2 import run_tab as run_tab2
-from app_system3 import run_tab as run_tab3
-from app_system4 import run_tab as run_tab4
-from app_system5 import run_tab as run_tab5
-from app_system6 import run_tab as run_tab6
-from app_system7 import run_tab as run_tab7
+from app_system1_ui2 import run_tab as run_tab1, get_spy_data_cached
+from app_system2_ui2 import run_tab as run_tab2
+from app_system3_ui2 import run_tab as run_tab3
+from app_system4_ui2 import run_tab as run_tab4
+from app_system5_ui2 import run_tab as run_tab5
+from app_system6_ui2 import run_tab as run_tab6
+from app_system7_ui2 import run_tab as run_tab7
 
 # --- 各システムの戦略クラス（バックテスト一括用） ---
 from strategies.system1_strategy import System1Strategy

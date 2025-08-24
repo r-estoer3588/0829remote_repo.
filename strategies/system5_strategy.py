@@ -1,4 +1,3 @@
-# strategies/system5_strategy.py
 import pandas as pd
 import time
 from ta.trend import SMAIndicator, ADXIndicator
@@ -67,13 +66,12 @@ class System5Strategy:
             # ログ更新
             if (processed % batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
-                remaining = (elapsed / processed) * (total - processed)
-                em, es = divmod(int(elapsed), 60)
-                rm, rs = divmod(int(remaining), 60)
+                remain = (elapsed / processed) * (total - processed) if processed else 0
                 log_callback(
                     f"📊 インジケーター計算: {processed}/{total} 件 完了"
-                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
-                    f"\n銘柄: {', '.join(buffer)}"
+                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
+                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
+                    f"銘柄: {', '.join(buffer)}"
                 )
                 buffer.clear()
 
@@ -137,7 +135,8 @@ class System5Strategy:
                 candidates_by_date[date], key=lambda x: x["ADX7"], reverse=True
             )
 
-        return candidates_by_date
+        merged_df = None  # System5ではランキング用に結合DataFrameは不要
+        return candidates_by_date, merged_df
 
     # ===============================
     # バックテスト実行
@@ -190,14 +189,33 @@ class System5Strategy:
                 entry_date = df.index[entry_idx]
                 exit_date, exit_price = None, None
 
-                # 利確ルール（+1ATR or 6日後寄り付き）
+                # 利確・損切りルール（+1ATR高値 or 損切り=3ATR下 or 6日後寄り付き）
+                target_price = entry_price + atr
                 for offset in range(1, 7):
                     if entry_idx + offset >= len(df):
                         break
-                    if (df.iloc[entry_idx + offset]["Close"] - entry_price) >= atr:
+                    row = df.iloc[entry_idx + offset]
+                    # --- 利確（当日高値が目標達成） ---
+                    if row["High"] >= target_price:
                         exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
                         exit_price = df.loc[exit_date, "Open"]
                         break
+                    # --- 損切り（当日安値がストップ割れ） ---
+                    if row["Low"] <= stop_price:
+                        exit_date = df.index[entry_idx + offset]
+                        exit_price = stop_price
+                        # === 再仕掛け処理 ===
+                        if entry_idx + offset < len(df):
+                            prev_close2 = df.iloc[entry_idx + offset]["Close"]
+                            entry_price = round(prev_close2 * 0.97, 2)
+                            atr2 = df.iloc[entry_idx + offset]["ATR10"]
+                            stop_price = entry_price - 3 * atr2
+                            target_price = entry_price + atr2
+                            entry_date = df.index[entry_idx + offset]
+                            continue  # 再仕掛け
+                        break
+
+                # --- 利確・損切りが発生しなかった場合（6日後寄り付きで手仕舞い） ---
                 if exit_price is None:
                     idx2 = min(entry_idx + 6, len(df) - 1)
                     exit_date = df.index[idx2]

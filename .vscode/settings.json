@@ -1,3 +1,15 @@
 {
-    "python.defaultInterpreterPath": "C:\\Users\\stair\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
+  "python.defaultInterpreterPath": "C:\\Users\\stair\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/.streamlit/**": true,
+    "**/data_cache/**": true
+  },
+  "files.exclude": {
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/.git": true
+  }
 }

@@ -1,35 +1,32 @@
+# strategies/system7_strategy.py
 import pandas as pd
-from ta.volatility import AverageTrueRange
 import time
-import pandas as pd
+from ta.volatility import AverageTrueRange
+from .base_strategy import StrategyBase
 
 
-class System7Strategy:
+class System7Strategy(StrategyBase):
     """
-    System7：カタストロフィーヘッジ（SPY専用）
-    - ショート戦略
+    System7：ショート・カタストロフィーヘッジ（SPY専用）
     - エントリー: SPYが直近50日安値を更新した翌日の寄付でショート
     - 損切り: エントリー価格 + 3 * ATR50
     - 利確: SPYが直近70日高値を更新した翌日の寄付で決済
     """
 
-    def prepare_data(
-        self, data_dict, progress_callback=None, log_callback=None, skip_callback=None
-    ):
-        """
-        SPY専用なので data_dict から1銘柄だけ処理する。
-        app_system7.py が system6 と同じ呼び出し方をしてもエラーにならないよう、
-        progress_callback / skip_callback も受け取れる形にしている。
-        """
+    def prepare_data(self, raw_data_dict, **kwargs):
+        progress_callback = kwargs.pop("progress_callback", None)
+        log_callback = kwargs.pop("log_callback", None)
+        skip_callback = kwargs.pop("skip_callback", None)
+
         prepared_dict = {}
         try:
-            df = list(data_dict.values())[0].copy()  # SPYのみ対象
+            # 🔽 SPY専用（必ず dict 内に SPY を期待する）
+            df = raw_data_dict.get("SPY").copy()
             df["ATR50"] = AverageTrueRange(
                 df["High"], df["Low"], df["Close"], window=50
             ).average_true_range()
-            df["min_50"] = df["Close"].shift(1).rolling(window=50).min().round(4)
-            df["Close_r"] = df["Close"].round(4)
-            df["setup"] = (df["Close_r"] <= df["min_50"]).astype(int)
+            df["min_50"] = df["Close"].rolling(window=50).min().round(4)  # 当日を含む
+            df["setup"] = (df["Low"] <= df["min_50"]).astype(int)  # Lowベース判定
             df["max_70"] = df["Close"].rolling(window=70).max()
             prepared_dict["SPY"] = df
         except Exception as e:
@@ -38,45 +35,37 @@ class System7Strategy:
 
         if log_callback:
             log_callback("SPY インジケーター計算完了 (ATR50, min_50, max_70, setup)")
-
         if progress_callback:
-            progress_callback(1, 1)  # SPY 1銘柄なので進捗100%
+            progress_callback(1, 1)
 
         return prepared_dict
 
-    def generate_candidates(
-        self,
-        prepared_dict,
-        progress_callback=None,
-        log_callback=None,
-        skip_callback=None,
-    ):
-        """
-        セットアップ条件を満たした日の翌営業日を候補日として抽出
-        """
-        candidates_by_date = {}
-        df = prepared_dict["SPY"]
+    def generate_candidates(self, prepared_dict, **kwargs):
+        progress_callback = kwargs.pop("progress_callback", None)
+        log_callback = kwargs.pop("log_callback", None)
 
+        candidates_by_date = {}
+        if "SPY" not in prepared_dict:
+            return {}, None
+
+        df = prepared_dict["SPY"]
         setup_days = df[df["setup"] == 1]
+
         for date, row in setup_days.iterrows():
             entry_idx = df.index.get_loc(date)
             if entry_idx + 1 >= len(df):
                 continue
             entry_date = df.index[entry_idx + 1]
-            rec = {
-                "symbol": "SPY",
-                "entry_date": entry_date,
-                "ATR50": row["ATR50"],
-            }
+            rec = {"symbol": "SPY", "entry_date": entry_date, "ATR50": row["ATR50"]}
             candidates_by_date.setdefault(entry_date, []).append(rec)
 
         if log_callback:
             log_callback(f"候補日数: {len(candidates_by_date)}")
-
         if progress_callback:
-            progress_callback(1, 1)  # SPY専用なので常に100%
+            progress_callback(1, 1)
 
-        return candidates_by_date
+        # 🔽 System7はランキング不要 → merged_df=None を返す
+        return candidates_by_date, None
 
     def run_backtest(
         self,
@@ -87,64 +76,65 @@ class System7Strategy:
         on_log=None,
         single_mode=False,
     ):
-        """
-        SPYショート戦略のバックテスト
-        - 単独モード: 資金全額を使用
-        - 通常モード: リスクベース (2%)、最大20%制限
-        """
         results = []
-        df = prepared_dict["SPY"]
+        if "SPY" not in prepared_dict:
+            return pd.DataFrame()
 
+        df = prepared_dict["SPY"]
         total_days = len(candidates_by_date)
         start_time = time.time()
+
+        # 🔽 ポジション状態と exit_date を追跡
+        capital_current = capital
+        position_open = False
+        current_exit_date = None
 
         for i, (entry_date, candidates) in enumerate(
             sorted(candidates_by_date.items()), 1
         ):
+            # もし exit_date に到達していればスロット解放
+            if position_open and entry_date >= current_exit_date:
+                position_open = False
+                current_exit_date = None
+
+            if position_open:
+                continue  # 保有中は新規エントリーしない
+
             for c in candidates:
                 entry_price = df.loc[entry_date, "Open"]
                 atr = c["ATR50"]
-                stop_price = entry_price + 3 * atr  # ショートなので損切りは上方向
 
-                # --- 資金管理 ---
-                if single_mode:
-                    shares = int(capital // entry_price)
-                else:
-                    risk_per_trade = 0.02 * capital
-                    position_value = (
-                        risk_per_trade / (stop_price - entry_price) * entry_price
-                    )
-                    max_position_value = 0.20 * capital
-                    if position_value > max_position_value:
-                        shares = int(max_position_value // entry_price)
-                    else:
-                        shares = int(risk_per_trade / (stop_price - entry_price))
+                stop_price = entry_price + 3 * atr
 
+                risk_per_trade = 0.02 * capital_current
+                max_position_value = (
+                    capital_current if single_mode else capital_current * 0.20
+                )
+
+                shares_by_risk = risk_per_trade / (stop_price - entry_price)
+                shares_by_cap = max_position_value // entry_price
+                shares = int(min(shares_by_risk, shares_by_cap))
                 if shares <= 0:
                     continue
 
-                # --- exitロジック ---
-                entry_idx = df.index.get_loc(entry_date)
+                # --- exit探索 ---
                 exit_date, exit_price = None, None
-
+                entry_idx = df.index.get_loc(entry_date)
                 for idx2 in range(entry_idx + 1, len(df)):
-                    # 損切り
                     if df.iloc[idx2]["High"] >= stop_price:
                         exit_date = df.index[idx2]
                         exit_price = stop_price
                         break
-                    # 利確（70日高値ブレイク）
                     if df.iloc[idx2]["High"] >= df.iloc[idx2]["max_70"]:
                         exit_date = df.index[min(idx2 + 1, len(df) - 1)]
                         exit_price = df.loc[exit_date, "Open"]
                         break
-
                 if exit_date is None:
                     exit_date = df.index[-1]
                     exit_price = df.iloc[-1]["Close"]
 
-                pnl = (entry_price - exit_price) * shares  # ショートなので entry - exit
-                return_pct = pnl / capital * 100
+                pnl = (entry_price - exit_price) * shares
+                return_pct = pnl / capital_current * 100
 
                 results.append(
                     {
@@ -159,7 +149,14 @@ class System7Strategy:
                     }
                 )
 
-            # --- 進捗更新（日単位） ---
+                # 資金更新
+                capital_current += pnl
+
+                # 🔽 exit_date に達するまで保有中とする
+                position_open = True
+                current_exit_date = exit_date
+
+            # 進捗ログ
             if on_progress:
                 on_progress(i, total_days, start_time)
             if on_log and (i % 10 == 0 or i == total_days):

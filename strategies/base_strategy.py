@@ -25,3 +25,49 @@ class StrategyBase(ABC):
     ) -> pd.DataFrame:
         """仕掛け候補に基づいてバックテストを実行"""
         pass
+
+    # ============================================================
+    # 共通ユーティリティ: 資金管理 & ポジションサイズ計算
+    # ============================================================
+    def update_capital_with_exits(
+        self, capital: float, active_positions: list, current_date
+    ):
+        """
+        exit_date が current_date のポジションを決済して損益を反映。
+        戻り値: (更新後capital, 未決済active_positions)
+        """
+        realized_pnl = sum(
+            p["pnl"] for p in active_positions if p["exit_date"] == current_date
+        )
+        capital += realized_pnl
+        # exit済みを除去
+        active_positions = [
+            p for p in active_positions if p["exit_date"] > current_date
+        ]
+        return capital, active_positions
+
+    def calculate_position_size(
+        self,
+        capital: float,
+        entry_price: float,
+        stop_price: float,
+        risk_pct: float = 0.02,
+        max_pct: float = 0.10,
+    ) -> int:
+        """
+        複利モードのポジションサイズ計算（System1〜6共通）
+        - capital: 現在資金
+        - entry_price: エントリー価格
+        - stop_price: 損切り価格
+        - risk_pct: 1トレードのリスク割合（デフォルト2%）
+        - max_pct: 1トレードの最大資金割合（デフォルト10%）
+        """
+        risk_per_trade = risk_pct * capital
+        max_position_value = max_pct * capital
+
+        risk_per_share = abs(entry_price - stop_price)
+        if risk_per_share <= 0:
+            return 0
+
+        shares = min(risk_per_trade / risk_per_share, max_position_value / entry_price)
+        return int(shares)

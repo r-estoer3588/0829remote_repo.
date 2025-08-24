@@ -1,7 +1,6 @@
 import pandas as pd
 import time
 from ta.volatility import AverageTrueRange
-from common.backtest_utils import log_progress
 
 
 class System6Strategy:
@@ -63,14 +62,19 @@ class System6Strategy:
             if progress_callback:
                 progress_callback(processed, total)
             if (processed % batch_size == 0 or processed == total) and log_callback:
-                log_progress(
-                    processed,
-                    total,
-                    start_time,
-                    buffer,
-                    "📊 インジケーター計算",
-                    log_callback,
+                elapsed = time.time() - start_time
+                remain = (
+                    (elapsed / processed) * (total - processed) if processed > 0 else 0
                 )
+                em, es = divmod(int(elapsed), 60)
+                rm, rs = divmod(int(remain), 60)
+                msg = (
+                    f"📊 インジケーター計算: {processed}/{total} 件 完了"
+                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                )
+                if buffer:
+                    msg += f"\n銘柄: {', '.join(buffer)}"
+                log_callback(msg)
                 buffer.clear()
 
         if skipped > 0:
@@ -122,14 +126,19 @@ class System6Strategy:
             if progress_callback:
                 progress_callback(processed, total)
             if (processed % batch_size == 0 or processed == total) and log_callback:
-                log_progress(
-                    processed,
-                    total,
-                    start_time,
-                    buffer,
-                    "📊 セットアップ抽出",
-                    log_callback,
+                elapsed = time.time() - start_time
+                remain = (
+                    (elapsed / processed) * (total - processed) if processed > 0 else 0
                 )
+                em, es = divmod(int(elapsed), 60)
+                rm, rs = divmod(int(remain), 60)
+                msg = (
+                    f"📊 セットアップ抽出: {processed}/{total} 件 完了"
+                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                )
+                if buffer:
+                    msg += f"\n銘柄: {', '.join(buffer)}"
+                log_callback(msg)
                 buffer.clear()
 
         for date in candidates_by_date:
@@ -144,7 +153,8 @@ class System6Strategy:
             elif log_callback:
                 log_callback(msg)
 
-        return candidates_by_date
+        merged_df = None  # System6ではランキング用結合DataFrame不要
+        return candidates_by_date, merged_df
 
     # ===============================
     # バックテスト実行
@@ -165,6 +175,7 @@ class System6Strategy:
             if on_log and (i % 20 == 0 or i == total_days):
                 on_log(i, total_days, start_time)
 
+            # 保有銘柄整理（最大10銘柄）
             active_positions = [p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
@@ -179,8 +190,9 @@ class System6Strategy:
                 if entry_idx == 0 or entry_idx >= len(df):
                     continue
 
+                # === 初回エントリー ===
                 prev_close = df.iloc[entry_idx - 1]["Close"]
-                entry_price = round(prev_close * 1.05, 2)
+                entry_price = round(prev_close * 1.05, 2)  # 前日終値の5%上でショート
                 atr = df.iloc[entry_idx - 1]["ATR10"]
                 stop_price = entry_price + 3 * atr
 
@@ -195,33 +207,41 @@ class System6Strategy:
                 entry_date = df.index[entry_idx]
                 exit_date, exit_price = None, None
 
-                # ---- 利確判定 ----
-                for offset in range(1, 4):
-                    idx2 = entry_idx + offset
-                    if idx2 >= len(df):
-                        break
-                    future_close = df.iloc[idx2]["Close"]
-                    gain = (entry_price - future_close) / entry_price
+                # === 利確・損切り・再仕掛け判定 ===
+                offset = 1
+                while offset <= 3 and entry_idx + offset < len(df):
+                    row = df.iloc[entry_idx + offset]
+
+                    # 利確 (+5%達成 → 翌営業日大引け Close)
+                    gain = (entry_price - row["Close"]) / entry_price
                     if gain >= 0.05:
-                        exit_date = df.index[min(idx2 + 1, len(df) - 1)]
-                        if "Open" in df.columns:
-                            exit_price = df.loc[exit_date].get(
-                                "Open", df.loc[exit_date]["Close"]
-                            )
-                        else:
-                            exit_price = df.loc[exit_date]["Close"]
+                        exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
+                        exit_price = df.loc[exit_date, "Close"]
                         break
 
-                # ---- 利確できなかった場合 ----
+                    # 損切り (High が stop_price 以上)
+                    if row["High"] >= stop_price:
+                        exit_date = df.index[entry_idx + offset]
+                        exit_price = stop_price
+
+                        # === 再仕掛け ===
+                        if entry_idx + offset < len(df) - 1:
+                            prev_close2 = df.iloc[entry_idx + offset]["Close"]
+                            entry_price = round(prev_close2 * 1.05, 2)
+                            atr2 = df.iloc[entry_idx + offset]["ATR10"]
+                            stop_price = entry_price + 3 * atr2
+                            entry_date = df.index[entry_idx + offset + 1]
+                            offset = 1  # 翌営業日から再判定（無限ループ防止）
+                        else:
+                            break
+                    offset += 1
+
+                # === 時間ベースの利食い（3営業日後の大引け） ===
                 if exit_price is None:
                     idx2 = min(entry_idx + 3, len(df) - 1)
                     exit_date = df.index[idx2]
-                    if "Open" in df.columns:
-                        exit_price = df.iloc[idx2].get("Open", df.iloc[idx2]["Close"])
-                    else:
-                        exit_price = df.iloc[idx2]["Close"]
+                    exit_price = df.iloc[idx2]["Close"]
 
-                # ---- 最終安全チェック ----
                 if exit_price is None or pd.isna(exit_price):
                     continue
 

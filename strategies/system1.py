@@ -141,9 +141,8 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
 
     all_signals_df = pd.concat(all_signals, ignore_index=True)
 
-    # SPYフィルター
-    spy_df = spy_df.copy()
-    spy_df["SMA100"] = SMAIndicator(spy_df["Close"], window=100).sma_indicator()
+    # SPYフィルター（SMA100は utils_spy で付与済み）
+    # spy_df = get_spy_with_indicators(spy_df)
     spy_df = spy_df[["Close", "SMA100"]].reset_index().rename(columns={"Date": "date"})
 
     merged = pd.merge_asof(
@@ -157,94 +156,27 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
     merged = merged[merged["Close_SPY"] > merged["SMA100_SPY"]].copy()
 
     merged["entry_date_norm"] = merged["entry_date"].dt.normalize()
-    candidates_by_date = {
-        date: group.sort_values("ROC200", ascending=False).to_dict("records")
-        for date, group in merged.groupby("entry_date_norm")
-    }
-
-    return candidates_by_date, merged
-
-
-def execute_backtest_from_candidates(
-    data_dict: dict, candidates_by_date: dict, capital: float, **kwargs
-):
-    """
-    ROC200ランキング済みの candidates_by_date を受け取り、バックテストを実行
-    """
-    risk_per_trade = 0.02 * capital
-    max_position_size = 0.10 * capital
-    results = []
-    active_positions = []
-    total_days = len(candidates_by_date)
+    grouped = merged.groupby("entry_date_norm")
+    total_days = len(grouped)
     start_time = time.time()
+    on_progress = kwargs.get("on_progress")
+    on_log = kwargs.get("on_log")
 
-    for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
-        if kwargs.get("progress_bar"):
-            kwargs["progress_bar"].progress(i / total_days)
-        if kwargs.get("log_area") and (i % 10 == 0 or i == total_days):
+    candidates_by_date = {}
+    for i, (date, group) in enumerate(grouped, 1):
+        # 0824さらに修正後（10位までにして高速化）
+        top10 = group.nlargest(10, "ROC200")
+        candidates_by_date[date] = top10.to_dict("records")
+
+        if on_progress:
+            on_progress(i, total_days, start_time)
+        if on_log and (i % 10 == 0 or i == total_days):
             elapsed = time.time() - start_time
             remain = elapsed / i * (total_days - i)
-            kwargs["log_area"].text(
-                f"💹 バックテスト: {i}/{total_days} 日処理完了"
-                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
+            on_log(
+                f"📊 ROC200ランキング: {i}/{total_days} 日処理完了"
+                f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
+                f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
             )
 
-        active_positions = [p for p in active_positions if p["exit_date"] >= date]
-        available_slots = 10 - len(active_positions)
-        if available_slots <= 0:
-            continue
-
-        day_candidates = [
-            c
-            for c in candidates
-            if c["symbol"] not in {p["symbol"] for p in active_positions}
-        ][:available_slots]
-
-        for c in day_candidates:
-            df = data_dict[c["symbol"]]
-            try:
-                entry_idx = df.index.get_loc(c["entry_date"])
-            except KeyError:
-                continue
-
-            entry_price = df.iloc[entry_idx]["Open"]
-            atr = df.iloc[entry_idx - 1]["ATR20"]
-            stop_loss_price = entry_price - 5 * atr
-            trail_pct = 0.25
-            high_since_entry = entry_price
-            exit_price = entry_price
-            exit_date = df.index[-1]
-
-            for j in range(entry_idx + 1, len(df)):
-                high_since_entry = max(high_since_entry, df["High"].iloc[j])
-                trailing_stop = high_since_entry * (1 - trail_pct)
-                if df["Low"].iloc[j] < stop_loss_price:
-                    exit_price = stop_loss_price
-                    exit_date = df.index[j]
-                    break
-                elif df["Low"].iloc[j] < trailing_stop:
-                    exit_price = trailing_stop
-                    exit_date = df.index[j]
-                    break
-
-            shares = min(
-                risk_per_trade / max(atr, 1e-6), max_position_size / entry_price
-            )
-            pnl = (exit_price - entry_price) * shares
-            results.append(
-                {
-                    "symbol": c["symbol"],
-                    "entry_date": c["entry_date"],
-                    "exit_date": exit_date,
-                    "entry_price": round(entry_price, 2),
-                    "exit_price": round(exit_price, 2),
-                    "shares": int(shares),
-                    "pnl": round(pnl, 2),
-                    "return_%": round((pnl / capital) * 100, 2),
-                }
-            )
-            active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
-
-    # 0817デバッグ用
-    # print("DEBUG: first result sample", results[0] if results else "EMPTY")
-    return results
+    return candidates_by_date, merged

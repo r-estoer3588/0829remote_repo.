@@ -402,7 +402,7 @@ if __name__ == "__main__":
                 elapsed = time.time() - start_time
                 remain = (elapsed / i) * (total - i)
                 roc_log.text(
-                    f"📊 ROC200計算: {i}/{total} 銘柄処理完了"
+                    f"📊 ROC200ランキング: {i}/{total} 日処理完了"
                     f" | 経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒"
                     f" / 残り: 約 {int(remain // 60)}分{int(remain % 60)}秒"
                 )

@@ -20,10 +20,10 @@ class System2Strategy:
     def prepare_data(
         self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
     ):
-        total_symbols = len(raw_data_dict)
+        total = len(raw_data_dict)
         processed = 0
         start_time = time.time()
-        symbol_buffer = []
+        buffer = []
         result_dict = {}
         skipped_count = 0  # 追加: スキップ件数カウント
 
@@ -70,26 +70,29 @@ class System2Strategy:
 
             result_dict[sym] = df
             processed += 1
-            symbol_buffer.append(sym)
+            buffer.append(sym)
 
             # --- 進捗更新 ---
             if progress_callback:
-                progress_callback(processed, total_symbols)
+                progress_callback(processed, total)
 
-            if (
-                processed % batch_size == 0 or processed == total_symbols
-            ) and log_callback:
+            if (processed % batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
-                remaining = (elapsed / processed) * (total_symbols - processed)
-                elapsed_min, elapsed_sec = divmod(int(elapsed), 60)
-                remain_min, remain_sec = divmod(int(remaining), 60)
-                joined_syms = ", ".join(symbol_buffer)
-                log_callback(
-                    f"📊 指標計算: {processed}/{total_symbols} 件 完了"
-                    f" | 経過: {elapsed_min}分{elapsed_sec}秒 / 残り: 約 {remain_min}分{remain_sec}秒\n"
-                    f"銘柄: {joined_syms}"
+                remain = (
+                    (elapsed / processed) * (total - processed) if processed > 0 else 0
                 )
-                symbol_buffer.clear()
+                em, es = divmod(int(elapsed), 60)
+                rm, rs = divmod(int(remain), 60)
+
+                msg = (
+                    f"📊 指標計算: {processed}/{total} 件 完了"
+                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                )
+                if buffer:
+                    msg += f"\n銘柄: {', '.join(buffer)}"
+
+                log_callback(msg)  # ✅ 文字列だけ渡す
+                buffer.clear()
 
         # --- 最後にスキップ件数をまとめて表示 ---
         if skipped_count > 0 and log_callback:
@@ -99,12 +102,13 @@ class System2Strategy:
 
         return result_dict
 
-    def generate_candidates(self, data_dict):
+    def generate_candidates(self, prepared_dict, **kwargs):
         """
         セットアップ条件通過銘柄を日別にADX7降順で返す
+        - System1と同じインターフェースに統一（kwargs受け取り可）
         """
         all_signals = []
-        for sym, df in data_dict.items():
+        for sym, df in prepared_dict.items():
             if "setup" not in df.columns or not df["setup"].any():
                 continue
             setup_df = df[df["setup"]].copy()
@@ -113,14 +117,14 @@ class System2Strategy:
             all_signals.append(setup_df)
 
         if not all_signals:
-            return {}
+            return {}, None
 
         all_df = pd.concat(all_signals)
         candidates_by_date = {
             date: group.sort_values("ADX7", ascending=False).to_dict("records")
             for date, group in all_df.groupby("entry_date")
         }
-        return candidates_by_date
+        return candidates_by_date, None
 
     def run_backtest(
         self, data_dict, candidates_by_date, capital, on_progress=None, on_log=None
