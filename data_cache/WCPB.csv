@@ -1,5 +1,0 @@
-Date,Open,High,Low,Close,AdjClose,Volume,ATR10,ATR20,ATR40,ATR50,SMA25,SMA50,SMA100,SMA150,SMA200,ROC200,RSI3,RSI4,ADX7,DollarVolume20,DollarVolume50,AvgVolume50,ATR_Ratio,ATR_Pct,Return_3D,6D_Return,UpTwoDays,TwoDayUp,HV20,min_50,max_70
-2025-08-11,0.0,0.0,0.0,0.0,0.0,0,,,,,,,,,,,,,,,,,,,,,False,False,,,
-2025-08-13,25.09,25.13,25.09,25.11,25.11,37700,,,,,,,,,,,,,,,,,,,,,False,False,,,
-2025-08-14,25.09,25.1,25.045,25.045,25.045,32000,,,,,,,,,,,99.61321035406131,,,,,,,,,,False,False,,,
-2025-08-15,25.05,25.06,25.04,25.046,25.046,16400,,,,,,,,,,,99.61324487549462,,,,,,,,inf,,False,False,,,
