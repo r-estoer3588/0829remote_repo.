@@ -3,9 +3,14 @@ import pandas as pd
 import time
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
+from .base_strategy import StrategyBase
+from common.backtest_utils import simulate_trades_with_risk
+from common.config import load_config
 
 
-class System3Strategy:
+class System3Strategy(StrategyBase):
+    def __init__(self, config: dict | None = None):
+        self.config = config or load_config("System3")
     """
     システム3：ロング・ミーン・リバージョン・セルオフ
     - セットアップ: Close > SMA150, DropRate_3D >= 12.5%, Volume > 100万, ATR比率 >= 5%
@@ -132,79 +137,61 @@ class System3Strategy:
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
-        risk_per_trade = 0.02 * capital
-        max_position_value = 0.10 * capital
-        results, active_positions = [], []
-        total_days = len(candidates_by_date)
-        start_time = time.time()
+        trades_df, _ = simulate_trades_with_risk(
+            candidates_by_date,
+            prepared_dict,
+            capital,
+            self,
+            on_progress=on_progress,
+            on_log=on_log,
+        )
+        return trades_df
 
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
-            if on_progress:
-                on_progress(i, total_days, start_time)
-            if on_log and (i % 20 == 0 or i == total_days):
-                on_log(i, total_days, start_time)
+    # ============================================================
+    # 共通シミュレーター用フック（System3ルール）
+    # ============================================================
+    def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        try:
+            entry_idx = df.index.get_loc(candidate["entry_date"])
+        except Exception:
+            return None
+        if entry_idx <= 0 or entry_idx >= len(df):
+            return None
+        prev_close = df.iloc[entry_idx - 1]["Close"]
+        ratio = float(self.config.get("entry_price_ratio_vs_prev_close", 0.93))
+        entry_price = round(prev_close * ratio, 2)
+        try:
+            atr = df.iloc[entry_idx - 1]["ATR10"]
+        except Exception:
+            return None
+        stop_mult = float(self.config.get("stop_atr_multiple", 2.5))
+        stop_price = entry_price - stop_mult * atr
+        if entry_price - stop_price <= 0:
+            return None
+        return entry_price, stop_price
 
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
-            slots = 10 - len(active_positions)
-            if slots <= 0:
-                continue
+    def compute_exit(
+        self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
+    ):
+        profit_take_pct = float(self.config.get("profit_take_pct", 0.04))
+        max_days = int(self.config.get("profit_take_max_days", 3))
+        # 1..max_days の間に利確達成なら翌営業日Closeで決済
+        for offset in range(1, max_days + 1):
+            idx2 = entry_idx + offset
+            if idx2 >= len(df):
+                break
+            future_close = df.iloc[idx2]["Close"]
+            gain = (future_close - entry_price) / entry_price
+            if gain >= profit_take_pct:
+                exit_idx = min(idx2 + 1, len(df) - 1)
+                exit_date = df.index[exit_idx]
+                exit_price = df.iloc[exit_idx]["Close"]
+                return exit_price, exit_date
+        # 未達なら max_days 後のClose
+        idx2 = min(entry_idx + max_days, len(df) - 1)
+        exit_date = df.index[idx2]
+        exit_price = df.iloc[idx2]["Close"]
+        return exit_price, exit_date
 
-            for c in candidates[:slots]:
-                df = prepared_dict[c["symbol"]]
-                try:
-                    entry_idx = df.index.get_loc(c["entry_date"])
-                except KeyError:
-                    continue
-                if entry_idx == 0:
-                    continue
-
-                prev_close = df.iloc[entry_idx - 1]["Close"]
-                entry_price = round(prev_close * 0.93, 2)  # 前日終値の7%下
-                atr = df.iloc[entry_idx - 1]["ATR10"]
-                stop_price = entry_price - 2.5 * atr
-
-                shares = min(
-                    risk_per_trade / max(entry_price - stop_price, 1e-6),
-                    max_position_value / entry_price,
-                )
-                shares = int(shares)
-                if shares <= 0:
-                    continue
-
-                # ---- exitルール ----
-                exit_date, exit_price = df.index[-1], entry_price
-                for offset in range(1, 4):
-                    if entry_idx + offset >= len(df):
-                        break
-                    future_close = df.iloc[entry_idx + offset]["Close"]
-                    gain = (future_close - entry_price) / entry_price
-                    if gain >= 0.04:
-                        exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
-                        exit_price = df.loc[exit_date, "Close"]
-                        break
-                else:
-                    idx2 = min(entry_idx + 3, len(df) - 1)
-                    exit_date = df.index[idx2]
-                    exit_price = df.iloc[idx2]["Close"]
-
-                pnl = (exit_price - entry_price) * shares
-                risk_amount = (entry_price - stop_price) * shares
-                if risk_amount <= 0:
-                    continue
-
-                results.append(
-                    {
-                        "symbol": c["symbol"],
-                        "entry_date": c["entry_date"],
-                        "exit_date": exit_date,
-                        "entry_price": entry_price,
-                        "exit_price": round(exit_price, 2),
-                        "shares": shares,
-                        "pnl": round(pnl, 2),
-                        "return_%": round((pnl / capital) * 100, 2),
-                        "risk_amount": risk_amount,
-                    }
-                )
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
-
-        return pd.DataFrame(results)
+    def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
+        return (exit_price - entry_price) * shares

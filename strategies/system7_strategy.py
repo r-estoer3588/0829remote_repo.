@@ -3,6 +3,7 @@ import pandas as pd
 import time
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
+from common.config import load_config
 
 
 class System7Strategy(StrategyBase):
@@ -12,6 +13,9 @@ class System7Strategy(StrategyBase):
     - 損切り: エントリー価格 + 3 * ATR50
     - 利確: SPYが直近70日高値を更新した翌日の寄付で決済
     """
+
+    def __init__(self, config: dict | None = None):
+        self.config = config or load_config("System7")
 
     def prepare_data(self, raw_data_dict, **kwargs):
         progress_callback = kwargs.pop("progress_callback", None)
@@ -89,6 +93,13 @@ class System7Strategy(StrategyBase):
         position_open = False
         current_exit_date = None
 
+        risk_pct = float(self.config.get("risk_pct", 0.02))
+        max_pct = float(self.config.get("max_pct", 0.20))
+        if "single_mode" in self.config:
+            single_mode = bool(self.config.get("single_mode", False))
+
+        stop_mult = float(self.config.get("stop_atr_multiple", 3.0))
+
         for i, (entry_date, candidates) in enumerate(
             sorted(candidates_by_date.items()), 1
         ):
@@ -104,12 +115,10 @@ class System7Strategy(StrategyBase):
                 entry_price = df.loc[entry_date, "Open"]
                 atr = c["ATR50"]
 
-                stop_price = entry_price + 3 * atr
+                stop_price = entry_price + stop_mult * atr
 
-                risk_per_trade = 0.02 * capital_current
-                max_position_value = (
-                    capital_current if single_mode else capital_current * 0.20
-                )
+                risk_per_trade = risk_pct * capital_current
+                max_position_value = capital_current if single_mode else capital_current * max_pct
 
                 shares_by_risk = risk_per_trade / (stop_price - entry_price)
                 shares_by_cap = max_position_value // entry_price

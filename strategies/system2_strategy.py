@@ -4,9 +4,15 @@ import pandas as pd
 from ta.momentum import RSIIndicator
 from ta.trend import ADXIndicator
 from ta.volatility import AverageTrueRange
+from .base_strategy import StrategyBase
+from common.backtest_utils import simulate_trades_with_risk
+from common.config import load_config
 
 
-class System2Strategy:
+class System2Strategy(StrategyBase):
+    def __init__(self, config: dict | None = None):
+        # Load merged config (defaults + System2 overrides)
+        self.config = config or load_config("System2")
     """
     システム2：ショート RSIスラスト
     - フィルター: Close>5, DollarVolume20>25M, ATR10/Close>0.03
@@ -129,118 +135,67 @@ class System2Strategy:
     def run_backtest(
         self, data_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
-        risk_per_trade = 0.02 * capital
-        max_position_value = 0.10 * capital
-        results = []
-        active_positions = []
+        trades_df, _ = simulate_trades_with_risk(
+            candidates_by_date,
+            data_dict,
+            capital,
+            self,
+            on_progress=on_progress,
+            on_log=on_log,
+        )
+        return trades_df
 
-        total_days = len(candidates_by_date)
-        start_time = time.time()
+    # ============================================================
+    # 共通シミュレーター用フック（System2ルール）
+    # ============================================================
+    def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        try:
+            entry_idx = df.index.get_loc(candidate["entry_date"])
+        except Exception:
+            return None
+        if entry_idx <= 0 or entry_idx >= len(df):
+            return None
+        prior_close = df.iloc[entry_idx - 1]["Close"]
+        entry_price = df.iloc[entry_idx]["Open"]
+        min_gap = float(self.config.get("entry_min_gap_pct", 0.04))
+        if entry_price < prior_close * (1 + min_gap):
+            return None
+        try:
+            atr = df.iloc[entry_idx - 1]["ATR10"]
+        except Exception:
+            return None
+        stop_mult = float(self.config.get("stop_atr_multiple", 3.0))
+        stop_price = entry_price + stop_mult * atr
+        return entry_price, stop_price
 
-        for i, (date, candidates) in enumerate(
-            sorted(candidates_by_date.items()), start=1
-        ):
-            # --- コールバックで進捗通知 ---
-            if on_progress:
-                on_progress(i, total_days, start_time)
-            if on_log and (i % 10 == 0 or i == total_days):
-                on_log(i, total_days, start_time)
+    def compute_exit(
+        self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
+    ):
+        exit_date, exit_price = None, None
+        profit_take_pct = float(self.config.get("profit_take_pct", 0.04))
+        max_days = int(self.config.get("profit_take_max_days", 3))
+        for offset in range(1, max_days + 1):
+            idx2 = entry_idx + offset
+            if idx2 >= len(df):
+                break
+            row = df.iloc[idx2]
+            if row["High"] >= stop_price:
+                exit_date = df.index[idx2]
+                exit_price = stop_price
+                break
+            gain = (entry_price - row["Close"]) / entry_price
+            if gain >= profit_take_pct:
+                next_idx = min(idx2 + 1, len(df) - 1)
+                exit_date = df.index[next_idx]
+                exit_price = df.iloc[next_idx]["Open"]
+                break
+        if exit_price is None:
+            fallback_days = int(self.config.get("fallback_exit_after_days", 2))
+            idx2 = min(entry_idx + fallback_days, len(df) - 1)
+            next_idx = min(idx2 + 1, len(df) - 1)
+            exit_date = df.index[next_idx]
+            exit_price = df.iloc[next_idx]["Open"]
+        return exit_price, exit_date
 
-            # 保有中リスト更新
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
-            available_slots = 10 - len(active_positions)
-            if available_slots <= 0:
-                continue
-
-            # 新規エントリー候補（空きスロット分だけ）
-            day_candidates = candidates[:available_slots]
-
-            for c in day_candidates:
-                df = data_dict[c["symbol"]]
-                try:
-                    entry_idx = df.index.get_loc(c["entry_date"])
-                except KeyError:
-                    continue
-                if entry_idx >= len(df):
-                    continue
-
-                prior_close = df.iloc[entry_idx - 1]["Close"]
-                entry_price = df.iloc[entry_idx]["Open"]
-
-                # エントリー条件：寄り付きが前日終値×1.04以上
-                if entry_price < prior_close * 1.04:
-                    continue
-
-                atr = df.iloc[entry_idx - 1]["ATR10"]
-                stop_price = entry_price + 3 * atr
-                shares = min(
-                    risk_per_trade / (stop_price - entry_price),
-                    max_position_value / entry_price,
-                )
-                shares = int(shares)
-                if shares <= 0:
-                    continue
-
-                entry_date = df.index[entry_idx]
-                exit_date = None
-                exit_price = None
-
-                # 利食い・損切り判定
-                for offset in range(1, 4):  # 最大3営業日
-                    idx2 = entry_idx + offset
-                    if idx2 >= len(df):
-                        break
-                    high = df.iloc[idx2]["High"]
-                    low = df.iloc[idx2]["Low"]
-                    close = df.iloc[idx2]["Close"]
-
-                    # 損切り
-                    if high >= stop_price:
-                        exit_date = df.index[idx2]
-                        exit_price = stop_price
-                        break
-                    # 利食い（4%以上利益）
-                    gain = (entry_price - close) / entry_price
-                    if gain >= 0.04:
-                        exit_date = (
-                            df.index[idx2 + 1] if idx2 + 1 < len(df) else df.index[idx2]
-                        )
-                        exit_price = (
-                            df.loc[exit_date]["Open"]
-                            if exit_date in df.index
-                            else close
-                        )
-                        break
-                else:
-                    # 2日後未達なら翌日決済
-                    idx2 = entry_idx + 2
-                    if idx2 < len(df):
-                        exit_date = (
-                            df.index[idx2 + 1] if idx2 + 1 < len(df) else df.index[idx2]
-                        )
-                        exit_price = (
-                            df.loc[exit_date]["Open"]
-                            if exit_date in df.index
-                            else df.iloc[idx2]["Close"]
-                        )
-
-                if exit_price is None or exit_date is None:
-                    continue
-
-                pnl = (entry_price - exit_price) * shares
-                results.append(
-                    {
-                        "symbol": c["symbol"],
-                        "entry_date": entry_date,
-                        "exit_date": exit_date,
-                        "entry_price": round(entry_price, 2),
-                        "exit_price": round(exit_price, 2),
-                        "shares": shares,
-                        "pnl": round(pnl, 2),
-                        "return_%": round((pnl / capital) * 100, 2),
-                    }
-                )
-
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
-
-        return pd.DataFrame(results)
+    def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
+        return (entry_price - exit_price) * shares

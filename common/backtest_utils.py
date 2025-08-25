@@ -1,5 +1,6 @@
 import time
 import pandas as pd
+from typing import Any, Dict
 
 
 def simulate_trades_with_risk(
@@ -22,6 +23,12 @@ def simulate_trades_with_risk(
     total_days = len(candidates_by_date)
     start_time = time.time()
 
+    # --- load optional config from strategy ---
+    cfg: Dict[str, Any] = getattr(strategy, "config", {}) or {}
+    max_positions = int(cfg.get("max_positions", 10))
+    risk_pct = float(cfg.get("risk_pct", 0.02))
+    max_pct = float(cfg.get("max_pct", 0.10))
+
     for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
         # --- exit 済みポジションの損益反映 ---
         current_capital, active_positions = strategy.update_capital_with_exits(
@@ -30,7 +37,7 @@ def simulate_trades_with_risk(
 
         # --- 保有枠チェック ---
         active_positions = [p for p in active_positions if p["exit_date"] >= date]
-        available_slots = 10 - len(active_positions)
+        available_slots = max(0, max_positions - len(active_positions))
 
         if available_slots > 0:
             day_candidates = [
@@ -40,42 +47,85 @@ def simulate_trades_with_risk(
             ][:available_slots]
 
             for c in day_candidates:
-                df = data_dict[c["symbol"]]
+                df = data_dict.get(c["symbol"])
+                if df is None or df.empty:
+                    continue
                 try:
                     entry_idx = df.index.get_loc(c["entry_date"])
                 except KeyError:
                     continue
 
-                entry_price = df.iloc[entry_idx]["Open"]
-                atr = df.iloc[entry_idx - 1]["ATR20"]
-                stop_loss_price = entry_price - 5 * atr
-                trail_pct = 0.25
-                high_since_entry = entry_price
-                exit_price, exit_date = entry_price, df.index[-1]
-
-                # --- exitロジック ---
-                for j in range(entry_idx + 1, len(df)):
-                    high_since_entry = max(high_since_entry, df["High"].iloc[j])
-                    trailing_stop = high_since_entry * (1 - trail_pct)
-                    if df["Low"].iloc[j] < stop_loss_price:
-                        exit_price, exit_date = stop_loss_price, df.index[j]
-                        break
-                    elif df["Low"].iloc[j] < trailing_stop:
-                        exit_price, exit_date = trailing_stop, df.index[j]
-                        break
+                # --- 戦略フック: エントリー計算（なければデフォルト/Long） ---
+                entry_price = None
+                stop_loss_price = None
+                if hasattr(strategy, "compute_entry"):
+                    try:
+                        computed = strategy.compute_entry(df, c, current_capital)
+                    except Exception:
+                        computed = None
+                    if not computed:
+                        continue
+                    entry_price, stop_loss_price = computed
+                else:
+                    try:
+                        entry_price = df.iloc[entry_idx]["Open"]
+                        atr = df.iloc[entry_idx - 1]["ATR20"]
+                        stop_loss_price = entry_price - 5 * atr
+                    except Exception:
+                        continue
 
                 # --- ポジションサイズ計算 ---
-                shares = strategy.calculate_position_size(
-                    current_capital, entry_price, stop_loss_price
-                )
+                try:
+                    shares = strategy.calculate_position_size(
+                        current_capital,
+                        entry_price,
+                        stop_loss_price,
+                        risk_pct=risk_pct,
+                        max_pct=max_pct,
+                    )
+                except Exception:
+                    shares = 0
                 if shares <= 0:
                     continue
 
                 # --- 資金不足チェック ---
-                if shares * entry_price > current_capital:
+                if shares * abs(entry_price) > current_capital:
                     continue
 
-                pnl = (exit_price - entry_price) * shares
+                # --- 戦略フック: エグジット計算（なければデフォルト/Long） ---
+                if hasattr(strategy, "compute_exit"):
+                    try:
+                        exit_calc = strategy.compute_exit(
+                            df, entry_idx, entry_price, stop_loss_price
+                        )
+                    except Exception:
+                        exit_calc = None
+                    if not exit_calc:
+                        continue
+                    exit_price, exit_date = exit_calc
+                else:
+                    trail_pct = 0.25
+                    high_since_entry = entry_price
+                    exit_price, exit_date = entry_price, df.index[-1]
+                    for j in range(entry_idx + 1, len(df)):
+                        high_since_entry = max(high_since_entry, df["High"].iloc[j])
+                        trailing_stop = high_since_entry * (1 - trail_pct)
+                        if df["Low"].iloc[j] < stop_loss_price:
+                            exit_price, exit_date = stop_loss_price, df.index[j]
+                            break
+                        elif df["Low"].iloc[j] < trailing_stop:
+                            exit_price, exit_date = trailing_stop, df.index[j]
+                            break
+
+                # --- PnL計算（ショート対応のフックがあればそちらを優先） ---
+                if hasattr(strategy, "compute_pnl"):
+                    try:
+                        pnl = strategy.compute_pnl(entry_price, exit_price, shares)
+                    except Exception:
+                        pnl = (exit_price - entry_price) * shares
+                else:
+                    pnl = (exit_price - entry_price) * shares
+
                 results.append(
                     {
                         "symbol": c["symbol"],

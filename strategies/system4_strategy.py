@@ -5,9 +5,12 @@ import time
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from ta.momentum import RSIIndicator
+from .base_strategy import StrategyBase
+from common.backtest_utils import simulate_trades_with_risk
+from common.config import load_config
 
 
-class System4Strategy:
+class System4Strategy(StrategyBase):
     """
     システム4：ロング・トレンド・ロー・ボラティリティ
     - フィルター:
@@ -30,6 +33,12 @@ class System4Strategy:
     - ポジションサイジング:
         リスク2%、最大サイズ10%、同時10銘柄
     """
+    def __init__(self, config: dict | None = None):
+        try:
+            from common.config import load_config  # lazy to avoid import cycles
+            self.config = config or load_config("System4")
+        except Exception:
+            self.config = config or {}
 
     # ===============================
     # インジケーター計算
@@ -48,7 +57,7 @@ class System4Strategy:
             if len(df) < 200:
                 skipped += 1
                 processed += 1
-                continue
+                pass
 
             try:
                 # ---- インジケーター ----
@@ -134,13 +143,13 @@ class System4Strategy:
                 for date, row in setup_days.iterrows():
                     # 🔹 市場フィルター: SPYも200SMA上
                     if date not in spy_df.index:
-                        continue
+                        pass
                     if spy_df.loc[date, "spy_filter"] == 0:
-                        continue
+                        pass
 
                     entry_date = date + pd.Timedelta(days=1)
                     if entry_date not in df.index:
-                        continue
+                        pass
 
                     rec = {
                         "symbol": sym,
@@ -193,32 +202,30 @@ class System4Strategy:
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
-        risk_per_trade = 0.02 * capital
-        max_pos_value = 0.10 * capital
-        results, active_positions = [], []
-        total_days = len(candidates_by_date)
-        start_time = time.time()
-
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
-            if on_progress:
-                on_progress(i, total_days, start_time)
-            if on_log and (i % 20 == 0 or i == total_days):
-                on_log(i, total_days, start_time)
+        trades_df, _ = simulate_trades_with_risk(
+            candidates_by_date,
+            prepared_dict,
+            capital,
+            self,
+            on_progress=on_progress,
+            on_log=on_log,
+        )
+        return trades_df
 
             # 保有銘柄更新
             active_positions = [p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
-                continue
+                pass
 
             for c in candidates[:slots]:
                 df = prepared_dict[c["symbol"]]
                 try:
                     entry_idx = df.index.get_loc(c["entry_date"])
                 except KeyError:
-                    continue
+                    pass
                 if entry_idx == 0 or entry_idx >= len(df):
-                    continue
+                    pass
 
                 entry_price = df.iloc[entry_idx]["Open"]
                 atr40 = df.iloc[entry_idx - 1]["ATR40"]
@@ -231,7 +238,7 @@ class System4Strategy:
                 )
                 shares = int(shares)
                 if shares <= 0:
-                    continue
+                    pass
 
                 entry_date = df.index[entry_idx]
                 highest = entry_price
@@ -274,4 +281,42 @@ class System4Strategy:
                 )
                 active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
 
-        return pd.DataFrame(results)
+        # 旧ロジックは共通シミュレーターへ統合済み（デッドコード削除）
+
+    # 共通シミュレーター用フック（System4: ロング、1.5ATRストップ、20%トレーリング）
+    def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        try:
+            entry_idx = df.index.get_loc(candidate["entry_date"])
+        except Exception:
+            return None
+        if entry_idx <= 0 or entry_idx >= len(df):
+            return None
+        entry_price = float(df.iloc[entry_idx]["Open"])
+        try:
+            atr40 = float(df.iloc[entry_idx - 1]["ATR40"])
+        except Exception:
+            return None
+        stop_mult = float(getattr(self, "config", {}).get("stop_atr_multiple", 1.5))
+        stop_price = entry_price - stop_mult * atr40
+        if entry_price - stop_price <= 0:
+            return None
+        return entry_price, stop_price
+
+    def compute_exit(
+        self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
+    ):
+        trail_pct = float(getattr(self, "config", {}).get("trailing_pct", 0.20))
+        highest = entry_price
+        for idx2 in range(entry_idx + 1, len(df)):
+            close = float(df.iloc[idx2]["Close"])
+            if close > highest:
+                highest = close
+            if close <= highest * (1 - trail_pct):
+                return close, df.index[idx2]
+            if close <= stop_price:
+                return close, df.index[idx2]
+        last_close = float(df.iloc[-1]["Close"])
+        return last_close, df.index[-1]
+
+    def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
+        return (exit_price - entry_price) * shares

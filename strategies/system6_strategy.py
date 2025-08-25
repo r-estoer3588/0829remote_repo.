@@ -1,12 +1,17 @@
 import pandas as pd
 import time
 from ta.volatility import AverageTrueRange
+from .base_strategy import StrategyBase
+from common.backtest_utils import simulate_trades_with_risk
+from common.config import load_config
 
 
-class System6Strategy:
+class System6Strategy(StrategyBase):
     """
     システム6：ショート・ミーン・リバージョン・ハイ・シックスデイサージ
     """
+    def __init__(self, config: dict | None = None):
+        self.config = config or load_config("System6")
 
     # ===============================
     # インジケーター計算
@@ -162,6 +167,73 @@ class System6Strategy:
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
+        trades_df, _ = simulate_trades_with_risk(
+            candidates_by_date,
+            prepared_dict,
+            capital,
+            self,
+            on_progress=on_progress,
+            on_log=on_log,
+        )
+        return trades_df
+
+    # 共通シミュレーター用フック（System6: ショート）
+    def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        try:
+            entry_idx = df.index.get_loc(candidate["entry_date"])
+        except Exception:
+            return None
+        if entry_idx <= 0 or entry_idx >= len(df):
+            return None
+        prev_close = float(df.iloc[entry_idx - 1]["Close"])
+        ratio = float(self.config.get("entry_price_ratio_vs_prev_close", 1.05))
+        entry_price = round(prev_close * ratio, 2)
+        try:
+            atr = float(df.iloc[entry_idx - 1]["ATR10"])
+        except Exception:
+            return None
+        stop_mult = float(self.config.get("stop_atr_multiple", 3.0))
+        stop_price = entry_price + stop_mult * atr
+        if stop_price - entry_price <= 0:
+            return None
+        return entry_price, stop_price
+
+    def compute_exit(
+        self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
+    ):
+        profit_take_pct = float(self.config.get("profit_take_pct", 0.05))
+        max_days = int(self.config.get("profit_take_max_days", 3))
+        offset = 1
+        while offset <= max_days and entry_idx + offset < len(df):
+            row = df.iloc[entry_idx + offset]
+            gain = (entry_price - row["Close"]) / entry_price
+            if gain >= profit_take_pct:
+                exit_idx = min(entry_idx + offset + 1, len(df) - 1)
+                exit_date = df.index[exit_idx]
+                exit_price = float(df.iloc[exit_idx]["Close"])
+                return exit_price, exit_date
+            if row["High"] >= stop_price:
+                if entry_idx + offset < len(df) - 1:
+                    prev_close2 = float(df.iloc[entry_idx + offset]["Close"])
+                    ratio = float(self.config.get("entry_price_ratio_vs_prev_close", 1.05))
+                    entry_price = round(prev_close2 * ratio, 2)
+                    atr2 = float(df.iloc[entry_idx + offset]["ATR10"])
+                    stop_mult = float(self.config.get("stop_atr_multiple", 3.0))
+                    stop_price = entry_price + stop_mult * atr2
+                    entry_idx = entry_idx + offset + 1
+                    offset = 0
+                else:
+                    exit_date = df.index[entry_idx + offset]
+                    exit_price = float(stop_price)
+                    return exit_price, exit_date
+            offset += 1
+        idx2 = min(entry_idx + max_days, len(df) - 1)
+        exit_date = df.index[idx2]
+        exit_price = float(df.iloc[idx2]["Close"])
+        return exit_price, exit_date
+
+    def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
+        return (entry_price - exit_price) * shares
         risk_per_trade = 0.02 * capital
         max_pos_value = 0.10 * capital
 
