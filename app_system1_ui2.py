@@ -5,10 +5,10 @@ from common.ui_components import (
     run_backtest_app,
     show_signal_trade_summary,
     save_signal_and_trade_logs,
-    save_prepared_data_cache,
     display_roc200_ranking,
     clean_date_column,
 )
+from common.cache_utils import save_prepared_data_cache
 
 # ✅ SPY関連は共通ユーティリティから
 from common.utils_spy import get_spy_data_cached, get_spy_with_indicators

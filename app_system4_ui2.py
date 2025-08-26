@@ -6,8 +6,8 @@ from common.ui_components import (
     run_backtest_app,
     show_signal_trade_summary,
     save_signal_and_trade_logs,
-    save_prepared_data_cache,
 )
+from common.cache_utils import save_prepared_data_cache
 from common.utils_spy import get_spy_data_cached  # ✅ System1 と同じSPY取得方法
 
 

@@ -15,9 +15,7 @@ from holding_tracker import (
 )
 from tickers_loader import get_all_tickers
 import matplotlib.ticker as mticker
-from strategies.system1 import (
-    generate_roc200_ranking_system1,
-)
+from system.core import generate_roc200_ranking_system1
 
 
 # ============================================================
@@ -718,3 +716,16 @@ def save_prepared_data_cache(data_dict, system_name="SystemX"):
     progress_bar.empty()
 
     st.success("🔚 バックテスト終了")
+# 7-x. 旧APIの委譲E後方互換EE# ============================================================
+"""
+# ============================================================
+# 7-x. 旧APIの委譲（後方互換）
+# ============================================================
+"""
+# 7-x. 旧APIの委譲（後方互換）
+# ============================================================
+def save_prepared_data_cache(data_dict, system_name="SystemX"):
+    """加工済みデータキャッシュ保存（共通ユーティリティへ委譲）"""
+    from common.cache_utils import save_prepared_data_cache as _save
+
+    return _save(data_dict, system_name)

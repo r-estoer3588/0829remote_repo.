@@ -2,7 +2,7 @@
 import time
 import pandas as pd
 from .base_strategy import StrategyBase
-from .system1 import (
+from system.core import (
     prepare_data_vectorized_system1,
     generate_roc200_ranking_system1,
     get_total_days_system1,
