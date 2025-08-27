@@ -7,10 +7,19 @@ from ta.volatility import AverageTrueRange
 from ta.momentum import RSIIndicator
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
+from ui_components import log_with_progress
 
 
 class System4Strategy(StrategyBase):
     SYSTEM_NAME = "system4"
+    __doc__ = (
+        "System4（ロング・トレンド／低ボラ）\n"
+        "- side: long（共通シミュレータのデフォルトlongを使用）\n"
+        "- compute_entry: (entry_price, stop_price)（stopはentryより下）\n"
+        "- compute_exit: トレーリング/ストップ割れで (exit_price, exit_date)\n"
+        "- compute_pnl: (exit - entry) * shares（ロング）\n"
+        "- 備考: 資金管理はsimulate_trades_with_riskへ統一済み。"
+    )
     """
     繧ｷ繧ｹ繝・Β4・壹Ο繝ｳ繧ｰ繝ｻ繝医Ξ繝ｳ繝峨・繝ｭ繝ｼ繝ｻ繝懊Λ繝・ぅ繝ｪ繝・ぅ
     - 繝輔ぅ繝ｫ繧ｿ繝ｼ:
@@ -79,7 +88,18 @@ class System4Strategy(StrategyBase):
             # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 インジケーター計算",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (
                     (elapsed / processed) * (total - processed) if processed > 0 else 0
@@ -164,7 +184,18 @@ class System4Strategy(StrategyBase):
             # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 候補抽出",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (
                     (elapsed / processed) * (total - processed) if processed > 0 else 0
@@ -306,79 +337,6 @@ if skipped > 0 and log_callback:
             on_log=on_log,
         )
         return trades_df
-
-            # 菫晄怏驫俶氛譖ｴ譁ｰ
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
-            slots = 10 - len(active_positions)
-            if slots <= 0:
-                pass
-
-            for c in candidates[:slots]:
-                df = prepared_dict[c["symbol"]]
-                try:
-                    entry_idx = df.index.get_loc(c["entry_date"])
-                except KeyError:
-                    pass
-                if entry_idx == 0 or entry_idx >= len(df):
-                    pass
-
-                entry_price = df.iloc[entry_idx]["Open"]
-                atr40 = df.iloc[entry_idx - 1]["ATR40"]
-                stop_price = entry_price - 1.5 * atr40
-
-                # 繝昴ず繧ｷ繝ｧ繝ｳ繧ｵ繧､繧ｺ
-                shares = min(
-                    risk_per_trade / max(entry_price - stop_price, 1e-6),
-                    max_pos_value / entry_price,
-                )
-                shares = int(shares)
-                if shares <= 0:
-                    pass
-
-                entry_date = df.index[entry_idx]
-                highest = entry_price
-                exit_date, exit_price = None, None
-
-                for idx2 in range(entry_idx + 1, len(df)):
-                    close = df.iloc[idx2]["Close"]
-
-                    # 繝医Ξ繝ｼ繝ｪ繝ｳ繧ｰ繧ｹ繝医ャ繝玲峩譁ｰ
-                    if close > highest:
-                        highest = close
-                    if close <= highest * 0.8:  # 20%荳玖誠
-                        exit_date = df.index[idx2]
-                        exit_price = close
-                        break
-
-                    # 謳榊・繧雁愛螳・
-                    if close <= stop_price:
-                        exit_date = df.index[idx2]
-                        exit_price = close
-                        # 蜀堺ｻ墓寺縺代・螳溯｣・ｽ吝慍縺ゅｊ
-                        break
-
-                if exit_date is None:
-                    exit_date = df.index[-1]
-                    exit_price = df.iloc[-1]["Close"]
-
-                pnl = (exit_price - entry_price) * shares
-                results.append(
-                    {
-                        "symbol": c["symbol"],
-                        "entry_date": entry_date,
-                        "exit_date": exit_date,
-                        "entry_price": round(entry_price, 2),
-                        "exit_price": round(exit_price, 2),
-                        "shares": shares,
-                        "pnl": round(pnl, 2),
-                        "return_%": round((pnl / capital) * 100, 2),
-                    }
-                )
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
-
-        # 譌ｧ繝ｭ繧ｸ繝・け縺ｯ蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ縺ｸ邨ｱ蜷域ｸ医∩・医ョ繝・ラ繧ｳ繝ｼ繝牙炎髯､・・
-
-    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem4: 繝ｭ繝ｳ繧ｰ縲・.5ATR繧ｹ繝医ャ繝励・0%繝医Ξ繝ｼ繝ｪ繝ｳ繧ｰ・・
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
@@ -416,3 +374,11 @@ if skipped > 0 and log_callback:
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (exit_price - entry_price) * shares
 
+    # --- テスト用の軽量インジ生成（必須: SMA200） ---
+    def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
+        out = {}
+        for sym, df in raw_data_dict.items():
+            x = df.copy()
+            x["SMA200"] = x["Close"].rolling(200).mean()
+            out[sym] = x
+        return out

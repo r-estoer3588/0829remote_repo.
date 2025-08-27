@@ -173,3 +173,17 @@ class System7Strategy(StrategyBase):
                 on_log(i, total_days, start_time)
 
         return pd.DataFrame(results)
+    # --- テスト用の軽量インジ生成（必須: ATR50 on SPY） ---
+    def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
+        out = {}
+        for sym, df in raw_data_dict.items():
+            x = df.copy()
+            high, low, close = x["High"], x["Low"], x["Close"]
+            tr = pd.concat([
+                (high - low),
+                (high - close.shift()).abs(),
+                (low - close.shift()).abs(),
+            ], axis=1).max(axis=1)
+            x["ATR50"] = tr.rolling(50).mean()
+            out[sym] = x
+        return out

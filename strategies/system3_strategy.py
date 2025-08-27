@@ -4,7 +4,7 @@ import time
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
-from common.backtest_utils import simulate_trades_with_risk
+from common.backtest_utils import simulate_trades_with_risk\nfrom ui_components import log_with_progress
 
 
 class System3Strategy(StrategyBase):
@@ -12,6 +12,12 @@ class System3Strategy(StrategyBase):
 
     def __init__(self):
         super().__init__()
+    """
+    System3 (Long mean-reversion):
+    - side: long（共通シミュレータはデフォルト long）
+    - compute_entry/exit が未実装時は共通デフォルト（ロング・トレーリング25%）に委譲。
+    - 必須インジ: SMA150（テスト用軽量関数で生成）。
+    """
     """
     繧ｷ繧ｹ繝・Β3・壹Ο繝ｳ繧ｰ繝ｻ繝溘・繝ｳ繝ｻ繝ｪ繝舌・繧ｸ繝ｧ繝ｳ繝ｻ繧ｻ繝ｫ繧ｪ繝・
     - 繧ｻ繝・ヨ繧｢繝・・: Close > SMA150, DropRate_3D >= 12.5%, Volume > 100荳・ ATR豈皮紫 >= 5%
@@ -63,7 +69,18 @@ class System3Strategy(StrategyBase):
             # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 インジケーター計算",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed)
                 log_callback(
@@ -114,7 +131,18 @@ class System3Strategy(StrategyBase):
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 候補抽出",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed)
                 log_callback(
@@ -203,3 +231,11 @@ class System3Strategy(StrategyBase):
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (exit_price - entry_price) * shares
 
+    # --- テスト用の軽量インジ生成（必須: SMA150） ---
+    def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
+        out = {}
+        for sym, df in raw_data_dict.items():
+            x = df.copy()
+            x["SMA150"] = x["Close"].rolling(150).mean()
+            out[sym] = x
+        return out

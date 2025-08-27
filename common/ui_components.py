@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 from common.utils import safe_filename, get_cached_data
+from utils.cache_manager import load_base_cache, save_base_cache
 from holding_tracker import (
     generate_holding_matrix,
     display_holding_heatmap,
@@ -81,6 +82,11 @@ def default_log_callback(processed, total, start_time, prefix="📊"):
 # ============================================================
 # - load_symbol
 def load_symbol(symbol, cache_dir="data_cache"):
+    # まずは共通ベースキャッシュを優先
+    df = load_base_cache(symbol, rebuild_if_missing=True)
+    if df is not None and not df.empty:
+        return symbol, df
+    # フォールバック: 旧キャッシュ
     path = os.path.join(cache_dir, f"{safe_filename(symbol)}.csv")
     if not os.path.exists(path):
         return symbol, None

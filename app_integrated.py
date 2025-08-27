@@ -1,163 +1,153 @@
-# app_integrated.py
+from __future__ import annotations
+
 import streamlit as st
-import pandas as pd
 
-# --- 蜷・す繧ｹ繝・Β縺ｮUI繧ｿ繝門他縺ｳ蜃ｺ縺・---
-from app_system1_ui2 import run_tab as run_tab1, get_spy_data_cached
-from app_system2_ui2 import run_tab as run_tab2
-from app_system3_ui2 import run_tab as run_tab3
-from app_system4_ui2 import run_tab as run_tab4
-from app_system5_ui2 import run_tab as run_tab5
-from app_system6_ui2 import run_tab as run_tab6
-from app_system7_ui2 import run_tab as run_tab7
+# 共通ログ/サマリーへ委譲（副作用で既存UI関数を置換）
+import common.ui_patch  # noqa: F401
 
-# --- 蜷・す繧ｹ繝・Β縺ｮ謌ｦ逡･繧ｯ繝ｩ繧ｹ・医ヰ繝・け繝・せ繝井ｸ諡ｬ逕ｨ・・---
-from strategies.system1_strategy import System1Strategy
-from strategies.system2_strategy import System2Strategy
-from strategies.system3_strategy import System3Strategy
-from strategies.system4_strategy import System4Strategy
-from strategies.system5_strategy import System5Strategy
-from strategies.system6_strategy import System6Strategy
-from strategies.system7_strategy import System7Strategy
-
-# --- 蜈ｱ騾壹く繝｣繝・す繝･髢｢謨ｰ ---
-from cache_daily_data import get_cached_data
-
-
-st.title("投 邨ｱ蜷医ヰ繝・け繝・せ繝・螳滄°逕ｨ・售ystem1縲・")
-`r`nsettings = get_settings(create_dirs=True)`r`n_logger = setup_logging(settings)`r`n
-# --- 陦ｨ遉ｺ繝｢繝ｼ繝蛾∈謚・---
-display_mode = st.radio(
-    "陦ｨ遉ｺ繝｢繝ｼ繝・, ["謌ｦ逡･蛻･繝・せ繝・, "荳諡ｬ螳溯｡・], key="display_mode_selector"
+from config.settings import get_settings
+from common.logging_utils import setup_logging
+from common.performance_summary import summarize as summarize_perf
+from common.ui_components import (
+    prepare_backtest_data,
+    run_backtest_with_logging,
+    show_results,
 )
+from common.utils_spy import get_spy_data_cached
+from tickers_loader import get_all_tickers
 
-# =========================================================
-# 謌ｦ逡･蛻･繝・せ繝医Δ繝ｼ繝・# =========================================================
-if display_mode == "謌ｦ逡･蛻･繝・せ繝・:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
-        ["System1", "System2", "System3", "System4", "System5", "System6", "System7"]
-    )
 
-    with tab1:
-        spy_df = get_spy_data_cached()
-        run_tab1(spy_df)
-    with tab2:
-        run_tab2()
-    with tab3:
-        run_tab3()
-    with tab4:
-        run_tab4()
-    with tab5:
-        run_tab5()
-    with tab6:
-        run_tab6()
-    with tab7:
-        run_tab7()
+def _load_ui_modules():
+    """各システムのUIモジュールを遅延読み込み。存在しない場合は None。"""
+    mods = {}
+    for i in range(1, 8):
+        name = f"app_system{i}_ui2"
+        try:
+            mods[name] = __import__(name)
+        except Exception:
+            mods[name] = None
+    return mods
 
-# =========================================================
-# 荳諡ｬ螳溯｡後Δ繝ｼ繝・# =========================================================
-if display_mode == "荳諡ｬ螳溯｡・:
-    st.subheader("噫 荳諡ｬ繝舌ャ繧ｯ繝・せ繝・/ 螳滄°逕ｨ繧ｷ繧ｰ繝翫Ν逋ｺ逕・)
 
-    # --- 蛻晄悄險ｭ螳・---
-    capital = st.number_input("蛻晄悄雉・≡・・SD・・, value=settings.ui.default_capital, step=1000)
-    run_mode = st.radio("繝｢繝ｼ繝蛾∈謚・, ["繝舌ャ繧ｯ繝・せ繝・, "繧ｷ繧ｰ繝翫Ν讀懷・"], horizontal=True)
+def main():
+    st.set_page_config(page_title="Trading Systems 1–7 (Integrated)", layout="wide")
 
-    if st.button("笆ｶ 螳溯｡・):
-        st.info("蜈ｨ繧ｷ繧ｹ繝・Β縺ｮ蜃ｦ逅・ｒ髢句ｧ九＠縺ｾ縺・..")
-        progress = st.progress(0)
-        log_area = st.empty()
+    # 設定・ロギング初期化
+    settings = get_settings(create_dirs=True)
+    logger = setup_logging(settings)
+    logger.info("app_integrated 起動")
 
-        # --- 繝・・繧ｿ蜿門ｾ暦ｼ亥・騾壹く繝｣繝・す繝･・・---
-        raw_data_dict = get_cached_data()  # 蜈ｨ驫俶氛縺ｾ縺ｨ繧√※蜿門ｾ・        spy_df = get_spy_data_cached()
+    st.title("📈 Trading Systems 1–7 統合UI")
+    with st.expander("⚙ 設定サマリー", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.write("- RESULTS_DIR:", str(settings.RESULTS_DIR))
+            st.write("- LOGS_DIR:", str(settings.LOGS_DIR))
+        with col2:
+            st.write("- DATA_CACHE_DIR:", str(settings.DATA_CACHE_DIR))
+            st.write("- THREADS:", settings.THREADS_DEFAULT)
+        with col3:
+            st.write("- 初期資金:", settings.ui.default_capital)
+            st.write("- ログレベル:", settings.logging.level)
 
-        all_results = []
-        total_systems = 7
-        sys_done = 0
+    mods = _load_ui_modules()
 
-        # --- System1 ---
-        s1 = System1Strategy()
-        prepared = s1.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates, _ = s1.generate_candidates(prepared, spy_df)
-        df1 = s1.run_backtest(
-            prepared,
-            candidates,
-            capital,
-            on_progress=lambda d, t, stt: progress.progress(
-                (sys_done + d / t) / total_systems
-            ),
-        )
-        all_results.append(df1)
-        sys_done += 1
+    tabs = st.tabs(["一括実行"] + [f"System{i}" for i in range(1, 8)])
 
-        # --- System2 ---
-        s2 = System2Strategy()
-        prepared = s2.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates = s2.generate_candidates(prepared)
-        df2 = s2.run_backtest(prepared, candidates, capital)
-        all_results.append(df2)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+    # --- 一括実行タブ ---
+    with tabs[0]:
+        st.subheader("🚀 一括バックテスト / 集計")
+        capital = st.number_input("初期資金 (USD)", min_value=1000, value=int(settings.ui.default_capital), step=1000)
+        limit_symbols = st.number_input("取得銘柄上限", min_value=50, max_value=5000, value=min(500, get_all_tickers().__len__()), step=50)
+        run_btn = st.button("▶ 一括実行")
 
-        # --- System3 ---
-        s3 = System3Strategy()
-        prepared = s3.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates = s3.generate_candidates(prepared)
-        df3 = s3.run_backtest(prepared, candidates, capital)
-        all_results.append(df3)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+        if run_btn:
+            try:
+                all_tickers = get_all_tickers()
+                symbols = all_tickers[: int(limit_symbols)]
+                spy_df = get_spy_data_cached()
 
-        # --- System4 ---
-        s4 = System4Strategy()
-        prepared = s4.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates = s4.generate_candidates(prepared)
-        df4 = s4.run_backtest(prepared, candidates, capital)
-        all_results.append(df4)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+                overall = []
+                sys_progress = st.progress(0)
+                sys_log = st.empty()
+                total_sys = 7
+                done_sys = 0
 
-        # --- System5 ---
-        s5 = System5Strategy()
-        prepared = s5.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates = s5.generate_candidates(prepared)
-        df5 = s5.run_backtest(prepared, candidates, capital)
-        all_results.append(df5)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+                for i in range(1, 8):
+                    sys_name = f"System{i}"
+                    sys_log.text(f"⏱ {sys_name}: 準備中...")
+                    try:
+                        mod = __import__(f"strategies.system{i}_strategy", fromlist=[f"System{i}Strategy"])  # type: ignore
+                        cls = getattr(mod, f"System{i}Strategy")
+                        strat = cls()
 
-        # --- System6 ---
-        s6 = System6Strategy()
-        prepared = s6.prepare_data(
-            raw_data_dict, log_callback=lambda m: log_area.text(m)
-        )
-        candidates = s6.generate_candidates(prepared)
-        df6 = s6.run_backtest(prepared, candidates, capital)
-        all_results.append(df6)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+                        # データ準備
+                        prepared, cands, merged = prepare_backtest_data(
+                            strat,
+                            symbols if sys_name != "System7" else ["SPY"],
+                            system_name=sys_name,
+                            spy_df=spy_df,
+                        )
+                        if cands is None:
+                            sys_log.text(f"⚠ {sys_name}: 候補なし。スキップ")
+                            done_sys += 1
+                            sys_progress.progress(done_sys / total_sys)
+                            continue
 
-        # --- System7 ---
-        s7 = System7Strategy()
-        prepared = s7.prepare_data({"SPY": spy_df})
-        candidates = s7.generate_candidates(prepared)
-        df7 = s7.run_backtest(prepared, candidates, capital)
-        all_results.append(df7)
-        sys_done += 1
-        progress.progress(sys_done / total_systems)
+                        # バックテスト
+                        sys_log.text(f"▶ {sys_name}: 実行中...")
+                        res = run_backtest_with_logging(strat, prepared, cands, capital, sys_name)
+                        if res is not None and not res.empty:
+                            res["system"] = sys_name
+                            overall.append(res)
+                            # 個別結果を簡易表示（任意で折畳）
+                            with st.expander(f"{sys_name} 結果", expanded=False):
+                                show_results(res, capital, sys_name)
+                        else:
+                            st.info(f"{sys_name}: トレードなし")
+                    except Exception as e:  # noqa: BLE001
+                        logger.exception("%s 実行中に例外", sys_name)
+                        st.exception(e)
+                    finally:
+                        done_sys += 1
+                        sys_progress.progress(done_sys / total_sys)
 
-        # --- 邨先棡縺ｾ縺ｨ繧・---
-        final_df = pd.concat(all_results, ignore_index=True)
-        st.success("蜈ｨ繧ｷ繧ｹ繝・Β蜃ｦ逅・ｮ御ｺ・笨・)
-        st.dataframe(final_df)
+                # 集計ビュー
+                st.markdown("---")
+                st.subheader("📊 全システム集計")
+                if overall:
+                    import pandas as pd
 
+                    all_df = pd.concat(overall, ignore_index=True)
+                    summary, all_df2 = summarize_perf(all_df, capital)
+                    cols = st.columns(6)
+                    d = summary.to_dict()
+                    cols[0].metric("トレード回数", d["trades"])
+                    cols[1].metric("合計損益", f"{d['total_return']:.2f}")
+                    cols[2].metric("勝率(%)", f"{d['win_rate']:.2f}")
+                    cols[3].metric("PF", f"{d['profit_factor']:.2f}")
+                    cols[4].metric("Sharpe", f"{d['sharpe']:.2f}")
+                    cols[5].metric("MDD", f"{d['max_drawdown']:.2f}")
+
+                    st.dataframe(all_df2)
+                else:
+                    st.info("集計対象の結果がありません。")
+            finally:
+                pass
+
+    # --- 個別タブ ---
+    for idx, tab in enumerate(tabs[1:], start=1):
+        with tab:
+            mod = mods.get(f"app_system{idx}_ui2")
+            if mod is None or not hasattr(mod, "run_tab"):
+                st.warning(f"System{idx} UI が見つかりません。app_system{idx}_ui2.py を確認してください。")
+                continue
+            try:
+                mod.run_tab()
+            except Exception as e:  # noqa: BLE001
+                logger.exception("System%d タブ実行中に例外", idx)
+                st.exception(e)
+
+
+if __name__ == "__main__":
+    main()

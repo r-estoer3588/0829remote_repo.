@@ -6,6 +6,7 @@ from ta.trend import ADXIndicator
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
+from ui_components import log_with_progress
 
 
 class System2Strategy(StrategyBase):
@@ -13,6 +14,14 @@ class System2Strategy(StrategyBase):
 
     def __init__(self):
         super().__init__()
+    """
+    System2 (Short RSI spike):
+    - side: short（共通シミュレータには side="short" を渡す）
+    - compute_entry: 前日終値に対するギャップ条件などを考慮し、(entry_price, stop_price) を返す。
+        stop_price はエントリーより上（ショートの損切り）を返すこと。
+    - compute_exit: 戻り／ストップ到達／日数経過などで (exit_price, exit_date) を返す。
+    - compute_pnl: ショート前提で (entry - exit) * shares を返す。
+    """
     """
     繧ｷ繧ｹ繝・Β2・壹す繝ｧ繝ｼ繝・RSI繧ｹ繝ｩ繧ｹ繝・
     - 繝輔ぅ繝ｫ繧ｿ繝ｼ: Close>5, DollarVolume20>25M, ATR10/Close>0.03
@@ -81,8 +90,18 @@ class System2Strategy(StrategyBase):
             # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 インジケーター計算",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
 
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (
                     (elapsed / processed) * (total - processed) if processed > 0 else 0
@@ -148,6 +167,7 @@ class System2Strategy(StrategyBase):
             self,
             on_progress=on_progress,
             on_log=on_log,
+            side="short",
         )
         return trades_df
 
@@ -155,6 +175,7 @@ class System2Strategy(StrategyBase):
     # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem2繝ｫ繝ｼ繝ｫ・・
     # ============================================================
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        """ショート前提のエントリー価格とストップを返す（stop は entry より上）。"""
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
         except Exception:
@@ -177,6 +198,7 @@ class System2Strategy(StrategyBase):
     def compute_exit(
         self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
     ):
+        """ショート前提のエグジット計算（利確は下落達成、損切りは高値ブレイク）。"""
         exit_date, exit_price = None, None
         profit_take_pct = float(self.config.get("profit_take_pct", 0.04))
         max_days = int(self.config.get("profit_take_max_days", 3))
@@ -204,5 +226,20 @@ class System2Strategy(StrategyBase):
         return exit_price, exit_date
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
+        """ショート損益。"""
         return (entry_price - exit_price) * shares
 
+    # --- テスト用の軽量インジ生成（必須: RSI3） ---
+    def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
+        out = {}
+        for sym, df in raw_data_dict.items():
+            x = df.copy()
+            close = x["Close"].astype(float)
+            # 簡易RSI(3)
+            delta = close.diff()
+            gain = delta.clip(lower=0).rolling(3).mean()
+            loss = -delta.clip(upper=0).rolling(3).mean()
+            rs = gain / loss.replace(0, pd.NA)
+            x["RSI3"] = 100 - (100 / (1 + rs))
+            out[sym] = x
+        return out

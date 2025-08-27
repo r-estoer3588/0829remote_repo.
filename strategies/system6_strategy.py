@@ -3,12 +3,18 @@ import time
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
+from ui_components import log_with_progress
 
 
 class System6Strategy(StrategyBase):
-    """
-    繧ｷ繧ｹ繝・Β6・壹す繝ｧ繝ｼ繝医・繝溘・繝ｳ繝ｻ繝ｪ繝舌・繧ｸ繝ｧ繝ｳ繝ｻ繝上う繝ｻ繧ｷ繝・け繧ｹ繝・う繧ｵ繝ｼ繧ｸ
-    """
+    __doc__ = (
+        "System6（ショート・ミーンリバーション／急騰ストレス）\\n"
+        "- side: short（共通シミュレータに side=\\"short\\" を渡す）\\n"
+        "- compute_entry: (entry_price, stop_price)（stopはentryより上）\\n"
+        "- compute_exit: 戻り利確/高値ブレイク損切りで (exit_price, exit_date)\\n"
+        "- compute_pnl: (entry - exit) * shares（ショート）\\n"
+        "- 備考: 資金管理はsimulate_trades_with_riskへ統一済み。"
+    )
     SYSTEM_NAME = "system6"
 
     def __init__(self):
@@ -67,7 +73,18 @@ class System6Strategy(StrategyBase):
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 インジケーター計算",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (
                     (elapsed / processed) * (total - processed) if processed > 0 else 0
@@ -132,7 +149,18 @@ class System6Strategy(StrategyBase):
 
             if progress_callback:
                 progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total) and log_callback:
+            if (processed % batch_size == 0 or processed == total):
+                log_with_progress(
+                    processed,
+                    total,
+                    start_time,
+                    prefix="📊 候補抽出",
+                    batch=batch_size,
+                    log_func=log_callback,
+                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
+                )
+                buffer.clear()
+            if False and log_callback:
                 elapsed = time.time() - start_time
                 remain = (
                     (elapsed / processed) * (total - processed) if processed > 0 else 0
@@ -189,6 +217,7 @@ class System6Strategy(StrategyBase):
 
     # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem6: 繧ｷ繝ｧ繝ｼ繝茨ｼ・
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
+        """ショート前提のエントリー（stop は entry より上）。"""
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
         except Exception:
@@ -211,6 +240,7 @@ class System6Strategy(StrategyBase):
     def compute_exit(
         self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
     ):
+        """ショート前提のエグジット（戻り利確/高値ブレイク損切り）。"""
         profit_take_pct = float(self.config.get("profit_take_pct", 0.05))
         max_days = int(self.config.get("profit_take_max_days", 3))
         offset = 1
@@ -244,110 +274,16 @@ class System6Strategy(StrategyBase):
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (entry_price - exit_price) * shares
-        risk_per_trade = 0.02 * capital
-        max_pos_value = 0.10 * capital
-
-        results, active_positions = [], []
-        total_days = len(candidates_by_date)
-        start_time = time.time()
-
-        for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), 1):
-            if on_progress:
-                on_progress(i, total_days, start_time)
-            if on_log and (i % 20 == 0 or i == total_days):
-                on_log(i, total_days, start_time)
-
-            # 菫晄怏驫俶氛謨ｴ逅・ｼ域怙螟ｧ10驫俶氛・・
-            active_positions = [p for p in active_positions if p["exit_date"] >= date]
-            slots = 10 - len(active_positions)
-            if slots <= 0:
-                continue
-
-            for c in candidates[:slots]:
-                df = prepared_dict[c["symbol"]]
-                try:
-                    entry_idx = df.index.get_loc(c["entry_date"])
-                except KeyError:
-                    continue
-                if entry_idx == 0 or entry_idx >= len(df):
-                    continue
-
-                # === 蛻晏屓繧ｨ繝ｳ繝医Μ繝ｼ ===
-                prev_close = df.iloc[entry_idx - 1]["Close"]
-                entry_price = round(prev_close * 1.05, 2)  # 蜑肴律邨ょ､縺ｮ5%荳翫〒繧ｷ繝ｧ繝ｼ繝・
-                atr = df.iloc[entry_idx - 1]["ATR10"]
-                stop_price = entry_price + 3 * atr
-
-                shares = min(
-                    risk_per_trade / max(stop_price - entry_price, 1e-6),
-                    max_pos_value / entry_price,
-                )
-                shares = int(shares)
-                if shares <= 0:
-                    continue
-
-                entry_date = df.index[entry_idx]
-                exit_date, exit_price = None, None
-
-                # === 蛻ｩ遒ｺ繝ｻ謳榊・繧翫・蜀堺ｻ墓寺縺大愛螳・===
-                offset = 1
-                while offset <= 3 and entry_idx + offset < len(df):
-                    row = df.iloc[entry_idx + offset]
-
-                    # 蛻ｩ遒ｺ (+5%驕疲・ 竊・鄙悟霧讌ｭ譌･螟ｧ蠑輔￠ Close)
-                    gain = (entry_price - row["Close"]) / entry_price
-                    if gain >= 0.05:
-                        exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
-                        exit_price = df.loc[exit_date, "Close"]
-                        break
-
-                    # 謳榊・繧・(High 縺・stop_price 莉･荳・
-                    if row["High"] >= stop_price:
-                        exit_date = df.index[entry_idx + offset]
-                        exit_price = stop_price
-
-                        # === 蜀堺ｻ墓寺縺・===
-                        if entry_idx + offset < len(df) - 1:
-                            prev_close2 = df.iloc[entry_idx + offset]["Close"]
-                            entry_price = round(prev_close2 * 1.05, 2)
-                            atr2 = df.iloc[entry_idx + offset]["ATR10"]
-                            stop_price = entry_price + 3 * atr2
-                            entry_date = df.index[entry_idx + offset + 1]
-                            offset = 1  # 鄙悟霧讌ｭ譌･縺九ｉ蜀榊愛螳夲ｼ育┌髯舌Ν繝ｼ繝鈴亟豁｢・・
-                        else:
-                            break
-                    offset += 1
-
-                # === 譎る俣繝吶・繧ｹ縺ｮ蛻ｩ鬟溘＞・・蝟ｶ讌ｭ譌･蠕後・螟ｧ蠑輔￠・・===
-                if exit_price is None:
-                    idx2 = min(entry_idx + 3, len(df) - 1)
-                    exit_date = df.index[idx2]
-                    exit_price = df.iloc[idx2]["Close"]
-
-                if exit_price is None or pd.isna(exit_price):
-                    continue
-
-                pnl = (entry_price - exit_price) * shares
-                return_pct = pnl / capital * 100
-
-                results.append(
-                    {
-                        "symbol": c["symbol"],
-                        "entry_date": entry_date,
-                        "exit_date": exit_date,
-                        "entry_price": entry_price,
-                        "exit_price": round(exit_price, 2),
-                        "shares": shares,
-                        "pnl": round(pnl, 2),
-                        "return_%": round(return_pct, 2),
-                    }
-                )
-                active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
-
-        return pd.DataFrame(results)
-
-
-
-
-
-
+    def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
+        out = {}
+        for sym, df in raw_data_dict.items():
+            x = df.copy()
+            high, low, close = x["High"], x["Low"], x["Close"]
+            tr = pd.concat([
+                (high - low),
+                (high - close.shift()).abs(),
+                (low - close.shift()).abs(),
+            ], axis=1).max(axis=1)
+            x["ATR10"] = tr.rolling(10).mean()
+            out[sym] = x
+        return out

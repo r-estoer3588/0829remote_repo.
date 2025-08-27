@@ -90,3 +90,58 @@ pip install -r requirements.txt
 - GitHub Actions ç­‰ã§ã®ãƒ†ã‚¹ãƒˆè‡ªå‹•åŒ–
 - è¿½åŠ ã®ä½¿ç”¨æ‰‹é †ï¼ˆæˆ¦ç•¥åˆ¥ã®æ“ä½œã‚¬ã‚¤ãƒ‰ï¼‰ã® README è¿½è¨˜
 
+
+## ŠJ”­ƒKƒCƒhií—ªƒCƒ“ƒ^[ƒtƒF[ƒX‚Æ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[j
+‚±‚ÌƒvƒƒWƒFƒNƒg‚Å‚ÍAŠeí—ªiSystem1?7j‚ª“¯ˆê‚Ìƒ‰ƒ“ƒ^ƒCƒ€Œ_–ñ‚Å“®ì‚·‚é‚æ‚¤‚É“ˆê‚µ‚Ä‚¢‚Ü‚·B“Á‚ÉA‘‹àŠÇ—‚Í‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[‚ÅˆêŒ³ŠÇ—‚µAí—ª‘¤‚Í”„”ƒƒ‹[ƒ‹‚ÉW’†‚µ‚Ü‚·B
+
+- –ğŠ„•ª’S‚ÌŒ´‘¥:
+  - í—ªiStrategyBaseŒp³j: ƒf[ƒ^‘Oˆ—iprepare_datajAŒó•â’Šoigenerate_candidatesjAƒGƒ“ƒgƒŠ[/ƒGƒOƒWƒbƒg/PnL‚ÌƒtƒbƒNicompute_*jB
+  - ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[: ‘‹àŠÇ—Eƒ|ƒWƒVƒ‡ƒ“˜gŠÇ—Ei’»’Ê’m‚ğ’S“–icommon/backtest_utils.py::simulate_trades_with_riskjB
+
+- side ‚Ì‹K–ñi•ûŒüw’èj:
+  - Šù’è‚Í longBƒVƒ‡[ƒgí—ª‚Í run_backtest ‚Å `side="short"` ‚ğ“n‚µ‚Ü‚·B
+  - —á: `simulate_trades_with_risk(..., self, on_progress=..., on_log=..., side="short")`
+
+- compute_* ‚ÌÓ–±‚Æ‘O’ñ:
+  - compute_entry(df, candidate, current_capital) -> (entry_price, stop_price) | None
+    - long: stop_price < entry_priceAshort: stop_price > entry_price ‚ğ•K‚¸–‚½‚·‚±‚ÆB
+    - candidate["entry_date"] ‚ª df.index ‚É‘¶İ‚µ‚È‚¢ê‡‚Í None ‚ğ•Ô‚µ‚ÄƒXƒLƒbƒvB
+  - compute_exit(df, entry_idx, entry_price, stop_price) -> (exit_price, exit_date) | None
+    - í—ª“Æ©‚Ì—˜Šm/‘¹Ø‚è/ÄdŠ|‚¯“™‚ğÀ‘•BNone ‚Ìê‡‚ÍƒVƒ~ƒ…ƒŒ[ƒ^[‚ÌƒfƒtƒHƒ‹ƒg‚ÉˆÏ÷B
+  - compute_pnl(entry_price, exit_price, shares) -> float
+    - À‘•‚ª–³‚¯‚ê‚ÎƒVƒ~ƒ…ƒŒ[ƒ^[‚ª side ‚É‰‚¶‚Ä©“®ŒvZilong: (exit-entry)*sharesAshort: (entry-exit)*sharesjB
+
+- ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[‚Ì‹““®iŠT—vj:
+  - long ƒfƒtƒHƒ‹ƒg: 25%ƒgƒŒ[ƒŠƒ“ƒOAATR20 ‚ğŠî€‚ÉŠÈˆÕƒXƒgƒbƒviƒtƒbƒN–¢À‘•‚ÌƒtƒH[ƒ‹ƒoƒbƒNjB
+  - short ƒfƒtƒHƒ‹ƒg: 25%ã‘¤ƒgƒŒ[ƒŠƒ“ƒOA‚’lƒuƒŒƒCƒN‚ÅƒXƒgƒbƒvi“¯ãjB
+  - ‘‹àŠÇ—: 1ƒgƒŒ[ƒh‚ÌƒŠƒXƒN=2%A“¯•Û—LãŒÀ=10Aexit ‚ÅƒLƒƒƒbƒVƒ…‚ğXViYAML‚Åã‘‚«‰ÂjB
+  - i’»: `on_progress(done, total, start_time)`AƒƒO: `on_log(msg)` ‚ğ’Ê‚¶‚Ä’Ê’mB
+
+- run_backtest ‚Ì“ˆêŒÄ‚Ño‚µ:
+  - Šeí—ª‚Ì `run_backtest` ‚Í•K‚¸ˆÈ‰º‚ÌŒ`‚É‚·‚éi‘‹àŠÇ—ƒƒWƒbƒN‚Í‘‚©‚È‚¢jB
+    ```python
+    trades_df, _ = simulate_trades_with_risk(
+        candidates_by_date,
+        prepared_dict,
+        capital,
+        self,
+        on_progress=on_progress,
+        on_log=on_log,
+        # ƒVƒ‡[ƒgí—ª‚Ì‚İ
+        side="short",
+    )
+    return trades_df
+    ```
+
+- i’»ƒƒO‚Ì“ˆê:
+  - i’»/c‚èŠÔ•t‚«ƒƒO‚Í `ui_components.log_with_progress` ‚É“ˆêB
+  - —á: `log_with_progress(i, total, start_time, prefix="?? ƒCƒ“ƒWƒP[ƒ^[ŒvZ", log_func=log_callback)`
+
+- ƒLƒƒƒbƒVƒ…•ûji‹¤’Êƒx[ƒX + Œy—ÊƒVƒXƒeƒ€•Êj:
+  - `data_cache/base/` ‚É OHLCV + ‹¤’Êw•WiSMA25/100/150/200, EMA20/50, ATR10/14/40/50, RSI3/14, ROC200, HV20j‚ğ•Û‘¶B
+  - “Ç‚İ‚İ‚Í `utils.cache_manager.load_base_cache(symbol)` ‚ğ—DæB‘«‚è‚È‚¢ŒÅ—LƒJƒ‰ƒ€‚Í on-the-fly ŒvZB
+  - Šù‘¶‚ÌƒVƒXƒeƒ€•Ê•Û‘¶‚Í“––ÊˆÛ‚µA’iŠK“I‚É base “‡‚ÖˆÚsiSystem7 Š®—¹Œã‚ğ–ÚˆÀjB
+
+- ƒeƒXƒgƒ|ƒŠƒV[i“––Ê‚Ì’ZŠú‘Î‰j:
+  - Šeí—ª‚ÉuÅ¬ƒCƒ“ƒW¶¬vŠÖ”‚ğ‚½‚¹Apytest ‚Å‚Í•K{w•W‚Ì—L–³‚¾‚¯‚ğŒŸØB
+  - –{Ši“I‚È backtest ŒŸØ‚Í“ˆêƒCƒ“ƒ^[ƒtƒF[ƒXŠ®¬Œã‚É’iŠK“I‚ÉŠg[B
