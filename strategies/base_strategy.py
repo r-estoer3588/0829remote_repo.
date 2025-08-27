@@ -1,13 +1,44 @@
-# strategies/base_strategy.py
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 import pandas as pd
-
 
 class StrategyBase(ABC):
     """
     全戦略共通の抽象基底クラス。
-    各戦略はこのクラスを継承し、必須メソッドを実装する。
+    各戦略はこのクラスを継承し、必要メソッドを実装する。
+    また、YAML のリスク設定とシステム固有設定を self.config に取り込む。
     """
+
+    def __init__(self) -> None:
+        # YAML 設定からリスク/システム固有パラメータを注入
+        try:
+            from config.settings import get_settings, get_system_params
+        except Exception:
+            self.config = {}
+            return
+
+        settings = get_settings(create_dirs=True)
+
+        # システム名を推定（例: strategies.system1_strategy -> system1）
+        module = getattr(self.__class__, "__module__", "")
+        sys_name = getattr(self, "SYSTEM_NAME", None)
+        if not sys_name:
+            parts = module.split('.')
+            cand = next((p for p in parts if p.startswith('system') and any(ch.isdigit() for ch in p)), None)
+            sys_name = cand or ""
+
+        system_params = get_system_params(sys_name) if sys_name else {}
+
+        # 既定のリスク管理値 + システム固有をマージ
+        cfg = {
+            "risk_pct": settings.risk.risk_pct,
+            "max_positions": settings.risk.max_positions,
+            "max_pct": settings.risk.max_pct,
+        }
+        try:
+            cfg.update(system_params or {})
+        except Exception:
+            pass
+        self.config = cfg
 
     @abstractmethod
     def prepare_data(self, raw_data_dict: dict, **kwargs) -> dict:
@@ -23,7 +54,7 @@ class StrategyBase(ABC):
     def run_backtest(
         self, data_dict: dict, candidates_by_date: dict, capital: float, **kwargs
     ) -> pd.DataFrame:
-        """仕掛け候補に基づいてバックテストを実行"""
+        """仕掛け候補に基づくバックテストを実施"""
         pass
 
     # ============================================================
@@ -33,7 +64,7 @@ class StrategyBase(ABC):
         self, capital: float, active_positions: list, current_date
     ):
         """
-        exit_date が current_date のポジションを決済して損益を反映。
+        exit_date == current_date のポジションを決済して損益を反映。
         戻り値: (更新後capital, 未決済active_positions)
         """
         realized_pnl = sum(
@@ -55,7 +86,7 @@ class StrategyBase(ABC):
         max_pct: float = 0.10,
     ) -> int:
         """
-        複利モードのポジションサイズ計算（System1〜6共通）
+        共通のポジションサイズ計算（System1〜7 共通）
         - capital: 現在資金
         - entry_price: エントリー価格
         - stop_price: 損切り価格

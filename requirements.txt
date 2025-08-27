@@ -38,3 +38,4 @@ xlsxwriter==3.2.5
 xmlrpclib==1.0.1
 zopfli==0.2.3.post1
 zstandard==0.23.0
+PyYAML>=6,<7

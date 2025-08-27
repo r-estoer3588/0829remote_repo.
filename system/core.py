@@ -157,9 +157,11 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
     on_log = kwargs.get("on_log")
 
     candidates_by_date = {}
+    # backtest 上位件数（デフォルト10）を設定から受け取れるように
+    top_n = int(kwargs.get("top_n", 10))
     for i, (date, group) in enumerate(grouped, 1):
-        top10 = group.nlargest(10, "ROC200")
-        candidates_by_date[date] = top10.to_dict("records")
+        top_df = group.nlargest(top_n, "ROC200")
+        candidates_by_date[date] = top_df.to_dict("records")
 
         if on_progress:
             on_progress(i, total_days, start_time)
@@ -173,4 +175,3 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
             )
 
     return candidates_by_date, merged
-

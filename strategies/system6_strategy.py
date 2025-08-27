@@ -1,20 +1,21 @@
-import pandas as pd
+﻿import pandas as pd
 import time
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
-from common.config import load_config
 
 
 class System6Strategy(StrategyBase):
     """
-    システム6：ショート・ミーン・リバージョン・ハイ・シックスデイサージ
+    繧ｷ繧ｹ繝・Β6・壹す繝ｧ繝ｼ繝医・繝溘・繝ｳ繝ｻ繝ｪ繝舌・繧ｸ繝ｧ繝ｳ繝ｻ繝上う繝ｻ繧ｷ繝・け繧ｹ繝・う繧ｵ繝ｼ繧ｸ
     """
-    def __init__(self, config: dict | None = None):
-        self.config = config or load_config("System6")
+    SYSTEM_NAME = "system6"
+
+    def __init__(self):
+        super().__init__()
 
     # ===============================
-    # インジケーター計算
+    # 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・
     # ===============================
     def prepare_data(
         self,
@@ -38,7 +39,7 @@ class System6Strategy(StrategyBase):
                 continue
 
             try:
-                # ---- インジケーター計算 ----
+                # ---- 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・----
                 df["ATR10"] = AverageTrueRange(
                     df["High"], df["Low"], df["Close"], window=10
                 ).average_true_range()
@@ -48,7 +49,7 @@ class System6Strategy(StrategyBase):
                     df["Close"].shift(1) > df["Close"].shift(2)
                 )
 
-                # ---- セットアップ条件 ----
+                # ---- 繧ｻ繝・ヨ繧｢繝・・譚｡莉ｶ ----
                 df["setup"] = (
                     (df["Close"] > 5)
                     & (df["DollarVolume50"] > 10_000_000)
@@ -74,16 +75,17 @@ class System6Strategy(StrategyBase):
                 em, es = divmod(int(elapsed), 60)
                 rm, rs = divmod(int(remain), 60)
                 msg = (
-                    f"📊 インジケーター計算: {processed}/{total} 件 完了"
-                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                    f"投 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・ {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {em}蛻・es}遘・/ 谿九ｊ: 邏・{rm}蛻・rs}遘・
                 )
                 if buffer:
-                    msg += f"\n銘柄: {', '.join(buffer)}"
+                    msg += f"
+驫俶氛: {', '.join(buffer)}"
                 log_callback(msg)
                 buffer.clear()
 
         if skipped > 0:
-            msg = f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件"
+            msg = f"笞・・繝・・繧ｿ荳崎ｶｳ/險育ｮ怜､ｱ謨励〒繧ｹ繧ｭ繝・・: {skipped} 莉ｶ"
             if skip_callback:
                 skip_callback(msg)
             elif log_callback:
@@ -92,7 +94,7 @@ class System6Strategy(StrategyBase):
         return result_dict
 
     # ===============================
-    # 候補銘柄抽出
+    # 蛟呵｣憺釜譟・歓蜃ｺ
     # ===============================
     def generate_candidates(
         self,
@@ -138,31 +140,39 @@ class System6Strategy(StrategyBase):
                 em, es = divmod(int(elapsed), 60)
                 rm, rs = divmod(int(remain), 60)
                 msg = (
-                    f"📊 セットアップ抽出: {processed}/{total} 件 完了"
-                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                    f"投 繧ｻ繝・ヨ繧｢繝・・謚ｽ蜃ｺ: {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {em}蛻・es}遘・/ 谿九ｊ: 邏・{rm}蛻・rs}遘・
                 )
                 if buffer:
-                    msg += f"\n銘柄: {', '.join(buffer)}"
+                    msg += f"
+驫俶氛: {', '.join(buffer)}"
                 log_callback(msg)
                 buffer.clear()
 
-        for date in candidates_by_date:
-            candidates_by_date[date] = sorted(
+        # Return6D 降順の上位N件（YAML: backtest.top_n_rank）
+        try:
+            from config.settings import get_settings
+            top_n = int(get_settings(create_dirs=False).backtest.top_n_rank)
+        except Exception:
+            top_n = 10
+        for date in list(candidates_by_date.keys()):
+            ranked = sorted(
                 candidates_by_date[date], key=lambda x: x["Return6D"], reverse=True
             )
+            candidates_by_date[date] = ranked[:top_n]
 
         if skipped > 0:
-            msg = f"⚠️ 候補抽出中にスキップ: {skipped} 件"
+            msg = f"笞・・蛟呵｣懈歓蜃ｺ荳ｭ縺ｫ繧ｹ繧ｭ繝・・: {skipped} 莉ｶ"
             if skip_callback:
                 skip_callback(msg)
             elif log_callback:
                 log_callback(msg)
 
-        merged_df = None  # System6ではランキング用結合DataFrame不要
+        merged_df = None  # System6縺ｧ縺ｯ繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ逕ｨ邨仙粋DataFrame荳崎ｦ・
         return candidates_by_date, merged_df
 
     # ===============================
-    # バックテスト実行
+    # 繝舌ャ繧ｯ繝・せ繝亥ｮ溯｡・
     # ===============================
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
@@ -177,7 +187,7 @@ class System6Strategy(StrategyBase):
         )
         return trades_df
 
-    # 共通シミュレーター用フック（System6: ショート）
+    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem6: 繧ｷ繝ｧ繝ｼ繝茨ｼ・
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
@@ -247,7 +257,7 @@ class System6Strategy(StrategyBase):
             if on_log and (i % 20 == 0 or i == total_days):
                 on_log(i, total_days, start_time)
 
-            # 保有銘柄整理（最大10銘柄）
+            # 菫晄怏驫俶氛謨ｴ逅・ｼ域怙螟ｧ10驫俶氛・・
             active_positions = [p for p in active_positions if p["exit_date"] >= date]
             slots = 10 - len(active_positions)
             if slots <= 0:
@@ -262,9 +272,9 @@ class System6Strategy(StrategyBase):
                 if entry_idx == 0 or entry_idx >= len(df):
                     continue
 
-                # === 初回エントリー ===
+                # === 蛻晏屓繧ｨ繝ｳ繝医Μ繝ｼ ===
                 prev_close = df.iloc[entry_idx - 1]["Close"]
-                entry_price = round(prev_close * 1.05, 2)  # 前日終値の5%上でショート
+                entry_price = round(prev_close * 1.05, 2)  # 蜑肴律邨ょ､縺ｮ5%荳翫〒繧ｷ繝ｧ繝ｼ繝・
                 atr = df.iloc[entry_idx - 1]["ATR10"]
                 stop_price = entry_price + 3 * atr
 
@@ -279,36 +289,36 @@ class System6Strategy(StrategyBase):
                 entry_date = df.index[entry_idx]
                 exit_date, exit_price = None, None
 
-                # === 利確・損切り・再仕掛け判定 ===
+                # === 蛻ｩ遒ｺ繝ｻ謳榊・繧翫・蜀堺ｻ墓寺縺大愛螳・===
                 offset = 1
                 while offset <= 3 and entry_idx + offset < len(df):
                     row = df.iloc[entry_idx + offset]
 
-                    # 利確 (+5%達成 → 翌営業日大引け Close)
+                    # 蛻ｩ遒ｺ (+5%驕疲・ 竊・鄙悟霧讌ｭ譌･螟ｧ蠑輔￠ Close)
                     gain = (entry_price - row["Close"]) / entry_price
                     if gain >= 0.05:
                         exit_date = df.index[min(entry_idx + offset + 1, len(df) - 1)]
                         exit_price = df.loc[exit_date, "Close"]
                         break
 
-                    # 損切り (High が stop_price 以上)
+                    # 謳榊・繧・(High 縺・stop_price 莉･荳・
                     if row["High"] >= stop_price:
                         exit_date = df.index[entry_idx + offset]
                         exit_price = stop_price
 
-                        # === 再仕掛け ===
+                        # === 蜀堺ｻ墓寺縺・===
                         if entry_idx + offset < len(df) - 1:
                             prev_close2 = df.iloc[entry_idx + offset]["Close"]
                             entry_price = round(prev_close2 * 1.05, 2)
                             atr2 = df.iloc[entry_idx + offset]["ATR10"]
                             stop_price = entry_price + 3 * atr2
                             entry_date = df.index[entry_idx + offset + 1]
-                            offset = 1  # 翌営業日から再判定（無限ループ防止）
+                            offset = 1  # 鄙悟霧讌ｭ譌･縺九ｉ蜀榊愛螳夲ｼ育┌髯舌Ν繝ｼ繝鈴亟豁｢・・
                         else:
                             break
                     offset += 1
 
-                # === 時間ベースの利食い（3営業日後の大引け） ===
+                # === 譎る俣繝吶・繧ｹ縺ｮ蛻ｩ鬟溘＞・・蝟ｶ讌ｭ譌･蠕後・螟ｧ蠑輔￠・・===
                 if exit_price is None:
                     idx2 = min(entry_idx + 3, len(df) - 1)
                     exit_date = df.index[idx2]
@@ -335,3 +345,9 @@ class System6Strategy(StrategyBase):
                 active_positions.append({"symbol": c["symbol"], "exit_date": exit_date})
 
         return pd.DataFrame(results)
+
+
+
+
+
+

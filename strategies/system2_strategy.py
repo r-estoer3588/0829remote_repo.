@@ -1,4 +1,4 @@
-# strategies/system2_strategy.py
+﻿# strategies/system2_strategy.py
 import time
 import pandas as pd
 from ta.momentum import RSIIndicator
@@ -6,21 +6,21 @@ from ta.trend import ADXIndicator
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
-from common.config import load_config
 
 
 class System2Strategy(StrategyBase):
-    def __init__(self, config: dict | None = None):
-        # Load merged config (defaults + System2 overrides)
-        self.config = config or load_config("System2")
+    SYSTEM_NAME = "system2"
+
+    def __init__(self):
+        super().__init__()
     """
-    システム2：ショート RSIスラスト
-    - フィルター: Close>5, DollarVolume20>25M, ATR10/Close>0.03
-    - セットアップ: RSI3>90, 2連陽線
-    - ランキング: ADX7 降順
-    - 損切り: 売値 + 3ATR10
-    - 利食い: 翌日4%以上利益で翌日大引け決済、未達なら2日後翌日決済
-    - ポジションサイジング: リスク2%、最大サイズ10%、全期間最大10ポジション
+    繧ｷ繧ｹ繝・Β2・壹す繝ｧ繝ｼ繝・RSI繧ｹ繝ｩ繧ｹ繝・
+    - 繝輔ぅ繝ｫ繧ｿ繝ｼ: Close>5, DollarVolume20>25M, ATR10/Close>0.03
+    - 繧ｻ繝・ヨ繧｢繝・・: RSI3>90, 2騾｣髯ｽ邱・
+    - 繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ: ADX7 髯埼・
+    - 謳榊・繧・ 螢ｲ蛟､ + 3ATR10
+    - 蛻ｩ鬟溘＞: 鄙梧律4%莉･荳雁茜逶翫〒鄙梧律螟ｧ蠑輔￠豎ｺ貂医∵悴驕斐↑繧・譌･蠕檎ｿ梧律豎ｺ貂・
+    - 繝昴ず繧ｷ繝ｧ繝ｳ繧ｵ繧､繧ｸ繝ｳ繧ｰ: 繝ｪ繧ｹ繧ｯ2%縲∵怙螟ｧ繧ｵ繧､繧ｺ10%縲∝・譛滄俣譛螟ｧ10繝昴ず繧ｷ繝ｧ繝ｳ
     """
 
     def prepare_data(
@@ -31,19 +31,19 @@ class System2Strategy(StrategyBase):
         start_time = time.time()
         buffer = []
         result_dict = {}
-        skipped_count = 0  # 追加: スキップ件数カウント
+        skipped_count = 0  # 霑ｽ蜉: 繧ｹ繧ｭ繝・・莉ｶ謨ｰ繧ｫ繧ｦ繝ｳ繝・
 
         for sym, df in raw_data_dict.items():
             df = df.copy()
 
-            # --- データ不足チェック ---
+            # --- 繝・・繧ｿ荳崎ｶｳ繝√ぉ繝・け ---
             if len(df) < 20:
-                skipped_count += 1  # ログは残さずカウントだけ
+                skipped_count += 1  # 繝ｭ繧ｰ縺ｯ谿九＆縺壹き繧ｦ繝ｳ繝医□縺・
                 processed += 1
                 continue
 
             try:
-                # --- インジケーター計算 ---
+                # --- 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・---
                 df["RSI3"] = RSIIndicator(df["Close"], window=3).rsi()
                 df["ADX7"] = ADXIndicator(
                     df["High"], df["Low"], df["Close"], window=7
@@ -52,11 +52,11 @@ class System2Strategy(StrategyBase):
                     df["High"], df["Low"], df["Close"], window=10
                 ).average_true_range()
             except Exception:
-                skipped_count += 1  # 計算失敗もスキップ扱い
+                skipped_count += 1  # 險育ｮ怜､ｱ謨励ｂ繧ｹ繧ｭ繝・・謇ｱ縺・
                 processed += 1
                 continue
 
-            # --- その他の指標 ---
+            # --- 縺昴・莉悶・謖・ｨ・---
             df["DollarVolume20"] = (
                 (df["Close"] * df["Volume"]).rolling(window=20).mean()
             )
@@ -65,7 +65,7 @@ class System2Strategy(StrategyBase):
                 df["Close"].shift(1) > df["Close"].shift(2)
             )
 
-            # --- セットアップ条件 ---
+            # --- 繧ｻ繝・ヨ繧｢繝・・譚｡莉ｶ ---
             df["setup"] = (
                 (df["Close"] > 5)
                 & (df["DollarVolume20"] > 25_000_000)
@@ -78,7 +78,7 @@ class System2Strategy(StrategyBase):
             processed += 1
             buffer.append(sym)
 
-            # --- 進捗更新 ---
+            # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
 
@@ -91,27 +91,27 @@ class System2Strategy(StrategyBase):
                 rm, rs = divmod(int(remain), 60)
 
                 msg = (
-                    f"📊 指標計算: {processed}/{total} 件 完了"
-                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
+                    f"投 謖・ｨ呵ｨ育ｮ・ {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {em}蛻・es}遘・/ 谿九ｊ: 邏・{rm}蛻・rs}遘・
                 )
                 if buffer:
-                    msg += f"\n銘柄: {', '.join(buffer)}"
+                    msg += f"\n驫俶氛: {', '.join(buffer)}"
 
-                log_callback(msg)  # ✅ 文字列だけ渡す
+                log_callback(msg)  # 笨・譁・ｭ怜・縺縺第ｸ｡縺・
                 buffer.clear()
 
-        # --- 最後にスキップ件数をまとめて表示 ---
+        # --- 譛蠕後↓繧ｹ繧ｭ繝・・莉ｶ謨ｰ繧偵∪縺ｨ繧√※陦ｨ遉ｺ ---
         if skipped_count > 0 and log_callback:
             log_callback(
-                f"⚠️ データ不足・計算失敗でスキップされた銘柄: {skipped_count} 件"
+                f"笞・・繝・・繧ｿ荳崎ｶｳ繝ｻ險育ｮ怜､ｱ謨励〒繧ｹ繧ｭ繝・・縺輔ｌ縺滄釜譟・ {skipped_count} 莉ｶ"
             )
 
         return result_dict
 
     def generate_candidates(self, prepared_dict, **kwargs):
         """
-        セットアップ条件通過銘柄を日別にADX7降順で返す
-        - System1と同じインターフェースに統一（kwargs受け取り可）
+        繧ｻ繝・ヨ繧｢繝・・譚｡莉ｶ騾夐℃驫俶氛繧呈律蛻･縺ｫADX7髯埼・〒霑斐☆
+        - System1縺ｨ蜷後§繧､繝ｳ繧ｿ繝ｼ繝輔ぉ繝ｼ繧ｹ縺ｫ邨ｱ荳・・wargs蜿励￠蜿悶ｊ蜿ｯ・・
         """
         all_signals = []
         for sym, df in prepared_dict.items():
@@ -125,11 +125,17 @@ class System2Strategy(StrategyBase):
         if not all_signals:
             return {}, None
 
-        all_df = pd.concat(all_signals)
-        candidates_by_date = {
-            date: group.sort_values("ADX7", ascending=False).to_dict("records")
-            for date, group in all_df.groupby("entry_date")
-        }
+                all_df = pd.concat(all_signals)
+        # ADX7降順で日別ランキングし、上位N件に絞る（YAML: backtest.top_n_rank）
+        try:
+            from config.settings import get_settings
+            top_n = int(get_settings(create_dirs=False).backtest.top_n_rank)
+        except Exception:
+            top_n = 10
+        candidates_by_date = {}
+        for date, group in all_df.groupby("entry_date"):
+            ranked = group.sort_values("ADX7", ascending=False)
+            candidates_by_date[date] = ranked.head(top_n).to_dict("records")
         return candidates_by_date, None
 
     def run_backtest(
@@ -146,7 +152,7 @@ class System2Strategy(StrategyBase):
         return trades_df
 
     # ============================================================
-    # 共通シミュレーター用フック（System2ルール）
+    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem2繝ｫ繝ｼ繝ｫ・・
     # ============================================================
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
@@ -199,3 +205,4 @@ class System2Strategy(StrategyBase):
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (entry_price - exit_price) * shares
+

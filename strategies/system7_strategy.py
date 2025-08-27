@@ -3,7 +3,6 @@ import pandas as pd
 import time
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
-from common.config import load_config
 
 
 class System7Strategy(StrategyBase):
@@ -14,8 +13,10 @@ class System7Strategy(StrategyBase):
     - 利確: SPYが直近70日高値を更新した翌日の寄付で決済
     """
 
-    def __init__(self, config: dict | None = None):
-        self.config = config or load_config("System7")
+    SYSTEM_NAME = "system7"
+
+    def __init__(self):
+        super().__init__()
 
     def prepare_data(self, raw_data_dict, **kwargs):
         progress_callback = kwargs.pop("progress_callback", None)

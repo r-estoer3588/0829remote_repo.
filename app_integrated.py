@@ -1,8 +1,8 @@
-# app_integrated.py
+﻿# app_integrated.py
 import streamlit as st
 import pandas as pd
 
-# --- 各システムのUIタブ呼び出し ---
+# --- 蜷・す繧ｹ繝・Β縺ｮUI繧ｿ繝門他縺ｳ蜃ｺ縺・---
 from app_system1_ui2 import run_tab as run_tab1, get_spy_data_cached
 from app_system2_ui2 import run_tab as run_tab2
 from app_system3_ui2 import run_tab as run_tab3
@@ -11,7 +11,7 @@ from app_system5_ui2 import run_tab as run_tab5
 from app_system6_ui2 import run_tab as run_tab6
 from app_system7_ui2 import run_tab as run_tab7
 
-# --- 各システムの戦略クラス（バックテスト一括用） ---
+# --- 蜷・す繧ｹ繝・Β縺ｮ謌ｦ逡･繧ｯ繝ｩ繧ｹ・医ヰ繝・け繝・せ繝井ｸ諡ｬ逕ｨ・・---
 from strategies.system1_strategy import System1Strategy
 from strategies.system2_strategy import System2Strategy
 from strategies.system3_strategy import System3Strategy
@@ -20,21 +20,20 @@ from strategies.system5_strategy import System5Strategy
 from strategies.system6_strategy import System6Strategy
 from strategies.system7_strategy import System7Strategy
 
-# --- 共通キャッシュ関数 ---
+# --- 蜈ｱ騾壹く繝｣繝・す繝･髢｢謨ｰ ---
 from cache_daily_data import get_cached_data
 
 
-st.title("📊 統合バックテスト&実運用：System1〜7")
-
-# --- 表示モード選択 ---
+st.title("投 邨ｱ蜷医ヰ繝・け繝・せ繝・螳滄°逕ｨ・售ystem1縲・")
+`r`nsettings = get_settings(create_dirs=True)`r`n_logger = setup_logging(settings)`r`n
+# --- 陦ｨ遉ｺ繝｢繝ｼ繝蛾∈謚・---
 display_mode = st.radio(
-    "表示モード", ["戦略別テスト", "一括実行"], key="display_mode_selector"
+    "陦ｨ遉ｺ繝｢繝ｼ繝・, ["謌ｦ逡･蛻･繝・せ繝・, "荳諡ｬ螳溯｡・], key="display_mode_selector"
 )
 
 # =========================================================
-# 戦略別テストモード
-# =========================================================
-if display_mode == "戦略別テスト":
+# 謌ｦ逡･蛻･繝・せ繝医Δ繝ｼ繝・# =========================================================
+if display_mode == "謌ｦ逡･蛻･繝・せ繝・:
     tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         ["System1", "System2", "System3", "System4", "System5", "System6", "System7"]
     )
@@ -56,23 +55,21 @@ if display_mode == "戦略別テスト":
         run_tab7()
 
 # =========================================================
-# 一括実行モード
-# =========================================================
-if display_mode == "一括実行":
-    st.subheader("🚀 一括バックテスト / 実運用シグナル発生")
+# 荳諡ｬ螳溯｡後Δ繝ｼ繝・# =========================================================
+if display_mode == "荳諡ｬ螳溯｡・:
+    st.subheader("噫 荳諡ｬ繝舌ャ繧ｯ繝・せ繝・/ 螳滄°逕ｨ繧ｷ繧ｰ繝翫Ν逋ｺ逕・)
 
-    # --- 初期設定 ---
-    capital = st.number_input("初期資金（USD）", value=100000, step=1000)
-    run_mode = st.radio("モード選択", ["バックテスト", "シグナル検出"], horizontal=True)
+    # --- 蛻晄悄險ｭ螳・---
+    capital = st.number_input("蛻晄悄雉・≡・・SD・・, value=settings.ui.default_capital, step=1000)
+    run_mode = st.radio("繝｢繝ｼ繝蛾∈謚・, ["繝舌ャ繧ｯ繝・せ繝・, "繧ｷ繧ｰ繝翫Ν讀懷・"], horizontal=True)
 
-    if st.button("▶ 実行"):
-        st.info("全システムの処理を開始します...")
+    if st.button("笆ｶ 螳溯｡・):
+        st.info("蜈ｨ繧ｷ繧ｹ繝・Β縺ｮ蜃ｦ逅・ｒ髢句ｧ九＠縺ｾ縺・..")
         progress = st.progress(0)
         log_area = st.empty()
 
-        # --- データ取得（共通キャッシュ） ---
-        raw_data_dict = get_cached_data()  # 全銘柄まとめて取得
-        spy_df = get_spy_data_cached()
+        # --- 繝・・繧ｿ蜿門ｾ暦ｼ亥・騾壹く繝｣繝・す繝･・・---
+        raw_data_dict = get_cached_data()  # 蜈ｨ驫俶氛縺ｾ縺ｨ繧√※蜿門ｾ・        spy_df = get_spy_data_cached()
 
         all_results = []
         total_systems = 7
@@ -159,7 +156,8 @@ if display_mode == "一括実行":
         sys_done += 1
         progress.progress(sys_done / total_systems)
 
-        # --- 結果まとめ ---
+        # --- 邨先棡縺ｾ縺ｨ繧・---
         final_df = pd.concat(all_results, ignore_index=True)
-        st.success("全システム処理完了 ✅")
+        st.success("蜈ｨ繧ｷ繧ｹ繝・Β蜃ｦ逅・ｮ御ｺ・笨・)
         st.dataframe(final_df)
+

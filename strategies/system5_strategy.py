@@ -1,22 +1,23 @@
-import pandas as pd
+﻿import pandas as pd
 import time
 from ta.trend import SMAIndicator, ADXIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
-from common.config import load_config
 
 
 class System5Strategy(StrategyBase):
-    def __init__(self, config: dict | None = None):
-        self.config = config or load_config("System5")
+    SYSTEM_NAME = "system5"
+
+    def __init__(self):
+        super().__init__()
     """
-    システム5：ロング・ミーンリバージョン・ハイADXリバーサル
+    繧ｷ繧ｹ繝・Β5・壹Ο繝ｳ繧ｰ繝ｻ繝溘・繝ｳ繝ｪ繝舌・繧ｸ繝ｧ繝ｳ繝ｻ繝上うADX繝ｪ繝舌・繧ｵ繝ｫ
     """
 
     # ===============================
-    # インジケーター計算
+    # 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・
     # ===============================
     def prepare_data(
         self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
@@ -35,7 +36,7 @@ class System5Strategy(StrategyBase):
                 continue
 
             try:
-                # ---- インジケーター ----
+                # ---- 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ ----
                 df["SMA100"] = SMAIndicator(df["Close"], window=100).sma_indicator()
                 df["ATR10"] = AverageTrueRange(
                     df["High"], df["Low"], df["Close"], window=10
@@ -48,7 +49,7 @@ class System5Strategy(StrategyBase):
                 df["DollarVolume50"] = (df["Close"] * df["Volume"]).rolling(50).mean()
                 df["ATR_Pct"] = df["ATR10"] / df["Close"]
 
-                # ---- セットアップ ----
+                # ---- 繧ｻ繝・ヨ繧｢繝・・ ----
                 df["setup"] = (
                     (df["Close"] > df["SMA100"] + df["ATR10"])
                     & (df["ADX7"] > 55)
@@ -65,28 +66,28 @@ class System5Strategy(StrategyBase):
             processed += 1
             buffer.append(sym)
 
-            # 進捗更新
+            # 騾ｲ謐玲峩譁ｰ
             if progress_callback:
                 progress_callback(processed, total)
-            # ログ更新
+            # 繝ｭ繧ｰ譖ｴ譁ｰ
             if (processed % batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed) if processed else 0
                 log_callback(
-                    f"📊 インジケーター計算: {processed}/{total} 件 完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
-                    f"銘柄: {', '.join(buffer)}"
+                    f"投 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・ {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {int(elapsed//60)}蛻・int(elapsed%60)}遘・
+                    f" / 谿九ｊ: 邏・{int(remain//60)}蛻・int(remain%60)}遘箪n"
+                    f"驫俶氛: {', '.join(buffer)}"
                 )
                 buffer.clear()
 
         if skipped > 0 and log_callback:
-            log_callback(f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件")
+            log_callback(f"笞・・繝・・繧ｿ荳崎ｶｳ/險育ｮ怜､ｱ謨励〒繧ｹ繧ｭ繝・・: {skipped} 莉ｶ")
 
         return result_dict
 
     # ===============================
-    # 候補銘柄抽出
+    # 蛟呵｣憺釜譟・歓蜃ｺ
     # ===============================
     def generate_candidates(
         self, prepared_dict, progress_callback=None, log_callback=None, batch_size=50
@@ -125,26 +126,35 @@ class System5Strategy(StrategyBase):
                 em, es = divmod(int(elapsed), 60)
                 rm, rs = divmod(int(remaining), 60)
                 log_callback(
-                    f"📊 セットアップ抽出: {processed}/{total} 件 完了"
-                    f" | 経過: {em}分{es}秒 / 残り: 約 {rm}分{rs}秒"
-                    f"\n銘柄: {', '.join(buffer)}"
+                    f"投 繧ｻ繝・ヨ繧｢繝・・謚ｽ蜃ｺ: {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {em}蛻・es}遘・/ 谿九ｊ: 邏・{rm}蛻・rs}遘・
+                    f"\n驫俶氛: {', '.join(buffer)}"
                 )
                 buffer.clear()
 
         if skipped > 0 and log_callback:
-            log_callback(f"⚠️ 候補抽出中にスキップ: {skipped} 件")
+            log_callback(f"笞・・蛟呵｣懈歓蜃ｺ荳ｭ縺ｫ繧ｹ繧ｭ繝・・: {skipped} 莉ｶ")
 
-        # ADX7 降順ランキング
-        for date in candidates_by_date:
-            candidates_by_date[date] = sorted(
+                if skipped > 0 and log_callback:
+            log_callback(f"⚠ 警告 候補抽出中にスキップ: {skipped} 件")
+
+        # ADX7 降順の上位N件のみ（YAML: backtest.top_n_rank）
+        try:
+            from config.settings import get_settings
+            top_n = int(get_settings(create_dirs=False).backtest.top_n_rank)
+        except Exception:
+            top_n = 10
+        for date in list(candidates_by_date.keys()):
+            ranked = sorted(
                 candidates_by_date[date], key=lambda x: x["ADX7"], reverse=True
             )
+            candidates_by_date[date] = ranked[:top_n]
 
         merged_df = None  # System5ではランキング用に結合DataFrameは不要
         return candidates_by_date, merged_df
 
     # ===============================
-    # バックテスト実行
+    # 繝舌ャ繧ｯ繝・せ繝亥ｮ溯｡・
     # ===============================
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
@@ -159,7 +169,7 @@ class System5Strategy(StrategyBase):
         )
         return trades_df
 
-    # 共通シミュレーター用フック（System5）
+    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem5・・
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
@@ -178,7 +188,7 @@ class System5Strategy(StrategyBase):
         stop_price = entry_price - stop_mult * atr
         if entry_price - stop_price <= 0:
             return None
-        # 保存: 初期ATRを利益目標に使う
+        # 菫晏ｭ・ 蛻晄悄ATR繧貞茜逶顔岼讓吶↓菴ｿ縺・
         self._last_entry_atr = atr
         return entry_price, stop_price
 
@@ -198,15 +208,15 @@ class System5Strategy(StrategyBase):
         offset = 1
         while offset <= fallback_days and entry_idx + offset < len(df):
             row = df.iloc[entry_idx + offset]
-            # 利確条件: 当日高値が目標達成 → 翌営業日Open
+            # 蛻ｩ遒ｺ譚｡莉ｶ: 蠖捺律鬮伜､縺檎岼讓咎＃謌・竊・鄙悟霧讌ｭ譌･Open
             if row["High"] >= target_price:
                 exit_idx = min(entry_idx + offset + 1, len(df) - 1)
                 exit_date = df.index[exit_idx]
                 exit_price = float(df.iloc[exit_idx]["Open"])
                 return exit_price, exit_date
-            # 損切り: 当日安値がストップ割れ → 即日ストップ価格
+            # 謳榊・繧・ 蠖捺律螳牙､縺後せ繝医ャ繝怜牡繧・竊・蜊ｳ譌･繧ｹ繝医ャ繝嶺ｾ｡譬ｼ
             if row["Low"] <= stop_price:
-                # 再仕掛け
+                # 蜀堺ｻ墓寺縺・
                 if entry_idx + offset < len(df) - 1:
                     prev_close2 = float(df.iloc[entry_idx + offset]["Close"])
                     ratio = float(getattr(self, "config", {}).get("entry_price_ratio_vs_prev_close", 0.97))
@@ -216,14 +226,14 @@ class System5Strategy(StrategyBase):
                     stop_price = entry_price - stop_mult * atr2
                     target_price = entry_price + target_mult * atr2
                     entry_idx = entry_idx + offset
-                    offset = 0  # 翌ループで +1 される
+                    offset = 0  # 鄙後Ν繝ｼ繝励〒 +1 縺輔ｌ繧・
                 else:
                     exit_date = df.index[entry_idx + offset]
                     exit_price = float(stop_price)
                     return exit_price, exit_date
             offset += 1
 
-        # フォールバック: fallback_days 後の寄り付き
+        # 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: fallback_days 蠕後・蟇・ｊ莉倥″
         idx2 = min(entry_idx + fallback_days, len(df) - 1)
         exit_date = df.index[idx2]
         exit_price = float(df.iloc[idx2]["Open"])
@@ -231,3 +241,4 @@ class System5Strategy(StrategyBase):
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (exit_price - entry_price) * shares
+

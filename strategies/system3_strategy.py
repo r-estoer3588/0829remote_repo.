@@ -1,22 +1,23 @@
-# strategies/system3_strategy.py
+﻿# strategies/system3_strategy.py
 import pandas as pd
 import time
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
-from common.config import load_config
 
 
 class System3Strategy(StrategyBase):
-    def __init__(self, config: dict | None = None):
-        self.config = config or load_config("System3")
+    SYSTEM_NAME = "system3"
+
+    def __init__(self):
+        super().__init__()
     """
-    システム3：ロング・ミーン・リバージョン・セルオフ
-    - セットアップ: Close > SMA150, DropRate_3D >= 12.5%, Volume > 100万, ATR比率 >= 5%
-    - ランキング: DropRate_3D 降順（下落幅が大きい順）
-    - 損切り: -2.5ATR, 利食い: +4%以上 or 最大3日保持
-    - リスク2%、最大10%ポジション、同時保有最大10銘柄
+    繧ｷ繧ｹ繝・Β3・壹Ο繝ｳ繧ｰ繝ｻ繝溘・繝ｳ繝ｻ繝ｪ繝舌・繧ｸ繝ｧ繝ｳ繝ｻ繧ｻ繝ｫ繧ｪ繝・
+    - 繧ｻ繝・ヨ繧｢繝・・: Close > SMA150, DropRate_3D >= 12.5%, Volume > 100荳・ ATR豈皮紫 >= 5%
+    - 繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ: DropRate_3D 髯埼・ｼ井ｸ玖誠蟷・′螟ｧ縺阪＞鬆・ｼ・
+    - 謳榊・繧・ -2.5ATR, 蛻ｩ鬟溘＞: +4%莉･荳・or 譛螟ｧ3譌･菫晄戟
+    - 繝ｪ繧ｹ繧ｯ2%縲∵怙螟ｧ10%繝昴ず繧ｷ繝ｧ繝ｳ縲∝酔譎ゆｿ晄怏譛螟ｧ10驫俶氛
     """
 
     def prepare_data(
@@ -30,7 +31,7 @@ class System3Strategy(StrategyBase):
 
         for sym, df in raw_data_dict.items():
             df = df.copy()
-            if len(df) < 150:  # データ不足チェック
+            if len(df) < 150:  # 繝・・繧ｿ荳崎ｶｳ繝√ぉ繝・け
                 skipped += 1
                 processed += 1
                 continue
@@ -59,26 +60,26 @@ class System3Strategy(StrategyBase):
             processed += 1
             buffer.append(sym)
 
-            # --- 進捗更新 ---
+            # --- 騾ｲ謐玲峩譁ｰ ---
             if progress_callback:
                 progress_callback(processed, total)
             if (processed % batch_size == 0 or processed == total) and log_callback:
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed)
                 log_callback(
-                    f"📊 指標計算: {processed}/{total} 件 完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
-                    f"銘柄: {', '.join(buffer)}"
+                    f"投 謖・ｨ呵ｨ育ｮ・ {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {int(elapsed//60)}蛻・int(elapsed%60)}遘・
+                    f" / 谿九ｊ: 邏・{int(remain//60)}蛻・int(remain%60)}遘箪n"
+                    f"驫俶氛: {', '.join(buffer)}"
                 )
                 buffer.clear()
 
-        # --- スキップ件数 ---
+        # --- 繧ｹ繧ｭ繝・・莉ｶ謨ｰ ---
         if skipped > 0 and log_callback:
-            log_callback(f"⚠️ データ不足・計算失敗でスキップ: {skipped} 件")
+            log_callback(f"笞・・繝・・繧ｿ荳崎ｶｳ繝ｻ險育ｮ怜､ｱ謨励〒繧ｹ繧ｭ繝・・: {skipped} 莉ｶ")
 
         if log_callback:
-            log_callback(f"📊 指標計算完了 | {total} 銘柄を処理しました")
+            log_callback(f"投 謖・ｨ呵ｨ育ｮ怜ｮ御ｺ・| {total} 驫俶氛繧貞・逅・＠縺ｾ縺励◆")
 
         return result_dict
 
@@ -91,7 +92,7 @@ class System3Strategy(StrategyBase):
         **kwargs,
     ):
         """
-        セットアップ通過銘柄を日別に DropRate_3D 昇順でランキング
+        繧ｻ繝・ヨ繧｢繝・・騾夐℃驫俶氛繧呈律蛻･縺ｫ DropRate_3D 譏・・〒繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ
         """
         all_signals = []
         total = len(prepared_dict)
@@ -105,7 +106,7 @@ class System3Strategy(StrategyBase):
             setup_df = df[df["setup"] == 1].copy()
             setup_df["symbol"] = sym
             setup_df["entry_date"] = setup_df.index + pd.Timedelta(days=1)
-            # 🔽 DropRate_3Dを残すため明示的に選択
+            # 反 DropRate_3D繧呈ｮ九☆縺溘ａ譏守､ｺ逧・↓驕ｸ謚・
             setup_df = setup_df[["symbol", "entry_date", "DropRate_3D", "ATR10"]]
             all_signals.append(setup_df)
             processed += 1
@@ -117,21 +118,27 @@ class System3Strategy(StrategyBase):
                 elapsed = time.time() - start_time
                 remain = (elapsed / processed) * (total - processed)
                 log_callback(
-                    f"📊 セットアップ抽出: {processed}/{total} 件 完了"
-                    f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                    f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒\n"
-                    f"銘柄: {', '.join(buffer)}"
+                    f"投 繧ｻ繝・ヨ繧｢繝・・謚ｽ蜃ｺ: {processed}/{total} 莉ｶ 螳御ｺ・
+                    f" | 邨碁℃: {int(elapsed//60)}蛻・int(elapsed%60)}遘・
+                    f" / 谿九ｊ: 邏・{int(remain//60)}蛻・int(remain%60)}遘箪n"
+                    f"驫俶氛: {', '.join(buffer)}"
                 )
                 buffer.clear()
 
         if not all_signals:
             return {}, None
 
-        all_df = pd.concat(all_signals)
-        candidates_by_date = {
-            date: group.sort_values("DropRate_3D", ascending=False).to_dict("records")
-            for date, group in all_df.groupby("entry_date")
-        }
+                all_df = pd.concat(all_signals)
+        # DropRate_3D 降順で上位N件（YAML: backtest.top_n_rank）
+        try:
+            from config.settings import get_settings
+            top_n = int(get_settings(create_dirs=False).backtest.top_n_rank)
+        except Exception:
+            top_n = 10
+        candidates_by_date = {}
+        for date, group in all_df.groupby("entry_date"):
+            ranked = group.sort_values("DropRate_3D", ascending=False)
+            candidates_by_date[date] = ranked.head(top_n).to_dict("records")
         return candidates_by_date, None
 
     def run_backtest(
@@ -148,7 +155,7 @@ class System3Strategy(StrategyBase):
         return trades_df
 
     # ============================================================
-    # 共通シミュレーター用フック（System3ルール）
+    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem3繝ｫ繝ｼ繝ｫ・・
     # ============================================================
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
@@ -175,7 +182,7 @@ class System3Strategy(StrategyBase):
     ):
         profit_take_pct = float(self.config.get("profit_take_pct", 0.04))
         max_days = int(self.config.get("profit_take_max_days", 3))
-        # 1..max_days の間に利確達成なら翌営業日Closeで決済
+        # 1..max_days 縺ｮ髢薙↓蛻ｩ遒ｺ驕疲・縺ｪ繧臥ｿ悟霧讌ｭ譌･Close縺ｧ豎ｺ貂・
         for offset in range(1, max_days + 1):
             idx2 = entry_idx + offset
             if idx2 >= len(df):
@@ -187,7 +194,7 @@ class System3Strategy(StrategyBase):
                 exit_date = df.index[exit_idx]
                 exit_price = df.iloc[exit_idx]["Close"]
                 return exit_price, exit_date
-        # 未達なら max_days 後のClose
+        # 譛ｪ驕斐↑繧・max_days 蠕後・Close
         idx2 = min(entry_idx + max_days, len(df) - 1)
         exit_date = df.index[idx2]
         exit_price = df.iloc[idx2]["Close"]
@@ -195,3 +202,4 @@ class System3Strategy(StrategyBase):
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
         return (exit_price - entry_price) * shares
+
