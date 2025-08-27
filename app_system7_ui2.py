@@ -1,4 +1,5 @@
 import streamlit as st
+import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
 from strategies.system7_strategy import System7Strategy
 from common.ui_components import (
     run_backtest_app,

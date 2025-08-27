@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from dotenv import load_dotenv
+try:
+    # optional import for validation
+    from .schemas import validate_config_dict  # type: ignore
+except Exception:  # pragma: no cover
+    validate_config_dict = None  # type: ignore
 
 try:
     import yaml  # type: ignore
@@ -161,6 +166,20 @@ def _load_yaml_config(project_root: Path) -> Dict[str, Any]:
     return data
 
 
+def _load_yaml_config_validated(project_root: Path) -> Dict[str, Any]:
+    """YAMLを読み込み、可能ならPydanticで検証・正規化して返す。"""
+    data = _load_yaml_config(project_root)
+    if not data:
+        return data
+    if validate_config_dict is None:
+        return data
+    try:
+        model = validate_config_dict(data)  # type: ignore
+        return model.model_dump()  # type: ignore[attr-defined]
+    except Exception:
+        return data
+
+
 def _build_scheduler(cfg: Dict[str, Any]) -> SchedulerConfig:
     tz = cfg.get("timezone", "America/New_York")
     jobs_raw = cfg.get("jobs", []) or []
@@ -182,7 +201,7 @@ def get_settings(create_dirs: bool = False) -> Settings:
     root = PROJECT_ROOT
 
     # YAML 読み込み
-    cfg = _load_yaml_config(root)
+    cfg = _load_yaml_config_validated(root)
 
     # YAML: セクション取得（なければ空）
     risk_cfg = cfg.get("risk", {}) or {}

@@ -1,4 +1,5 @@
 import streamlit as st
+import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
 import pandas as pd
 from strategies.system6_strategy import System6Strategy
 from common.ui_components import (

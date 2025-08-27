@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from config.settings import Settings
+import time
+from typing import Callable
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -64,3 +66,42 @@ def setup_logging(settings: Settings) -> logging.Logger:
 
     logger.debug("Logging initialized")
     return logger
+
+
+def log_with_progress(
+    i: int,
+    total: int,
+    start_time: float,
+    *,
+    prefix: str = "処理",
+    batch: int = 50,
+    log_func: Callable[[str], None] | None = None,
+    progress_func: Callable[[float], None] | None = None,
+    extra_msg: str | None = None,
+    unit: str = "件",
+):
+    """ストリームリット/CLIの両方で使える共通進捗ログ。
+    - log_func: 文字列を受け取る関数（例: `st.text`, `logger.info`）
+    - progress_func: 0..1 の進捗率を受け取る関数（例: `st.progress`）
+    """
+    if i % batch != 0 and i != total:
+        return
+    elapsed = time.time() - start_time
+    remain = (elapsed / max(i, 1)) * (total - i) if total > 0 else 0
+    msg = (
+        f"{prefix}: {i}/{total} {unit} 完了 | "
+        f"経過: {int(elapsed // 60)}分{int(elapsed % 60)}秒 / "
+        f"残り: 約{int(remain // 60)}分{int(remain % 60)}秒"
+    )
+    if extra_msg:
+        msg += f"\n{extra_msg}"
+    if log_func:
+        try:
+            log_func(msg)
+        except Exception:
+            pass
+    if progress_func:
+        try:
+            progress_func(i / total if total else 0.0)
+        except Exception:
+            pass

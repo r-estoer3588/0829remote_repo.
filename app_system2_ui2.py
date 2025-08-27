@@ -1,5 +1,6 @@
 # app_system2_ui2.py
 import streamlit as st
+import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
 from strategies.system2_strategy import System2Strategy
 import pandas as pd
 from common.ui_components import (

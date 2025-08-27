@@ -1,4 +1,4 @@
-﻿# app_integrated.py
+# app_integrated.py
 import streamlit as st
 import pandas as pd
 
