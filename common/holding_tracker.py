@@ -1,0 +1,18 @@
+"""Re-export holding tracker utilities under common/.
+
+Keeps backward compatibility with the existing `holding_tracker`
+module while allowing new code to import from `common.holding_tracker`.
+"""
+
+from holding_tracker import (
+    generate_holding_matrix,
+    display_holding_heatmap,
+    download_holding_csv,
+)
+
+__all__ = [
+    "generate_holding_matrix",
+    "display_holding_heatmap",
+    "download_holding_csv",
+]
+

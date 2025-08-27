@@ -2,6 +2,7 @@
 
 import os
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
@@ -180,6 +181,35 @@ def _load_yaml_config_validated(project_root: Path) -> Dict[str, Any]:
         return data
 
 
+def _load_json_config(project_root: Path) -> Dict[str, Any]:
+    """config/config.json を読み込んで辞書として返す。存在しなければ {}。"""
+    try:
+        cfg_path_env = os.getenv("APP_CONFIG_JSON", "")
+        cfg_path = Path(cfg_path_env) if cfg_path_env else project_root / "config" / "config.json"
+        if not cfg_path.exists():
+            return {}
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def _load_config_json_or_yaml_validated(project_root: Path) -> Dict[str, Any]:
+    """JSON > YAML の優先順位で読み込み、可能ならPydanticで検証して返す。"""
+    data = _load_json_config(project_root)
+    if not data:
+        data = _load_yaml_config(project_root)
+    if not data:
+        return data
+    if validate_config_dict is None:
+        return data
+    try:
+        model = validate_config_dict(data)  # type: ignore
+        return model.model_dump()  # type: ignore[attr-defined]
+    except Exception:
+        return data
+
+
 def _build_scheduler(cfg: Dict[str, Any]) -> SchedulerConfig:
     tz = cfg.get("timezone", "America/New_York")
     jobs_raw = cfg.get("jobs", []) or []
@@ -201,7 +231,10 @@ def get_settings(create_dirs: bool = False) -> Settings:
     root = PROJECT_ROOT
 
     # YAML 読み込み
-    cfg = _load_yaml_config_validated(root)
+    try:
+        cfg = _load_config_json_or_yaml_validated(root)  # type: ignore[name-defined]
+    except Exception:
+        cfg = _load_yaml_config_validated(root)
 
     # YAML: セクション取得（なければ空）
     risk_cfg = cfg.get("risk", {}) or {}

@@ -1,12 +1,14 @@
-﻿# strategies/system2_strategy.py
-import time
+# strategies/system2_strategy.py
+from __future__ import annotations
+
 import pandas as pd
-from ta.momentum import RSIIndicator
-from ta.trend import ADXIndicator
-from ta.volatility import AverageTrueRange
 from .base_strategy import StrategyBase
 from common.backtest_utils import simulate_trades_with_risk
-from ui_components import log_with_progress
+from core.system2 import (
+    prepare_data_vectorized_system2,
+    generate_candidates_system2,
+    get_total_days_system2,
+)
 
 
 class System2Strategy(StrategyBase):
@@ -14,149 +16,35 @@ class System2Strategy(StrategyBase):
 
     def __init__(self):
         super().__init__()
-    """
-    System2 (Short RSI spike):
-    - side: short（共通シミュレータには side="short" を渡す）
-    - compute_entry: 前日終値に対するギャップ条件などを考慮し、(entry_price, stop_price) を返す。
-        stop_price はエントリーより上（ショートの損切り）を返すこと。
-    - compute_exit: 戻り／ストップ到達／日数経過などで (exit_price, exit_date) を返す。
-    - compute_pnl: ショート前提で (entry - exit) * shares を返す。
-    """
-    """
-    繧ｷ繧ｹ繝・Β2・壹す繝ｧ繝ｼ繝・RSI繧ｹ繝ｩ繧ｹ繝・
-    - 繝輔ぅ繝ｫ繧ｿ繝ｼ: Close>5, DollarVolume20>25M, ATR10/Close>0.03
-    - 繧ｻ繝・ヨ繧｢繝・・: RSI3>90, 2騾｣髯ｽ邱・
-    - 繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ: ADX7 髯埼・
-    - 謳榊・繧・ 螢ｲ蛟､ + 3ATR10
-    - 蛻ｩ鬟溘＞: 鄙梧律4%莉･荳雁茜逶翫〒鄙梧律螟ｧ蠑輔￠豎ｺ貂医∵悴驕斐↑繧・譌･蠕檎ｿ梧律豎ｺ貂・
-    - 繝昴ず繧ｷ繝ｧ繝ｳ繧ｵ繧､繧ｸ繝ｳ繧ｰ: 繝ｪ繧ｹ繧ｯ2%縲∵怙螟ｧ繧ｵ繧､繧ｺ10%縲∝・譛滄俣譛螟ｧ10繝昴ず繧ｷ繝ｧ繝ｳ
-    """
 
+    # ===============================
+    # データ準備（共通コアへ委譲）
+    # ===============================
     def prepare_data(
         self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
     ):
-        total = len(raw_data_dict)
-        processed = 0
-        start_time = time.time()
-        buffer = []
-        result_dict = {}
-        skipped_count = 0  # 霑ｽ蜉: 繧ｹ繧ｭ繝・・莉ｶ謨ｰ繧ｫ繧ｦ繝ｳ繝・
+        return prepare_data_vectorized_system2(
+            raw_data_dict,
+            progress_callback=progress_callback,
+            log_callback=log_callback,
+            batch_size=batch_size,
+        )
 
-        for sym, df in raw_data_dict.items():
-            df = df.copy()
-
-            # --- 繝・・繧ｿ荳崎ｶｳ繝√ぉ繝・け ---
-            if len(df) < 20:
-                skipped_count += 1  # 繝ｭ繧ｰ縺ｯ谿九＆縺壹き繧ｦ繝ｳ繝医□縺・
-                processed += 1
-                continue
-
-            try:
-                # --- 繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ險育ｮ・---
-                df["RSI3"] = RSIIndicator(df["Close"], window=3).rsi()
-                df["ADX7"] = ADXIndicator(
-                    df["High"], df["Low"], df["Close"], window=7
-                ).adx()
-                df["ATR10"] = AverageTrueRange(
-                    df["High"], df["Low"], df["Close"], window=10
-                ).average_true_range()
-            except Exception:
-                skipped_count += 1  # 險育ｮ怜､ｱ謨励ｂ繧ｹ繧ｭ繝・・謇ｱ縺・
-                processed += 1
-                continue
-
-            # --- 縺昴・莉悶・謖・ｨ・---
-            df["DollarVolume20"] = (
-                (df["Close"] * df["Volume"]).rolling(window=20).mean()
-            )
-            df["ATR_Ratio"] = df["ATR10"] / df["Close"]
-            df["TwoDayUp"] = (df["Close"] > df["Close"].shift(1)) & (
-                df["Close"].shift(1) > df["Close"].shift(2)
-            )
-
-            # --- 繧ｻ繝・ヨ繧｢繝・・譚｡莉ｶ ---
-            df["setup"] = (
-                (df["Close"] > 5)
-                & (df["DollarVolume20"] > 25_000_000)
-                & (df["ATR_Ratio"] > 0.03)
-                & (df["RSI3"] > 90)
-                & (df["TwoDayUp"])
-            )
-
-            result_dict[sym] = df
-            processed += 1
-            buffer.append(sym)
-
-            # --- 騾ｲ謐玲峩譁ｰ ---
-            if progress_callback:
-                progress_callback(processed, total)
-            if (processed % batch_size == 0 or processed == total):
-                log_with_progress(
-                    processed,
-                    total,
-                    start_time,
-                    prefix="📊 インジケーター計算",
-                    batch=batch_size,
-                    log_func=log_callback,
-                    extra_msg=(f"銘柄: {', '.join(buffer)}" if buffer else None),
-                )
-
-            if False and log_callback:
-                elapsed = time.time() - start_time
-                remain = (
-                    (elapsed / processed) * (total - processed) if processed > 0 else 0
-                )
-                em, es = divmod(int(elapsed), 60)
-                rm, rs = divmod(int(remain), 60)
-
-                msg = (
-                    f"投 謖・ｨ呵ｨ育ｮ・ {processed}/{total} 莉ｶ 螳御ｺ・
-                    f" | 邨碁℃: {em}蛻・es}遘・/ 谿九ｊ: 邏・{rm}蛻・rs}遘・
-                )
-                if buffer:
-                    msg += f"\n驫俶氛: {', '.join(buffer)}"
-
-                log_callback(msg)  # 笨・譁・ｭ怜・縺縺第ｸ｡縺・
-                buffer.clear()
-
-        # --- 譛蠕後↓繧ｹ繧ｭ繝・・莉ｶ謨ｰ繧偵∪縺ｨ繧√※陦ｨ遉ｺ ---
-        if skipped_count > 0 and log_callback:
-            log_callback(
-                f"笞・・繝・・繧ｿ荳崎ｶｳ繝ｻ險育ｮ怜､ｱ謨励〒繧ｹ繧ｭ繝・・縺輔ｌ縺滄釜譟・ {skipped_count} 莉ｶ"
-            )
-
-        return result_dict
-
+    # ===============================
+    # 候補生成（共通コアへ委譲）
+    # ===============================
     def generate_candidates(self, prepared_dict, **kwargs):
-        """
-        繧ｻ繝・ヨ繧｢繝・・譚｡莉ｶ騾夐℃驫俶氛繧呈律蛻･縺ｫADX7髯埼・〒霑斐☆
-        - System1縺ｨ蜷後§繧､繝ｳ繧ｿ繝ｼ繝輔ぉ繝ｼ繧ｹ縺ｫ邨ｱ荳・・wargs蜿励￠蜿悶ｊ蜿ｯ・・
-        """
-        all_signals = []
-        for sym, df in prepared_dict.items():
-            if "setup" not in df.columns or not df["setup"].any():
-                continue
-            setup_df = df[df["setup"]].copy()
-            setup_df["symbol"] = sym
-            setup_df["entry_date"] = setup_df.index + pd.Timedelta(days=1)
-            all_signals.append(setup_df)
-
-        if not all_signals:
-            return {}, None
-
-                all_df = pd.concat(all_signals)
-        # ADX7降順で日別ランキングし、上位N件に絞る（YAML: backtest.top_n_rank）
         try:
             from config.settings import get_settings
+
             top_n = int(get_settings(create_dirs=False).backtest.top_n_rank)
         except Exception:
             top_n = 10
-        candidates_by_date = {}
-        for date, group in all_df.groupby("entry_date"):
-            ranked = group.sort_values("ADX7", ascending=False)
-            candidates_by_date[date] = ranked.head(top_n).to_dict("records")
-        return candidates_by_date, None
+        return generate_candidates_system2(prepared_dict, top_n=top_n)
 
+    # ===============================
+    # バックテスト実行（共通シミュレーター）
+    # ===============================
     def run_backtest(
         self, data_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
@@ -171,24 +59,27 @@ class System2Strategy(StrategyBase):
         )
         return trades_df
 
-    # ============================================================
-    # 蜈ｱ騾壹す繝溘Η繝ｬ繝ｼ繧ｿ繝ｼ逕ｨ繝輔ャ繧ｯ・・ystem2繝ｫ繝ｼ繝ｫ・・
-    # ============================================================
+    # ===============================
+    # 共通シミュレーター用フック（System2ルール）
+    # ===============================
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
-        """ショート前提のエントリー価格とストップを返す（stop は entry より上）。"""
+        """エントリー価格とストップを返す（ショート）。
+        - candidate["entry_date"] の行をもとに、ギャップ条件とATRベースのストップを計算。
+        """
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
         except Exception:
             return None
         if entry_idx <= 0 or entry_idx >= len(df):
             return None
-        prior_close = df.iloc[entry_idx - 1]["Close"]
-        entry_price = df.iloc[entry_idx]["Open"]
+        prior_close = float(df.iloc[entry_idx - 1]["Close"])
+        entry_price = float(df.iloc[entry_idx]["Open"])
         min_gap = float(self.config.get("entry_min_gap_pct", 0.04))
+        # 上窓（前日終値比+4%）未満なら見送り（ショート前提）
         if entry_price < prior_close * (1 + min_gap):
             return None
         try:
-            atr = df.iloc[entry_idx - 1]["ATR10"]
+            atr = float(df.iloc[entry_idx - 1]["ATR10"])
         except Exception:
             return None
         stop_mult = float(self.config.get("stop_atr_multiple", 3.0))
@@ -198,44 +89,52 @@ class System2Strategy(StrategyBase):
     def compute_exit(
         self, df: pd.DataFrame, entry_idx: int, entry_price: float, stop_price: float
     ):
-        """ショート前提のエグジット計算（利確は下落達成、損切りは高値ブレイク）。"""
+        """利確/損切りロジック。
+        - ストップ到達: その日の高値>=stop で当日決済
+        - 利確到達: 翌日寄りで決済（前日終値で利確条件判定）
+        - 未達: 指定日数後の翌日寄りで撤退
+        返り値: (exit_price, exit_date)
+        """
         exit_date, exit_price = None, None
         profit_take_pct = float(self.config.get("profit_take_pct", 0.04))
         max_days = int(self.config.get("profit_take_max_days", 3))
+
         for offset in range(1, max_days + 1):
             idx2 = entry_idx + offset
             if idx2 >= len(df):
                 break
             row = df.iloc[idx2]
-            if row["High"] >= stop_price:
+            # ストップ到達（ショート）
+            if float(row["High"]) >= stop_price:
                 exit_date = df.index[idx2]
                 exit_price = stop_price
                 break
-            gain = (entry_price - row["Close"]) / entry_price
+            # 利確判定（ショートの含み益）
+            gain = (entry_price - float(row["Close"])) / entry_price
             if gain >= profit_take_pct:
                 next_idx = min(idx2 + 1, len(df) - 1)
                 exit_date = df.index[next_idx]
-                exit_price = df.iloc[next_idx]["Open"]
+                exit_price = float(df.iloc[next_idx]["Open"])
                 break
+
         if exit_price is None:
             fallback_days = int(self.config.get("fallback_exit_after_days", 2))
             idx2 = min(entry_idx + fallback_days, len(df) - 1)
             next_idx = min(idx2 + 1, len(df) - 1)
             exit_date = df.index[next_idx]
-            exit_price = df.iloc[next_idx]["Open"]
+            exit_price = float(df.iloc[next_idx]["Open"])
         return exit_price, exit_date
 
     def compute_pnl(self, entry_price: float, exit_price: float, shares: int) -> float:
-        """ショート損益。"""
+        """ショートのPnL。"""
         return (entry_price - exit_price) * shares
 
-    # --- テスト用の軽量インジ生成（必須: RSI3） ---
+    # --- テスト用の最小RSI3計算 ---
     def prepare_minimal_for_test(self, raw_data_dict: dict) -> dict:
         out = {}
         for sym, df in raw_data_dict.items():
             x = df.copy()
             close = x["Close"].astype(float)
-            # 簡易RSI(3)
             delta = close.diff()
             gain = delta.clip(lower=0).rolling(3).mean()
             loss = -delta.clip(upper=0).rolling(3).mean()
@@ -243,3 +142,7 @@ class System2Strategy(StrategyBase):
             x["RSI3"] = 100 - (100 / (1 + rs))
             out[sym] = x
         return out
+
+    def get_total_days(self, data_dict: dict) -> int:
+        return get_total_days_system2(data_dict)
+
