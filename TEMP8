@@ -21,7 +21,7 @@ def _mtime_or_zero(path: str) -> float:
 
 @st.cache_data(show_spinner=False)
 def _load_symbol_cached(symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float):
-    # base キャッシュ優先、無ければ raw を読む
+    # base キャチE��ュ優先、無ければ raw を読む
     df = load_base_cache(symbol, rebuild_if_missing=True)
     if df is not None and not df.empty:
         return symbol, df
@@ -83,7 +83,7 @@ def prepare_backtest_data_ui(
     ui_manager=None,
     **kwargs,
 ):
-    # System1以降はui_componentsがui_manager対応済みなので委譲
+    # System1以降�Eui_componentsがui_manager対応済みなので委譲
     if system_name != "System2":
         from common.ui_components import prepare_backtest_data as _prepare
         return _prepare(
@@ -95,15 +95,13 @@ def prepare_backtest_data_ui(
             **kwargs,
         )
 
-    # --- System2: UIManagerでフェーズ分割 ---
-    # 1) データ取得
-    raw = _fetch_data_ui(symbols, ui_manager=ui_manager)
+    # --- System2: UIManagerでフェーズ刁E�� ---
+    # 1) チE�Eタ取征E    raw = _fetch_data_ui(symbols, ui_manager=ui_manager)
     if not raw:
-        st.error("有効なデータがありません")
+        st.error("有効なチE�Eタがありません")
         return None, None, None
 
-    # 2) インジケーター計算
-    ind = ui_manager.phase("indicators")
+    # 2) インジケーター計箁E    ind = ui_manager.phase("indicators")
     ind.info("📊 インジケーター計算中...")
     prepared = strategy.prepare_data(
         raw,
@@ -122,8 +120,7 @@ def prepare_backtest_data_ui(
             **kwargs,
         )
     except TypeError:
-        # 戻り値が dict のみ（System2仕様）
-        candidates_by_date = strategy.generate_candidates(
+        # 戻り値ぁEdict のみ�E�Eystem2仕様！E        candidates_by_date = strategy.generate_candidates(
             prepared,
             progress_callback=lambda done, total: cand.progress_bar.progress(done / total),
             **kwargs,
@@ -145,15 +142,14 @@ def run_backtest_with_logging_ui(
     system_name: str,
     ui_manager=None,
 ):
-    # System1以降はui_components側へ委譲（ui_manager渡し）
-    if system_name != "System2":
+    # System1以降�Eui_components側へ委譲�E�Ei_manager渡し！E    if system_name != "System2":
         from common.ui_components import run_backtest_with_logging as _run
         return _run(
             strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
         )
 
     bt = ui_manager.phase("backtest")
-    bt.info("💹 バックテスト実行中...")
+    bt.info("💹 バックチE��ト実行中...")
     debug_area = bt.container.empty()
     debug_logs = []
 
@@ -174,7 +170,7 @@ def run_backtest_with_logging_ui(
     if debug_logs:
         with st.expander("💰 取引ログ", expanded=False):
             st.text("\n".join(debug_logs))
-    # セッションへ永続化
+    # セチE��ョンへ永続化
     st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
     try:
         bt.progress_bar.empty()
@@ -182,3 +178,4 @@ def run_backtest_with_logging_ui(
         pass
     st.session_state[f"{system_name}_results_df"] = results_df
     return results_df
+

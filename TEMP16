@@ -1,0 +1,81 @@
+"""
+UI隕∫ｴ縺ｮ荳蜈・ｮ｡逅・・繝ｫ繝代・
+- `UIManager`: 繧ｳ繝ｳ繝・リ髫主ｱ､・・oot竊痴ystem竊恥hase・峨ｒ邂｡逅・＠縲・  繝ｭ繧ｰ陦ｨ遉ｺ逕ｨ`st.empty()`縺ｨ騾ｲ謐礼畑`st.progress()`繧呈署萓帙・- 譌｢蟄倥さ繝ｼ繝峨・ `log_area.text(...)` / `progress_bar.progress(v)` 縺ｫ萓晏ｭ倥＠縺ｦ縺・ｋ縺溘ａ縲・  莠呈鋤繧ｪ繝悶ず繧ｧ繧ｯ繝茨ｼ・treamlit縺ｮElement縺昴・繧ゅ・・峨ｒ霑斐☆縺縺代・阮・＞螳溯｣・↓縺励※縺・ｋ縲・
+蟆・擂逧・↓荳ｦ蛻怜ｮ溯｡後∈諡｡蠑ｵ縺吶ｋ髫帙ｂ縲∝推System/Phase蟆ら畑縺ｮ鬆伜沺繧堤｢ｺ菫昴＠縺ｦ蟷ｲ貂峨ｒ驕ｿ縺代ｉ繧後ｋ縲・"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Optional
+
+import streamlit as st
+
+
+@dataclass
+class PhaseContext:
+    """繝輔ぉ繝ｼ繧ｺ蜊倅ｽ阪・UI繝上Φ繝峨Ν縲・""
+
+    container: "st.delta_generator.DeltaGenerator"
+    title: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.title:
+            try:
+                self.container.caption(self.title)
+            except Exception:
+                pass
+        # 蠢・ｦ√↑隕∫ｴ繧貞・縺ｫ遒ｺ菫晢ｼ井ｺ呈鋤API・・        self._log = self.container.empty()
+        self._progress = self.container.progress(0)
+
+    @property
+    def log_area(self):
+        return self._log
+
+    @property
+    def progress_bar(self):
+        return self._progress
+
+    # 萓ｿ蛻ｩ繝｡繧ｽ繝・ラ
+    def info(self, msg: str) -> None:
+        try:
+            self.container.info(msg)
+        except Exception:
+            pass
+
+
+class UIManager:
+    """UI髫主ｱ､繧堤ｮ｡逅・☆繧玖埋縺・・繝阪・繧ｸ繝｣縲・""
+
+    def __init__(self, *, root: "st.delta_generator.DeltaGenerator" | None = None):
+        self._root = root or st.container()
+        self._systems: Dict[str, UIManager] = {}
+        self._phases: Dict[str, PhaseContext] = {}
+
+    # --- 髫主ｱ､邂｡逅・---
+    def system(self, name: str, *, title: Optional[str] = None) -> "UIManager":
+        if name not in self._systems:
+            c = self._root.container()
+            if title:
+                try:
+                    c.subheader(title)
+                except Exception:
+                    pass
+            self._systems[name] = UIManager(root=c)
+        return self._systems[name]
+
+    def phase(self, name: str, *, title: Optional[str] = None) -> PhaseContext:
+        if name not in self._phases:
+            c = self._root.container()
+            self._phases[name] = PhaseContext(container=c, title=title)
+        return self._phases[name]
+
+    # --- 繧ｷ繝ｳ繝励Ν萓ｿ螳廣PI・亥ｾ梧婿莠呈鋤諠ｳ螳夲ｼ・---
+    def get_log_area(self, name: str = "log"):
+        return self.phase(name).log_area
+
+    def get_progress_bar(self, name: str = "progress"):
+        return self.phase(name).progress_bar
+
+    # 螟夜Κ縺ｧ `with ui.container:` 縺ｨ菴ｿ縺医ｋ繧医≧蜈ｬ髢・    @property
+    def container(self):
+        return self._root
+

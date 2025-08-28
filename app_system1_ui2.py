@@ -42,6 +42,16 @@ def run_tab(spy_df=None, ui_manager=None):
         save_signal_and_trade_logs(signal_summary_df, results_df, "System1", capital)
         save_prepared_data_cache(data_dict, "System1")
 
+    # フォールバック: リラン時にセッションから復元してランキング/サマリを表示
+    elif results_df is None and merged_df is None:
+        prev_res = st.session_state.get("System1_results_df")
+        prev_merged = st.session_state.get("System1_merged_df")
+        prev_cap = st.session_state.get("System1_capital")
+        if prev_res is not None and prev_merged is not None:
+            daily_df = clean_date_column(prev_merged, col_name="Date")
+            display_roc200_ranking(daily_df, title="📊 System1 日別ROC200ランキング（保存済み）")
+            _ = show_signal_trade_summary(prev_merged, prev_res, "System1")
+
         # ✅ 同時保有銘柄数の最大値をチェック 0823デバッグ用
         # if not results_df.empty:
         #     results_df["entry_date"] = pd.to_datetime(results_df["entry_date"])

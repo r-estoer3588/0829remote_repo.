@@ -1,7 +1,7 @@
-ï»¿"""
-å…±é€šUIã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆï¼ˆUTF-8ãƒ»æ—¥æœ¬èªå¯¾å¿œï¼‰ã€‚
-æ—¢å­˜ã®å…¬é–‹APIï¼ˆé–¢æ•°åãƒ»æˆ»ã‚Šå€¤ï¼‰ã¯ç¶­æŒã—ã¤ã¤ã€å„ãƒ•ã‚§ãƒ¼ã‚ºï¼ˆãƒ‡ãƒ¼ã‚¿å–å¾—/ã‚¤ãƒ³ã‚¸è¨ˆç®—/å€™è£œæŠ½å‡º/ãƒãƒƒã‚¯ãƒ†ã‚¹ãƒˆï¼‰ã§
-UIManagerï¼ˆä»»æ„ï¼‰ã«é€²æ—ã¨ãƒ­ã‚°ã‚’å‡ºåŠ›ã§ãã‚‹ã‚ˆã†ã«ã—ã¦ã„ã‚‹ã€‚
+"""
+‹¤’ÊUIƒRƒ“ƒ|[ƒlƒ“ƒgiUTF-8E“ú–{Œê‘Î‰jB
+Šù‘¶‚ÌŒöŠJAPIiŠÖ”–¼E–ß‚è’lj‚ÍˆÛ‚µ‚Â‚ÂAŠeƒtƒF[ƒYiƒf[ƒ^æ“¾/ƒCƒ“ƒWŒvZ/Œó•â’Šo/ƒoƒbƒNƒeƒXƒgj‚Å
+UIManageri”CˆÓj‚Éi’»‚ÆƒƒO‚ğo—Í‚Å‚«‚é‚æ‚¤‚É‚µ‚Ä‚¢‚éB
 """
 
 from __future__ import annotations
@@ -43,19 +43,19 @@ def log_with_progress(
     total: int,
     start_time: float,
     *,
-    prefix: str = "é€²æ—",
+    prefix: str = "i’»",
     batch: int = 50,
     log_area=None,
     progress_bar=None,
     extra_msg: str | None = None,
-    unit: str = "ä»¶",
+    unit: str = "Œ",
 ) -> None:
     if i % batch == 0 or i == total:
         elapsed = time.time() - start_time
         remain = (elapsed / i) * (total - i) if i > 0 else 0
         msg = (
-            f"{prefix}: {i}/{total} {unit} | çµŒé: {int(elapsed // 60)}åˆ†{int(elapsed % 60)}ç§’"
-            f" / æ®‹ã‚Šç›®å®‰: ç´„{int(remain // 60)}åˆ†{int(remain % 60)}ç§’"
+            f"{prefix}: {i}/{total} {unit} | Œo‰ß: {int(elapsed // 60)}•ª{int(elapsed % 60)}•b"
+            f" / c‚è–ÚˆÀ: –ñ{int(remain // 60)}•ª{int(remain % 60)}•b"
         )
         if extra_msg:
             msg += f"\n{extra_msg}"
@@ -71,12 +71,12 @@ def log_with_progress(
             pass
 
 
-def default_log_callback(processed: int, total: int, start_time: float, prefix: str = "ğŸ“Š çŠ¶æ³") -> str:
+def default_log_callback(processed: int, total: int, start_time: float, prefix: str = "?? ó‹µ") -> str:
     elapsed = time.time() - start_time
     remain = (elapsed / processed) * (total - processed) if processed else 0
     return (
-        f"{prefix}: {processed}/{total} ä»¶ | çµŒé: {int(elapsed//60)}åˆ†{int(elapsed%60)}ç§’"
-        f" / æ®‹ã‚Šç›®å®‰: ç´„{int(remain//60)}åˆ†{int(remain%60)}ç§’"
+        f"{prefix}: {processed}/{total} Œ | Œo‰ß: {int(elapsed//60)}•ª{int(elapsed%60)}•b"
+        f" / c‚è–ÚˆÀ: –ñ{int(remain//60)}•ª{int(remain%60)}•b"
     )
 
 
@@ -92,8 +92,8 @@ def _mtime_or_zero(path: str) -> float:
 
 @st.cache_data(show_spinner=False)
 def _load_symbol_cached(symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float) -> tuple[str, pd.DataFrame | None]:
-    """ãƒ•ã‚¡ã‚¤ãƒ«ã®æ›´æ–°æ™‚åˆ»ã‚’ã‚­ãƒ¼ã«å«ã‚ã¦ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã—ã€ãƒ•ã‚¡ã‚¤ãƒ«æ›´æ–°ã§è‡ªå‹•ç„¡åŠ¹åŒ–ã€‚
-    æˆ»ã‚Šå€¤ã¯ (symbol, DataFrame|None)
+    """ƒtƒ@ƒCƒ‹‚ÌXV‚ğƒL[‚ÉŠÜ‚ß‚ÄƒLƒƒƒbƒVƒ…‚µAƒtƒ@ƒCƒ‹XV‚Å©“®–³Œø‰»B
+    –ß‚è’l‚Í (symbol, DataFrame|None)
     """
     try:
         df = load_base_cache(symbol, rebuild_if_missing=True)
@@ -121,7 +121,7 @@ def load_symbol(symbol: str, cache_dir: str = "data_cache") -> tuple[str, pd.Dat
 def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.DataFrame]:
     data_dict: Dict[str, pd.DataFrame] = {}
     total = len(symbols)
-    # UIManagerã®ãƒ•ã‚§ãƒ¼ã‚ºï¼ˆfetchï¼‰ãŒã‚ã‚Œã°ãã“ã¸å‡ºåŠ›
+    # UIManager‚ÌƒtƒF[ƒYifetchj‚ª‚ ‚ê‚Î‚»‚±‚Öo—Í
     phase = ui_manager.phase("fetch") if ui_manager else None
     if phase:
         progress_bar = phase.progress_bar
@@ -153,7 +153,7 @@ def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.D
                     batch=50,
                     log_area=log_area,
                     progress_bar=progress_bar,
-                    extra_msg=(f"éŠ˜æŸ„: {', '.join(buffer)}" if buffer else None),
+                    extra_msg=(f"–Á•¿: {', '.join(buffer)}" if buffer else None),
                 )
                 buffer.clear()
 
@@ -182,7 +182,7 @@ def prepare_backtest_data(
         return None, None, None
 
     # 2) indicators (delegated to strategy)
-    # indicators ãƒ•ã‚§ãƒ¼ã‚º
+    # indicators ƒtƒF[ƒY
     ind_phase = ui_manager.phase("indicators") if ui_manager else None
     if ind_phase:
         try:
@@ -208,7 +208,7 @@ def prepare_backtest_data(
         pass
 
     # 3) candidates
-    # candidates ãƒ•ã‚§ãƒ¼ã‚º
+    # candidates ƒtƒF[ƒY
     cand_phase = ui_manager.phase("candidates") if ui_manager else None
     if cand_phase:
         try:
@@ -243,7 +243,7 @@ def prepare_backtest_data(
             on_log=None,
         )
     else:
-        # generic path (System2â€“7)
+        # generic path (System2?7)
         try:
             candidates_by_date = strategy.generate_candidates(
                 prepared_dict,
@@ -317,7 +317,7 @@ def run_backtest_with_logging(
             unit="days",
         ),
         on_log=lambda msg: (
-            debug_logs.append(str(msg)) if isinstance(msg, str) and msg.startswith("ğŸ’°") else log_area.text(str(msg))
+            debug_logs.append(str(msg)) if isinstance(msg, str) and msg.startswith("??") else log_area.text(str(msg))
         ),
     )
 
@@ -326,14 +326,14 @@ def run_backtest_with_logging(
     except Exception:
         pass
 
-    # ãƒ­ã‚°ã‚’ã‚»ãƒƒã‚·ãƒ§ãƒ³ã¸ä¿æŒï¼ˆãƒªãƒ©ãƒ³ã—ã¦ã‚‚è¡¨ç¤ºã§ãã‚‹ã‚ˆã†ã«ï¼‰
+    # ƒƒO‚ğƒZƒbƒVƒ‡ƒ“‚Ö•ÛiƒŠƒ‰ƒ“‚µ‚Ä‚à•\¦‚Å‚«‚é‚æ‚¤‚Éj
     st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
 
     if st.session_state.get("show_debug_logs", True) and debug_logs:
         with st.expander("trade logs", expanded=False):
             st.text("\n".join(debug_logs))
 
-    # çµæœã‚‚ä½µã›ã¦ã‚»ãƒƒã‚·ãƒ§ãƒ³ã«ä¿å­˜ï¼ˆUIå±¤ã§ã‚‚ä¿å­˜ã™ã‚‹ãŒäºŒé‡ã§ã‚‚å®‰å…¨ï¼‰
+    # Œ‹‰Ê‚à•¹‚¹‚ÄƒZƒbƒVƒ‡ƒ“‚É•Û‘¶iUI‘w‚Å‚à•Û‘¶‚·‚é‚ª“ñd‚Å‚àˆÀ‘Sj
     st.session_state[f"{system_name}_results_df"] = results_df
     return results_df
 
@@ -344,7 +344,7 @@ def run_backtest_with_logging(
 def run_backtest_app(
     strategy,
     system_name: str = "SystemX",
-    limit_éŠ˜æŸ„: int = 10,
+    limit_–Á•¿: int = 10,
     system_title: str | None = None,
     spy_df: pd.DataFrame | None = None,
     ui_manager=None,
@@ -352,7 +352,7 @@ def run_backtest_app(
 ):
     st.title(system_title or f"{system_name} backtest")
 
-    # --- å‰å›å®Ÿè¡Œçµæœã®è¡¨ç¤º/ã‚¯ãƒªã‚¢ï¼ˆã‚»ãƒƒã‚·ãƒ§ãƒ³ä¿æŒï¼‰ ---
+    # --- ‘O‰ñÀsŒ‹‰Ê‚Ì•\¦/ƒNƒŠƒAiƒZƒbƒVƒ‡ƒ“•Ûj ---
     key_results = f"{system_name}_results_df"
     key_prepared = f"{system_name}_prepared_dict"
     key_cands = f"{system_name}_candidates_by_date"
@@ -362,16 +362,16 @@ def run_backtest_app(
 
     has_prev = any(k in st.session_state for k in [key_results, key_cands, key_capital])
     if has_prev:
-        with st.expander("å‰å›ã®çµæœï¼ˆãƒªãƒ©ãƒ³ã§ã‚‚ä¿æŒï¼‰", expanded=False):
+        with st.expander("‘O‰ñ‚ÌŒ‹‰ÊiƒŠƒ‰ƒ“‚Å‚à•Ûj", expanded=False):
             prev_res = st.session_state.get(key_results)
             prev_cap = st.session_state.get(key_capital, 0)
             if prev_res is not None and getattr(prev_res, "empty", False) is False:
                 show_results(prev_res, prev_cap, system_name)
             dbg = st.session_state.get(key_debug)
             if dbg:
-                with st.expander("ä¿å­˜æ¸ˆã¿ å–å¼•ãƒ­ã‚°", expanded=False):
+                with st.expander("•Û‘¶Ï‚İ æˆøƒƒO", expanded=False):
                     st.text("\n".join(map(str, dbg)))
-            if st.button("ä¿å­˜æ¸ˆã¿çµæœã‚’ã‚¯ãƒªã‚¢", key=f"{system_name}_clear_saved"):
+            if st.button("•Û‘¶Ï‚İŒ‹‰Ê‚ğƒNƒŠƒA", key=f"{system_name}_clear_saved"):
                 for k in [key_results, key_prepared, key_cands, key_capital, key_merged, key_debug]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -442,7 +442,7 @@ def run_backtest_app(
         )
         show_results(results_df, capital, system_name)
 
-        # ã‚»ãƒƒã‚·ãƒ§ãƒ³ã¸ä¿å­˜ï¼ˆãƒªãƒ©ãƒ³å¯¾ç­–ï¼‰
+        # ƒZƒbƒVƒ‡ƒ“‚Ö•Û‘¶iƒŠƒ‰ƒ“‘Îôj
         st.session_state[key_results] = results_df
         st.session_state[key_prepared] = prepared_dict
         st.session_state[key_cands] = candidates_by_date
@@ -609,7 +609,7 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
         signal_path = os.path.join(sig_dir, f"{system_name}_signals_{today_str}_{int(capital)}.csv")
         signal_counts_df.to_csv(signal_path, index=False)
         st.write(f"saved signals: {signal_path}")
-        # å³æ™‚ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰
+        # ‘¦ƒ_ƒEƒ“ƒ[ƒh
         st.download_button(
             label=f"download {system_name} signals CSV",
             data=signal_counts_df.to_csv(index=False).encode("utf-8"),
@@ -623,7 +623,7 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
         trade_path = os.path.join(trade_dir, f"{system_name}_trades_{today_str}_{int(capital)}.csv")
         trades_df.to_csv(trade_path, index=False)
         st.write(f"saved trades: {trade_path}")
-        # å³æ™‚ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰
+        # ‘¦ƒ_ƒEƒ“ƒ[ƒh
         st.download_button(
             label=f"download {system_name} trades CSV",
             data=trades_df.to_csv(index=False).encode("utf-8"),
@@ -649,6 +649,7 @@ def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
         progress_bar.empty()
     except Exception:
         pass
+
 
 
 

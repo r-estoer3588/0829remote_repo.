@@ -44,14 +44,14 @@ def display_rsi4_ranking(
         )
 
 
-def run_tab():
+def run_tab(ui_manager=None):
     st.header("System4｜ロング・トレンドフォロー（RSI4ランク）")
     spy_df = get_spy_data_cached()
     if spy_df is None or spy_df.empty:
         st.error("SPYの取得に失敗しました。キャッシュの更新を確認してください。")
         return
 
-    ui = UIManager()
+    ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy,
         system_name="System4",
@@ -64,10 +64,18 @@ def run_tab():
         summary_df = show_signal_trade_summary(data_dict, results_df, "System4")
         save_signal_and_trade_logs(summary_df, results_df, "System4", capital)
         save_prepared_data_cache(data_dict, "System4")
+    else:
+        # フォールバック（リラン時にセッションから復元）
+        prev_res = st.session_state.get("System4_results_df")
+        prev_cands = st.session_state.get("System4_candidates_by_date")
+        prev_data = st.session_state.get("System4_prepared_dict")
+        prev_cap = st.session_state.get("System4_capital")
+        if prev_res is not None and prev_cands is not None:
+            display_rsi4_ranking(prev_cands)
+            _ = show_signal_trade_summary(prev_data, prev_res, "System4")
 
 
 if __name__ == "__main__":
     import sys
     if "streamlit" not in sys.argv[0]:
         run_tab()
-

@@ -17,7 +17,7 @@ def run_tab(single_mode=None, ui_manager=None):
     st.header("System7｜ショート・カタストロフィーヘッジ（SPY専用）")
     single_mode = st.checkbox("単独運用モード（資金100%を使用）", value=False)
 
-    ui = UIManager()
+    ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy,
         system_name="System7",
@@ -38,6 +38,13 @@ def run_tab(single_mode=None, ui_manager=None):
         summary_df = show_signal_trade_summary(data_dict, results_df, "System7")
         save_signal_and_trade_logs(summary_df, results_df, "System7", capital)
         save_prepared_data_cache(data_dict, "System7")
+    else:
+        # フォールバック（リラン時にセッションから復元）
+        prev_res = st.session_state.get("System7_results_df")
+        prev_data = st.session_state.get("System7_prepared_dict")
+        prev_cap = st.session_state.get("System7_capital")
+        if prev_res is not None:
+            _ = show_signal_trade_summary(prev_data, prev_res, "System7")
 
 
 if __name__ == "__main__":

@@ -18,10 +18,10 @@ def display_drop3d_ranking(
     candidates_by_date,
     years: int = 5,
     top_n: int = 100,
-    title: str = "📊 System3 日別 3日下落玁Eランキング�E�直近{years}年 / 上位{top_n}銘柄�E�E,
+    title: str = "📊 System3 日別 3日下落率 ランキング（直近{years}年 / 上位{top_n}銘柄）",
 ):
     if not candidates_by_date:
-        st.warning("3日下落玁E��ンキングが空でぁE)
+        st.warning("3日下落率ランキングが空です")
         return
     rows = []
     for date, cands in candidates_by_date.items():
@@ -42,7 +42,7 @@ def display_drop3d_ranking(
 
 
 def run_tab(ui_manager=None):
-    st.header("System3�E�ロング・ミ�Eンリバ�Eジョン�E�セルオフ狙ぁE��E)
+    st.header("System3｜ロング・ミーンリバージョン（急落の反発狙い）")
     ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy, system_name="System3", limit_symbols=100, ui_manager=ui
@@ -52,9 +52,19 @@ def run_tab(ui_manager=None):
         summary_df = show_signal_trade_summary(data_dict, results_df, "System3")
         save_signal_and_trade_logs(summary_df, results_df, "System3", capital)
         save_prepared_data_cache(data_dict, "System3")
+    else:
+        # フォールバック（リラン時にセッションから復元）
+        prev_res = st.session_state.get("System3_results_df")
+        prev_cands = st.session_state.get("System3_candidates_by_date")
+        prev_data = st.session_state.get("System3_prepared_dict")
+        prev_cap = st.session_state.get("System3_capital")
+        if prev_res is not None and prev_cands is not None:
+            display_drop3d_ranking(prev_cands)
+            _ = show_signal_trade_summary(prev_data, prev_res, "System3")
 
 
 if __name__ == "__main__":
     import sys
     if "streamlit" not in sys.argv[0]:
         run_tab()
+

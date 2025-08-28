@@ -53,12 +53,21 @@ def run_tab(ui_manager=None):
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy, system_name="System2", limit_symbols=100, ui_manager=ui
     )
-
+    # 実行直後の表示・保存
     if results_df is not None and candidates_by_date is not None:
         display_adx7_ranking(candidates_by_date)
         summary_df = show_signal_trade_summary(data_dict, results_df, "System2")
         save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
         save_prepared_data_cache(data_dict, "System2")
+    # リラン時のフォールバック表示（セッションから復元）
+    elif results_df is None and candidates_by_date is None:
+        prev_res = st.session_state.get("System2_results_df")
+        prev_cands = st.session_state.get("System2_candidates_by_date")
+        prev_data = st.session_state.get("System2_prepared_dict")
+        prev_cap = st.session_state.get("System2_capital")
+        if prev_res is not None and prev_cands is not None:
+            display_adx7_ranking(prev_cands)
+            _ = show_signal_trade_summary(prev_data, prev_res, "System2")
 
 
 if __name__ == "__main__":

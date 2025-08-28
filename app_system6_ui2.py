@@ -52,6 +52,15 @@ def run_tab(ui_manager=None):
         summary_df = show_signal_trade_summary(data_dict, results_df, "System6")
         save_signal_and_trade_logs(summary_df, results_df, "System6", capital)
         save_prepared_data_cache(data_dict, "System6")
+    else:
+        # フォールバック（リラン時にセッションから復元）
+        prev_res = st.session_state.get("System6_results_df")
+        prev_cands = st.session_state.get("System6_candidates_by_date")
+        prev_data = st.session_state.get("System6_prepared_dict")
+        prev_cap = st.session_state.get("System6_capital")
+        if prev_res is not None and prev_cands is not None:
+            display_return6d_ranking(prev_cands)
+            _ = show_signal_trade_summary(prev_data, prev_res, "System6")
 
 
 if __name__ == "__main__":
