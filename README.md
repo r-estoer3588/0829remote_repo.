@@ -1,17 +1,13 @@
 # Quant Trading System (Streamlit)
 
-本プロジェクトは、Streamlit を用いた 7 つの売買システムの可視化・バックテスト・シグナル生成を行うアプリです。タブで各システムを個別に試せるほか、一括実行モードで全システムのバックテストをまとめて実行できます。
-
+本プロジェクト�E、Streamlit を用ぁE�� 7 つの売買シスチE��の可視化・バックチE��ト�Eシグナル生�Eを行うアプリです。タブで吁E��スチE��を個別に試せるほか、一括実行モードで全シスチE��のバックチE��トをまとめて実行できます、E
 ## 特長
-- Streamlit UI: `app_integrated.py` から System1〜7 を切替表示
-- 一括実行: 全システムのバックテスト/シグナル検出をまとめて実行
-- キャッシュ: `data_cache/` にティッカー毎の時系列CSVを保存
-- 共通ロジック: `common/` にユーティリティとバックテスト補助
-- 戦略実装: `strategies/` に各システムの戦略クラスを配置
+- Streamlit UI: `app_integrated.py` から System1、E を�E替表示
+- 一括実衁E 全シスチE��のバックチE��チEシグナル検�Eをまとめて実衁E- キャチE��ュ: `data_cache/` にチE��チE��ー毎�E時系列CSVを保孁E- 共通ロジチE��: `common/` にユーチE��リチE��とバックチE��ト補助
+- 戦略実裁E `strategies/` に吁E��スチE��の戦略クラスを�E置
 
-## セットアップ
-1) Python 仮想環境の作成（任意）
-- Windows (PowerShell)
+## セチE��アチE�E
+1) Python 仮想環墁E�E作�E�E�任意！E- Windows (PowerShell)
   ```powershell
   python -m venv .venv
   .\\.venv\\Scripts\\Activate.ps1
@@ -22,74 +18,50 @@
   source .venv/bin/activate
   ```
 
-2) 依存関係のインストール
+2) 依存関係�Eインスト�Eル
 ```bash
 pip install -r requirements.txt
 ```
 
-3) 環境変数の設定
-- `.env.example` を `.env` にリネームし、必要な値を設定してください。
-- 少なくとも以下の値を確認/設定します。
-  - `EODHD_API_KEY`: EOD Historical Data の API キー
-  - 必要に応じてスレッド数やタイムアウト、保存先ディレクトリを調整
+3) 環墁E��数の設宁E- `.env.example` めE`.env` にリネ�Eムし、忁E��な値を設定してください、E- 少なくとも以下�E値を確誁E設定します、E  - `EODHD_API_KEY`: EOD Historical Data の API キー
+  - 忁E��に応じてスレチE��数めE��イムアウト、保存�EチE��レクトリを調整
 
-## 実行方法
-- Streamlit アプリの起動
-  ```bash
+## 実行方況E- Streamlit アプリの起勁E  ```bash
   streamlit run app_integrated.py
   ```
-- データキャッシュの作成（任意）
-  ```bash
+- チE�EタキャチE��ュの作�E�E�任意！E  ```bash
   python cache_daily_data.py
   ```
-  - `.env` の `EODHD_API_KEY` を使用して EODHD API から取得します。
-  - 成功した銘柄のCSVは `data_cache/` に保存されます。
-
-## テスト
-- 事前に pytest をインストール（必要な場合）
-  ```bash
+  - `.env` の `EODHD_API_KEY` を使用して EODHD API から取得します、E  - 成功した銘柄のCSVは `data_cache/` に保存されます、E
+## チE��チE- 事前に pytest をインスト�Eル�E�忁E��な場合！E  ```bash
   pip install pytest
   ```
-- 実行
-  ```bash
+- 実衁E  ```bash
   pytest -q
   ```
 
-## 設定 (config/)
-- `config/settings.py` に設定の雛形を用意しています。
-  ```python
+## 設宁E(config/)
+- `config/settings.py` に設定�E雛形を用意してぁE��す、E  ```python
   from config import get_settings
-  settings = get_settings(create_dirs=True)  # 必要なら出力系ディレクトリを自動作成
+  settings = get_settings(create_dirs=True)  # 忁E��なら�E力系チE��レクトリを�E動作�E
   print(settings.DATA_CACHE_DIR)
   ```
-- 主な環境変数
+- 主な環墁E��数
   - `EODHD_API_KEY`: EODHD の API キー
-  - `THREADS_DEFAULT`: スレッド数の既定
-  - `REQUEST_TIMEOUT`: リクエストのタイムアウト(秒)
+  - `THREADS_DEFAULT`: スレチE��数の既宁E  - `REQUEST_TIMEOUT`: リクエスト�EタイムアウチE私E
   - `DOWNLOAD_RETRIES`: リトライ回数
-  - `API_THROTTLE_SECONDS`: API スロットリング(秒)
-  - `DATA_CACHE_DIR`, `RESULTS_DIR`, `LOGS_DIR`: 各保存先パス
+  - `API_THROTTLE_SECONDS`: API スロチE��リング(私E
+  - `DATA_CACHE_DIR`, `RESULTS_DIR`, `LOGS_DIR`: 吁E��存�Eパス
   - `MARKET_CAL_TZ`: 市場カレンダーのタイムゾーン
 
-## ディレクトリ構成
+## チE��レクトリ構�E
 - `app_integrated.py`: メインUIエントリ
-- `app_system*_ui2.py`: 各システムのUIタブ
-- `strategies/`: 戦略クラス群
-- `common/`: 共通ユーティリティ（バックテスト補助、UI部品等）
-- `config/`: 設定雛形（環境変数を集約）
-- `data_cache/`: キャッシュ済みデータ（.gitignore 対象）
-- `results_csv/`: バックテスト結果（.gitignore 対象）
-- `tests/`: 各システムのユニットテスト
-
+- `app_system*_ui2.py`: 吁E��スチE��のUIタチE- `strategies/`: 戦略クラス群
+- `common/`: 共通ユーチE��リチE���E�バチE��チE��ト補助、UI部品等！E- `config/`: 設定雛形�E�環墁E��数を集紁E��E- `data_cache/`: キャチE��ュ済みチE�Eタ�E�Egitignore 対象�E�E- `results_csv/`: バックチE��ト結果�E�Egitignore 対象�E�E- `tests/`: 吁E��スチE��のユニットテスチE
 ## 補足
-- `requirements.txt` は実コードの import 解析に基づき最小構成へ整理済みです。
-- 既存コードは直接 `config` を参照していません。段階的に `from config import get_settings` を導入することで設定の一元化が可能です。
-
-## 今後の改善候補
-- 主要モジュールへの `get_settings()` 導入・置換
-- GitHub Actions 等でのテスト自動化
-- 追加の使用手順（戦略別の操作ガイド）の README 追記
-
+- `requirements.txt` は実コード�E import 解析に基づき最小構�Eへ整琁E��みです、E- 既存コード�E直接 `config` を参照してぁE��せん。段階的に `from config import get_settings` を導�Eすることで設定�E一允E��が可能です、E
+## 今後�E改喁E��裁E- 主要モジュールへの `get_settings()` 導�E・置揁E- GitHub Actions 等でのチE��ト�E動化
+- 追加の使用手頁E��戦略別の操作ガイド）�E README 追訁E
 
 ## �J���K�C�h�i�헪�C���^�[�t�F�[�X�Ƌ��ʃV�~�����[�^�[�j
 ���̃v���W�F�N�g�ł́A�e�헪�iSystem1?7�j������̃����^�C���_��œ��삷��悤�ɓ��ꂵ�Ă��܂��B���ɁA�����Ǘ��͋��ʃV�~�����[�^�[�ňꌳ�Ǘ����A�헪���͔������[���ɏW�����܂��B
@@ -134,7 +106,7 @@ pip install -r requirements.txt
     ```
 
 - �i�����O�̓���:
-  - �i��/�c�莞�ԕt�����O�� `ui_components.log_with_progress` �ɓ���B
+  - �i��/�c�莞�ԕt�����O�� `common.ui_components.log_with_progress` �ɓ���B
   - ��: `log_with_progress(i, total, start_time, prefix="?? �C���W�P�[�^�[�v�Z", log_func=log_callback)`
 
 - �L���b�V�����j�i���ʃx�[�X + �y�ʃV�X�e���ʁj:
@@ -145,3 +117,4 @@ pip install -r requirements.txt
 - �e�X�g�|���V�[�i���ʂ̒Z���Ή��j:
   - �e�헪�Ɂu�ŏ��C���W�����v�֐����������Apytest �ł͕K�{�w�W�̗L�����������؁B
   - �{�i�I�� backtest ���؂͓���C���^�[�t�F�[�X������ɒi�K�I�Ɋg�[�B
+

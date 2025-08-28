@@ -1,0 +1,269 @@
+2025-08-28 20:05:19 | INFO | root | app_integrated start
+2025-08-28 20:05:28 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:05:37 | INFO | root | app_integrated start
+2025-08-28 20:05:37 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:05:39 | INFO | root | app_integrated start
+2025-08-28 20:05:39 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:05:52 | INFO | root | app_integrated start
+2025-08-28 20:08:02 | INFO | root | app_integrated start
+2025-08-28 20:08:02 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:08:08 | INFO | root | app_integrated start
+2025-08-28 20:08:08 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:08:09 | INFO | root | app_integrated start
+2025-08-28 20:08:09 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:08:13 | INFO | root | app_integrated start
+2025-08-28 20:08:29 | ERROR | root | System1 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 248, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 89, in prepare_backtest_data_ui
+    return _prepare(
+        strategy,
+    ...<4 lines>...
+        **kwargs,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 231, in prepare_backtest_data
+    candidates_by_date, merged_df = generate_roc200_ranking_system1(
+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        prepared_dict,
+        ^^^^^^^^^^^^^^
+    ...<10 lines>...
+        on_log=None,
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\system\core.py", line 140, in generate_roc200_ranking_system1
+    spy_df = spy_df[["Close", "SMA100"]].reset_index().rename(columns={"Date": "date"})
+             ~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\frame.py", line 4113, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\indexes\base.py", line 6212, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\indexes\base.py", line 6264, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['SMA100'] not in index"
+2025-08-28 20:09:09 | ERROR | root | System2 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 274, in main
+    _show_sys_result(res, capital)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 22, in _show_sys_result
+    summary, _ = summarize_perf(df, capital)
+                 ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\performance_summary.py", line 125, in summarize
+    daily_equity = equity.asfreq("D").ffill()
+                   ~~~~~~~~~~~~~^^^^^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py", line 9250, in asfreq
+    return asfreq(
+        self,
+    ...<4 lines>...
+        fill_value=fill_value,
+    )
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\resample.py", line 2837, in asfreq
+    new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\series.py", line 5164, in reindex
+    return super().reindex(
+           ~~~~~~~~~~~~~~~^
+        index=index,
+        ^^^^^^^^^^^^
+    ...<5 lines>...
+        tolerance=tolerance,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py", line 5629, in reindex
+    return self._reindex_axes(
+           ~~~~~~~~~~~~~~~~~~^
+        axes, level, limit, tolerance, method, fill_value, copy
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ).__finalize__(self, method="reindex")
+    ^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py", line 5652, in _reindex_axes
+    new_index, indexer = ax.reindex(
+                         ~~~~~~~~~~^
+        labels, level=level, limit=limit, tolerance=tolerance, method=method
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\indexes\base.py", line 4436, in reindex
+    raise ValueError("cannot reindex on an axis with duplicate labels")
+ValueError: cannot reindex on an axis with duplicate labels
+2025-08-28 20:09:24 | ERROR | root | System3 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 262, in main
+    res = _run_ui(
+        strat,
+    ...<4 lines>...
+        ui_manager=sys_ui,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 151, in run_backtest_with_logging_ui
+    return _run(
+        strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 306, in run_backtest_with_logging
+    results_df = strategy.run_backtest(
+        prepared_dict,
+    ...<13 lines>...
+        ),
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system3_strategy.py", line 58, in run_backtest
+    trades_df, _ = simulate_trades_with_risk(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        candidates_by_date,
+        ^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        on_log=on_log,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\backtest_utils.py", line 34, in simulate_trades_with_risk
+    for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'items'
+2025-08-28 20:09:41 | ERROR | root | System4 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 248, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 89, in prepare_backtest_data_ui
+    return _prepare(
+        strategy,
+    ...<4 lines>...
+        **kwargs,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 248, in prepare_backtest_data
+    candidates_by_date = strategy.generate_candidates(
+        prepared_dict,
+    ...<8 lines>...
+        **kwargs,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system4_strategy.py", line 41, in generate_candidates
+    raise ValueError("System4 には SPYデータ (market_df) が必要です")
+ValueError: System4 には SPYデータ (market_df) が必要です
+2025-08-28 20:10:14 | ERROR | root | System5 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 262, in main
+    res = _run_ui(
+        strat,
+    ...<4 lines>...
+        ui_manager=sys_ui,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 151, in run_backtest_with_logging_ui
+    return _run(
+        strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 306, in run_backtest_with_logging
+    results_df = strategy.run_backtest(
+        prepared_dict,
+    ...<13 lines>...
+        ),
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system5_strategy.py", line 49, in run_backtest
+    trades_df, _ = simulate_trades_with_risk(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        candidates_by_date,
+        ^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        on_log=on_log,
+        ^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\backtest_utils.py", line 34, in simulate_trades_with_risk
+    for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'items'
+2025-08-28 20:10:26 | ERROR | root | System6 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 262, in main
+    res = _run_ui(
+        strat,
+    ...<4 lines>...
+        ui_manager=sys_ui,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 151, in run_backtest_with_logging_ui
+    return _run(
+        strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 306, in run_backtest_with_logging
+    results_df = strategy.run_backtest(
+        prepared_dict,
+    ...<13 lines>...
+        ),
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system6_strategy.py", line 61, in run_backtest
+    trades_df, _ = simulate_trades_with_risk(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        candidates_by_date,
+        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        side="short",
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\backtest_utils.py", line 34, in simulate_trades_with_risk
+    for i, (date, candidates) in enumerate(sorted(candidates_by_date.items()), start=1):
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'items'
+2025-08-28 20:10:27 | ERROR | root | System7 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 262, in main
+    res = _run_ui(
+        strat,
+    ...<4 lines>...
+        ui_manager=sys_ui,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 151, in run_backtest_with_logging_ui
+    return _run(
+        strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 306, in run_backtest_with_logging
+    results_df = strategy.run_backtest(
+        prepared_dict,
+    ...<13 lines>...
+        ),
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system7_strategy.py", line 62, in run_backtest
+    sorted(candidates_by_date.items()), 1
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'items'

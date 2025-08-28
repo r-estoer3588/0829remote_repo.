@@ -11,5 +11,6 @@
     "**/.venv": true,
     "**/__pycache__": true,
     "**/.git": true
-  }
+  },
+  "chatgpt.openOnStartup": true
 }
