@@ -258,11 +258,25 @@ def prepare_backtest_data(
                 **kwargs,
             )
         except TypeError:
-            # some strategies return (dict, df)
-            candidates_by_date, merged_df = strategy.generate_candidates(
-                prepared_dict,
-                **kwargs,
-            )
+            # 戻り値の形 or 引数不一致（例: System4 の market_df）に対応
+            if system_name == "System4" and spy_df is not None:
+                ret = strategy.generate_candidates(
+                    prepared_dict,
+                    market_df=spy_df,
+                    **kwargs,
+                )
+            else:
+                ret = strategy.generate_candidates(
+                    prepared_dict,
+                    **kwargs,
+                )
+            if isinstance(ret, tuple) and len(ret) == 2:
+                candidates_by_date, merged_df = ret
+            else:
+                candidates_by_date = ret
+    # 正常系でも (dict, df) を返す実装があるため後段で正規化
+    if isinstance(candidates_by_date, tuple) and len(candidates_by_date) == 2:
+        candidates_by_date, merged_df = candidates_by_date
     try:
         cand_progress.empty()
     except Exception:
@@ -492,11 +506,14 @@ def show_results(results_df: pd.DataFrame, capital: float, system_name: str = "S
     st.dataframe(results_df)
 
     summary, df2 = summarize_results(results_df, capital)
+    # Series/Dict いずれにも安全に対応し、欠損キーは 0 扱い
+    if isinstance(summary, pd.Series):
+        summary = summary.to_dict()
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("trades", int(summary["trades"]))
-    col2.metric("total pnl", f"{summary['total_return']:.2f}")
-    col3.metric("win rate (%)", f"{summary['win_rate']:.2f}")
-    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+    col1.metric("trades", int(summary.get("trades", 0)))
+    col2.metric("total pnl", f"{float(summary.get('total_return', 0.0)):.2f}")
+    col3.metric("win rate (%)", f"{float(summary.get('win_rate', 0.0)):.2f}")
+    col4.metric("max drawdown", f"{float(summary.get('max_dd', 0.0)):.2f}")
 
     st.subheader("cumulative pnl")
     plt.figure(figsize=(10, 4))

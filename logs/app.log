@@ -267,3 +267,213 @@ Traceback (most recent call last):
     sorted(candidates_by_date.items()), 1
            ^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'tuple' object has no attribute 'items'
+2025-08-28 20:33:05 | INFO | root | app_integrated start
+2025-08-28 20:33:05 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 354, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 369, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 499, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:33:05 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 348, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:33:20 | INFO | root | app_integrated start
+2025-08-28 20:33:20 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 369, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 499, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:33:21 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:33:48 | INFO | root | app_integrated start
+2025-08-28 20:33:48 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 369, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 499, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:33:48 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:37:48 | INFO | root | app_integrated start
+2025-08-28 20:37:48 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 383, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 513, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:37:49 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:37:49 | INFO | root | app_integrated start
+2025-08-28 20:37:49 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 383, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 513, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:37:49 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:38:36 | INFO | root | app_integrated start
+2025-08-28 20:38:36 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 383, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 513, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:38:36 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:43:31 | INFO | root | app_integrated start
+2025-08-28 20:43:31 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 355, in main
+    app_mod.main_process()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 6, in main_process
+    return _ui.run_tab(ui_manager=ui_manager)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 53, in run_tab
+    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+                                                            ~~~~~~~~~~~~~~~~^
+        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 383, in run_backtest_app
+    show_results(prev_res, prev_cap, system_name)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 513, in show_results
+    col4.metric("max drawdown", f"{summary['max_dd']:.2f}")
+                                   ~~~~~~~^^^^^^^^^^
+KeyError: 'max_dd'
+2025-08-28 20:43:31 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:46:01 | INFO | root | app_integrated start
+2025-08-28 20:46:02 | INFO | root | app_integrated start
+2025-08-28 20:46:02 | INFO | root | app_integrated start
+2025-08-28 20:46:06 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:46:29 | INFO | root | app_integrated start
+2025-08-28 20:46:33 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'

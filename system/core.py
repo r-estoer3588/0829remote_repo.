@@ -137,6 +137,13 @@ def generate_roc200_ranking_system1(data_dict: dict, spy_df: pd.DataFrame, **kwa
     all_signals_df = pd.concat(all_signals, ignore_index=True)
 
     # SPY filter expects SMA100 already computed on spy_df
+    # 念のため SMA100 が無ければここで計算（Batch 実行の堅牢化）
+    if "SMA100" not in spy_df.columns:
+        try:
+            spy_df = spy_df.copy()
+            spy_df["SMA100"] = spy_df["Close"].rolling(100).mean()
+        except Exception:
+            pass
     spy_df = spy_df[["Close", "SMA100"]].reset_index().rename(columns={"Date": "date"})
 
     merged = pd.merge_asof(

@@ -10,7 +10,7 @@ from common.ui_bridge import (
     prepare_backtest_data_ui as _prepare_ui,
     run_backtest_with_logging_ui as _run_ui,
 )
-from common.utils_spy import get_spy_data_cached
+from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
 from tickers_loader import get_all_tickers
 from common.ui_manager import UIManager
 
@@ -227,7 +227,8 @@ def main():
         if run_btn:
             all_tickers = get_all_tickers()
             symbols = all_tickers[: int(limit_symbols)]
-            spy_df = get_spy_data_cached()
+            # Batch 実行でも SPY に SMA100/200 を付与しておく（System1/4 フィルタ用）
+            spy_df = get_spy_with_indicators(get_spy_data_cached())
 
             overall = []
             sys_progress = st.progress(0)

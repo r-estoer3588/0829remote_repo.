@@ -36,11 +36,17 @@ class PerformanceSummary:
 
 
 def _equity_from_trades(trades_df: pd.DataFrame, initial_capital: float) -> pd.Series:
+    """Build equity curve indexed by exit_date from trades dataframe.
+
+    Assumes `trades_df` has columns: `exit_date`, `pnl`.
+    """
     if trades_df.empty:
         return pd.Series([initial_capital])
+
     df = trades_df.copy()
-    df["exit_date"] = pd.to_datetime(df["exit_date"])  # required
+    df["exit_date"] = pd.to_datetime(df["exit_date"])  # ensure datetime
     df = df.sort_values("exit_date")
+
     equity = initial_capital + df["pnl"].cumsum()
     equity.index = df["exit_date"].values
     return equity
@@ -85,7 +91,12 @@ def _cagr(equity: pd.Series) -> float | None:
 
 
 def summarize(trades_df: pd.DataFrame, initial_capital: float) -> Tuple[PerformanceSummary, pd.DataFrame]:
-    """バックテスト結果を共通サマリーに集約し、描画用列も付加して返す。"""
+    """トレード一覧からパフォーマンスを集計し、概要と拡張済みDFを返す。
+
+    - `df` の各行はトレードで、`exit_date` と `pnl` が必要。
+    - 累積損益やドローダウン列を付与して返す。
+    - 日次リターンの計算は重複インデックスでも安全な `resample("D").last().ffill()` を用いる。
+    """
     if trades_df is None or trades_df.empty:
         return PerformanceSummary(
             trades=0,
@@ -104,13 +115,13 @@ def summarize(trades_df: pd.DataFrame, initial_capital: float) -> Tuple[Performa
     df["exit_date"] = pd.to_datetime(df["exit_date"])  # ensure
     df = df.sort_values("exit_date")
 
-    # equity/drawdown 列を追加
+    # equity/drawdown 列を追加（equity は各トレード終了時点の累積資産）
     equity = _equity_from_trades(df, initial_capital)
     df["cumulative_pnl"] = (equity - initial_capital).values
     df["cum_max"] = df["cumulative_pnl"].cummax()
     df["drawdown"] = df["cumulative_pnl"] - df["cum_max"]
 
-    # 集計
+    # 集計値
     total_return = float(df["pnl"].sum())
     wins = df[df["pnl"] > 0]["pnl"]
     losses = df[df["pnl"] <= 0]["pnl"]
@@ -121,12 +132,16 @@ def summarize(trades_df: pd.DataFrame, initial_capital: float) -> Tuple[Performa
     gross_loss = float(losses.abs().sum())
     profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else 0.0
 
-    # 日次リターン（トレード日ベースの簡易版）
-    daily_equity = equity.asfreq("D").ffill()
+    # 日次リターン計算（重複index容認）
+    # - 同一日の複数トレードがあっても最後の観測値を採用
+    equity_for_daily = equity.sort_index()
+    daily_equity = equity_for_daily.resample("D").last().ffill()
     daily_returns = daily_equity.pct_change().dropna()
+
+    # リスク指標など
     sharpe = _sharpe_daily(daily_returns)
     sortino = _sortino_daily(daily_returns)
-    mdd = _max_drawdown(equity)
+    mdd = _max_drawdown(equity)  # トレード粒度で計算
     cagr_val = _cagr(equity)
 
     summary = PerformanceSummary(
