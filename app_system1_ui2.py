@@ -18,10 +18,10 @@ from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
 strategy = System1Strategy()
 
 
-def run_tab():
+def run_tab(spy_df=None, ui_manager=None):
     st.header("System1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）")
 
-    spy_df = get_spy_data_cached()
+    spy_df = spy_df if spy_df is not None else get_spy_data_cached()
     if spy_df is None or spy_df.empty:
         st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
         return
@@ -31,6 +31,7 @@ def run_tab():
         system_name="System1",
         limit_symbols=10,
         spy_df=spy_df,
+        ui_manager=ui_manager,
     )
 
     if results_df is not None and merged_df is not None:
