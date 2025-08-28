@@ -1,0 +1,160 @@
+                **_gc_kwargs,
+            )
+        except TypeError:
+            # 戻り値の形 or 引数不一致（例: System4 の market_df）に対応
+            if system_name == "System4" and spy_df is not None:
+                ret = strategy.generate_candidates(
+                    prepared_dict,
+                    market_df=spy_df,
+                    **kwargs,
+                )
+            else:
+                ret = strategy.generate_candidates(
+                    prepared_dict,
+                    **kwargs,
+                )
+            if isinstance(ret, tuple) and len(ret) == 2:
+                candidates_by_date, merged_df = ret
+            else:
+                candidates_by_date = ret
+    # 正常系でも (dict, df) を返す実装があるため後段で正規化
+    if isinstance(candidates_by_date, tuple) and len(candidates_by_date) == 2:
+        candidates_by_date, merged_df = candidates_by_date
+    try:
+        cand_progress.empty()
+    except Exception:
+        pass
+
+    if not candidates_by_date:
+        st.warning(f"{system_name}: no candidates")
+        return prepared_dict, None, None
+
+    return prepared_dict, candidates_by_date, merged_df
+
+
+# ------------------------------
+# Backtest execution (common wrapper)
+# ------------------------------
+def run_backtest_with_logging(
+    strategy,
+    prepared_dict,
+    candidates_by_date,
+    capital,
+    system_name: str = "SystemX",
+    ui_manager=None,
+):
+    bt_phase = ui_manager.phase("backtest") if ui_manager else None
+    if bt_phase:
+        try:
+            bt_phase.info("backtest: running...")
+        except Exception:
+            pass
+        progress = bt_phase.progress_bar
+        log_area = bt_phase.log_area
+        debug_area = bt_phase.container.empty()
+    else:
+        st.info("backtest: running...")
+        progress = st.progress(0)
+        log_area = st.empty()
+        debug_area = st.empty()
+    start_time = time.time()
+    debug_logs: list[str] = []
+
+    # on_log は実装ごとにシグネチャが異なるため、可変長アダプターで受ける
+    def _on_log_adapter(*args, **_kw):
+        try:
+            if len(args) == 3:
+                i, total, _start = args
+                msg = f"bt: {int(i)}/{int(total)} days"
+            elif len(args) >= 1:
+                msg = args[0]
+            else:
+                msg = ""
+        except Exception:
+            msg = str(args)
+        try:
+            if isinstance(msg, str) and msg.startswith("??"):
+                debug_logs.append(str(msg))
+            else:
+                log_area.text(str(msg))
+        except Exception:
+            pass
+
+    results_df = strategy.run_backtest(
+        prepared_dict,
+        candidates_by_date,
+        capital,
+        on_progress=lambda i, total, start: log_with_progress(
+            i,
+            total,
+            start,
+            prefix="bt",
+            log_area=log_area,
+            progress_bar=progress,
+            unit="days",
+        ),
+        on_log=lambda msg: (
+            debug_logs.append(str(msg)) if isinstance(msg, str) and msg.startswith("??") else log_area.text(str(msg))
+        ),
+    )
+
+    try:
+        progress.empty()
+    except Exception:
+        pass
+
+    # ログをセッションへ保持（リランしても表示できるように）
+    st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
+
+    if st.session_state.get("show_debug_logs", True) and debug_logs:
+        with st.expander("trade logs", expanded=False):
+            st.text("\n".join(debug_logs))
+
+    # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
+    st.session_state[f"{system_name}_results_df"] = results_df
+    return results_df
+
+
+# ------------------------------
+# App entry for a single system tab
+# ------------------------------
+def run_backtest_app(
+    strategy,
+    system_name: str = "SystemX",
+    limit_銘柄: int = 10,
+    system_title: str | None = None,
+    spy_df: pd.DataFrame | None = None,
+    ui_manager=None,
+    **kwargs,
+):
+    st.title(system_title or f"{system_name} backtest")
+
+    # --- 前回実行結果の表示/クリア（セッション保持） ---
+    key_results = f"{system_name}_results_df"
+    key_prepared = f"{system_name}_prepared_dict"
+    key_cands = f"{system_name}_candidates_by_date"
+    key_capital = f"{system_name}_capital"
+    key_capital_saved = f"{system_name}_capital_saved"
+    key_merged = f"{system_name}_merged_df"
+    key_debug = f"{system_name}_debug_logs"
+
+    has_prev = any(k in st.session_state for k in [key_results, key_cands, key_capital, key_capital_saved])
+    if has_prev:
+        with st.expander("前回の結果（リランでも保持）", expanded=False):
+            prev_res = st.session_state.get(key_results)
+            prev_cap = st.session_state.get(key_capital_saved, st.session_state.get(key_capital, 0))
+            if prev_res is not None and getattr(prev_res, "empty", False) is False:
+                show_results(prev_res, prev_cap, system_name)
+            dbg = st.session_state.get(key_debug)
+            if dbg:
+                with st.expander("保存済み 取引ログ", expanded=False):
+                    st.text("\n".join(map(str, dbg)))
+            if st.button("保存済み結果をクリア", key=f"{system_name}_clear_saved"):
+                for k in [key_results, key_prepared, key_cands, key_capital_saved, key_capital, key_merged, key_debug]:
+                    if k in st.session_state:
+                        del st.session_state[k]
+                st.experimental_rerun()
+
+    if st.button("clear streamlit cache", key=f"{system_name}_clear_cache"):
+        st.cache_data.clear()
+        st.success("cache cleared")

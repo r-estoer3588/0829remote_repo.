@@ -1,0 +1,26 @@
+            file_name=f"{system_name}_trades_{today_str}_{int(capital)}.csv",
+            mime="text/csv",
+            key=f"{system_name}_download_trades_csv",
+        )
+
+
+def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
+    st.info(f"saving prepared daily data ({system_name}) ...")
+    if not data_dict:
+        st.warning("no data to save")
+        return
+    total = len(data_dict)
+    progress_bar = st.progress(0)
+    for i, (sym, df) in enumerate(data_dict.items(), 1):
+        path = os.path.join("data_cache", f"{safe_filename(sym)}.csv")
+        df.to_csv(path)
+        progress_bar.progress(0 if total == 0 else i / total)
+    st.write(f"saved {total} files")
+    try:
+        progress_bar.empty()
+    except Exception:
+        pass
+
+
+
+

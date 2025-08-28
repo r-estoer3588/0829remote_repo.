@@ -1,0 +1,120 @@
+            prefix="bt",
+            log_area=log_area,
+            progress_bar=progress,
+            unit="days",
+        ),
+        on_log=lambda msg: (
+            debug_logs.append(str(msg)) if isinstance(msg, str) and msg.startswith("??") else log_area.text(str(msg))
+        ),
+    )
+
+    try:
+        progress.empty()
+    except Exception:
+        pass
+
+    # ログをセッションへ保持（リランしても表示できるように）
+    st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
+
+    if st.session_state.get("show_debug_logs", True) and debug_logs:
+        with st.expander("trade logs", expanded=False):
+            st.text("\n".join(debug_logs))
+
+    # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
+    st.session_state[f"{system_name}_results_df"] = results_df
+    return results_df
+
+
+# ------------------------------
+# App entry for a single system tab
+# ------------------------------
+def run_backtest_app(
+    strategy,
+    system_name: str = "SystemX",
+    limit_銘柄: int = 10,
+    system_title: str | None = None,
+    spy_df: pd.DataFrame | None = None,
+    ui_manager=None,
+    **kwargs,
+):
+    st.title(system_title or f"{system_name} backtest")
+
+    # --- 前回実行結果の表示/クリア（セッション保持） ---
+    key_results = f"{system_name}_results_df"
+    key_prepared = f"{system_name}_prepared_dict"
+    key_cands = f"{system_name}_candidates_by_date"
+    key_capital = f"{system_name}_capital"
+    key_capital_saved = f"{system_name}_capital_saved"
+    key_merged = f"{system_name}_merged_df"
+    key_debug = f"{system_name}_debug_logs"
+
+    has_prev = any(k in st.session_state for k in [key_results, key_cands, key_capital, key_capital_saved])
+    if has_prev:
+        with st.expander("前回の結果（リランでも保持）", expanded=False):
+            prev_res = st.session_state.get(key_results)
+            prev_cap = st.session_state.get(key_capital_saved, st.session_state.get(key_capital, 0))
+            if prev_res is not None and getattr(prev_res, "empty", False) is False:
+                show_results(prev_res, prev_cap, system_name)
+            dbg = st.session_state.get(key_debug)
+            if dbg:
+                with st.expander("保存済み 取引ログ", expanded=False):
+                    st.text("\n".join(map(str, dbg)))
+            if st.button("保存済み結果をクリア", key=f"{system_name}_clear_saved"):
+                for k in [key_results, key_prepared, key_cands, key_capital_saved, key_capital, key_merged, key_debug]:
+                    if k in st.session_state:
+                        del st.session_state[k]
+                st.experimental_rerun()
+
+    if st.button("clear streamlit cache", key=f"{system_name}_clear_cache"):
+        st.cache_data.clear()
+        st.success("cache cleared")
+
+    debug_key = f"{system_name}_show_debug_logs"
+    if debug_key not in st.session_state:
+        st.session_state[debug_key] = True
+    st.checkbox("show debug logs", key=debug_key)
+
+    use_auto = st.checkbox("auto symbols (all tickers)", value=True, key=f"{system_name}_auto")
+    capital = st.number_input(
+        "capital (USD)", min_value=1000, value=1000, step=100, key=f"{system_name}_capital"
+    )
+
+    all_tickers = get_all_tickers()
+    max_allowed = len(all_tickers)
+    default_value = min(10, max_allowed)
+
+    if system_name != "System7":
+        limit_symbols = st.number_input(
+            "symbol limit",
+            min_value=10,
+            max_value=max_allowed,
+            value=default_value,
+            step=100,
+            key=f"{system_name}_limit",
+        )
+        if st.checkbox("use all symbols", key=f"{system_name}_all"):
+            limit_symbols = max_allowed
+
+    symbols_input = None
+    if not use_auto:
+        symbols_input = st.text_input(
+            "symbols (comma separated)",
+            "AAPL,MSFT,TSLA,NVDA,META",
+            key=f"{system_name}_symbols_main",
+        )
+
+    if system_name == "System7":
+        symbols = ["SPY"]
+    elif use_auto:
+        symbols = all_tickers[:limit_symbols]
+    else:
+        if not symbols_input:
+            st.error("please input symbols")
+            return None, None, None, None, None
+        symbols = [s.strip().upper() for s in symbols_input.split(",")]
+
+    if st.button("run", key=f"{system_name}_run"):
+        prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
+            strategy,
+            symbols,
+            system_name=system_name,

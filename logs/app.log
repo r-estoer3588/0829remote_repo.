@@ -2191,3 +2191,6 @@ Traceback (most recent call last):
     ...<3 lines>...
     )
 ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:48:35 | INFO | root | app_integrated start
+2025-08-28 21:48:40 | INFO | root | app_integrated start
+2025-08-28 21:48:51 | INFO | root | app_integrated start

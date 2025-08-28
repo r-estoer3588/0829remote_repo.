@@ -1,0 +1,120 @@
+    limit_銘柄: int = 10,
+    system_title: str | None = None,
+    spy_df: pd.DataFrame | None = None,
+    ui_manager=None,
+    **kwargs,
+):
+    st.title(system_title or f"{system_name} backtest")
+
+    # --- 前回実行結果の表示/クリア（セッション保持） ---
+    key_results = f"{system_name}_results_df"
+    key_prepared = f"{system_name}_prepared_dict"
+    key_cands = f"{system_name}_candidates_by_date"
+    key_capital = f"{system_name}_capital"
+    key_merged = f"{system_name}_merged_df"
+    key_debug = f"{system_name}_debug_logs"
+
+    has_prev = any(k in st.session_state for k in [key_results, key_cands, key_capital])
+    if has_prev:
+        with st.expander("前回の結果（リランでも保持）", expanded=False):
+            prev_res = st.session_state.get(key_results)
+            prev_cap = st.session_state.get(key_capital, 0)
+            if prev_res is not None and getattr(prev_res, "empty", False) is False:
+                show_results(prev_res, prev_cap, system_name)
+            dbg = st.session_state.get(key_debug)
+            if dbg:
+                with st.expander("保存済み 取引ログ", expanded=False):
+                    st.text("\n".join(map(str, dbg)))
+            if st.button("保存済み結果をクリア", key=f"{system_name}_clear_saved"):
+                for k in [key_results, key_prepared, key_cands, key_capital, key_merged, key_debug]:
+                    if k in st.session_state:
+                        del st.session_state[k]
+                st.experimental_rerun()
+
+    if st.button("clear streamlit cache", key=f"{system_name}_clear_cache"):
+        st.cache_data.clear()
+        st.success("cache cleared")
+
+    debug_key = f"{system_name}_show_debug_logs"
+    if debug_key not in st.session_state:
+        st.session_state[debug_key] = True
+    st.checkbox("show debug logs", key=debug_key)
+
+    use_auto = st.checkbox("auto symbols (all tickers)", value=True, key=f"{system_name}_auto")
+    capital = st.number_input(
+        "capital (USD)", min_value=1000, value=1000, step=100, key=f"{system_name}_capital"
+    )
+
+    all_tickers = get_all_tickers()
+    max_allowed = len(all_tickers)
+    default_value = min(10, max_allowed)
+
+    if system_name != "System7":
+        limit_symbols = st.number_input(
+            "symbol limit",
+            min_value=10,
+            max_value=max_allowed,
+            value=default_value,
+            step=100,
+            key=f"{system_name}_limit",
+        )
+        if st.checkbox("use all symbols", key=f"{system_name}_all"):
+            limit_symbols = max_allowed
+
+    symbols_input = None
+    if not use_auto:
+        symbols_input = st.text_input(
+            "symbols (comma separated)",
+            "AAPL,MSFT,TSLA,NVDA,META",
+            key=f"{system_name}_symbols_main",
+        )
+
+    if system_name == "System7":
+        symbols = ["SPY"]
+    elif use_auto:
+        symbols = all_tickers[:limit_symbols]
+    else:
+        if not symbols_input:
+            st.error("please input symbols")
+            return None, None, None, None, None
+        symbols = [s.strip().upper() for s in symbols_input.split(",")]
+
+    if st.button("run", key=f"{system_name}_run"):
+        prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
+            strategy,
+            symbols,
+            system_name=system_name,
+            spy_df=spy_df,
+            ui_manager=ui_manager,
+            **kwargs,
+        )
+        if candidates_by_date is None:
+            return None, None, None, None, None
+
+        results_df = run_backtest_with_logging(
+            strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+        )
+        show_results(results_df, capital, system_name)
+
+        # セッションへ保存（リラン対策）
+        st.session_state[key_results] = results_df
+        st.session_state[key_prepared] = prepared_dict
+        st.session_state[key_cands] = candidates_by_date
+        st.session_state[key_capital] = capital
+        if merged_df is not None:
+            st.session_state[key_merged] = merged_df
+
+        if system_name == "System1":
+            return results_df, merged_df, prepared_dict, capital, candidates_by_date
+        else:
+            return results_df, None, prepared_dict, capital, candidates_by_date
+
+    return None, None, None, None, None
+
+
+# ------------------------------
+# Rendering helpers
+# ------------------------------
+def summarize_results(results_df: pd.DataFrame, capital: float):
+    if results_df is None or results_df.empty:
+        return {}, results_df

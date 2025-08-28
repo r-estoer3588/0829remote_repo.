@@ -13,6 +13,7 @@ from utils.cache_manager import load_base_cache, base_cache_path
 
 def _mtime_or_zero(path: str) -> float:
     import os
+
     try:
         return os.path.getmtime(path)
     except Exception:
@@ -20,12 +21,15 @@ def _mtime_or_zero(path: str) -> float:
 
 
 @st.cache_data(show_spinner=False)
-def _load_symbol_cached(symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float):
+def _load_symbol_cached(
+    symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float
+):
     # base キャッシュ優先、無ければ raw を読む
     df = load_base_cache(symbol, rebuild_if_missing=True)
     if df is not None and not df.empty:
         return symbol, df
     import os
+
     if os.path.exists(raw_path):
         return symbol, get_cached_data(symbol)
     return symbol, None
@@ -33,6 +37,7 @@ def _load_symbol_cached(symbol: str, *, base_path: str, base_mtime: float, raw_p
 
 def _load_symbol(symbol: str, cache_dir: str = "data_cache"):
     import os
+
     base_path = str(base_cache_path(symbol))
     raw_path = os.path.join(cache_dir, f"{safe_filename(symbol)}.csv")
     return _load_symbol_cached(
@@ -44,7 +49,9 @@ def _load_symbol(symbol: str, cache_dir: str = "data_cache"):
     )
 
 
-def _fetch_data_ui(symbols, ui_manager=None, max_workers: int = 8) -> Dict[str, pd.DataFrame]:
+def _fetch_data_ui(
+    symbols, ui_manager=None, max_workers: int = 8
+) -> Dict[str, pd.DataFrame]:
     data: Dict[str, pd.DataFrame] = {}
     total = len(symbols)
     phase = ui_manager.phase("fetch") if ui_manager else None
@@ -86,6 +93,7 @@ def prepare_backtest_data_ui(
     # System1以降はui_componentsがui_manager対応済みなので委譲
     if system_name != "System2":
         from common.ui_components import prepare_backtest_data as _prepare
+
         return _prepare(
             strategy,
             symbols,
@@ -126,14 +134,18 @@ def prepare_backtest_data_ui(
     try:
         candidates_by_date, merged_df = strategy.generate_candidates(
             prepared,
-            progress_callback=lambda done, total: cand.progress_bar.progress(done / total),
+            progress_callback=lambda done, total: cand.progress_bar.progress(
+                done / total
+            ),
             **kwargs,
         )
     except TypeError:
         # 戻り値が dict のみ（System2仕様）
         candidates_by_date = strategy.generate_candidates(
             prepared,
-            progress_callback=lambda done, total: cand.progress_bar.progress(done / total),
+            progress_callback=lambda done, total: cand.progress_bar.progress(
+                done / total
+            ),
             **kwargs,
         )
         merged_df = None
@@ -164,8 +176,14 @@ def run_backtest_with_logging_ui(
     # System1以降はui_components側へ委譲（ui_manager渡し）
     if system_name != "System2":
         from common.ui_components import run_backtest_with_logging as _run
+
         return _run(
-            strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+            strategy,
+            prepared_dict,
+            candidates_by_date,
+            capital,
+            system_name,
+            ui_manager=ui_manager,
         )
 
     bt = ui_manager.phase("backtest")
@@ -173,19 +191,27 @@ def run_backtest_with_logging_ui(
     debug_area = bt.container.empty()
     debug_logs = []
 
-    results_df = strategy.run_backtest(
-        prepared_dict,
-        candidates_by_date,
-        capital,
-        on_progress=lambda i, total, start: bt.progress_bar.progress(
-            0 if not total else i / total
-        ),
-        on_log=lambda msg: (
-            debug_logs.append(str(msg))
-            if isinstance(msg, str) and (msg.startswith("💰") 
-            else bt.log_area.text(str(msg))
-        ),
-    )
+    def _on_log(msg):
+        # System5/6準拠: 取引ログ(💰)はexpanderに、その他はUIログへ
+        s = str(msg)
+        debug_logs.append(s)
+        if isinstance(msg, str) and s.startswith("💰"):
+            return
+        bt.log_area.text(s)
+
+    try:
+        results_df = strategy.run_backtest(
+            prepared_dict,
+            candidates_by_date,
+            capital,
+            on_progress=lambda i, total, start: bt.progress_bar.progress(
+                0 if not total else i / total
+            ),
+            on_log=_on_log,
+        )
+    except Exception as e:
+        bt.error(f"backtest error: {e!r}")
+        raise
 
     if debug_logs:
         with st.expander("💰 取引ログ", expanded=False):
