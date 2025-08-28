@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Tuple
+from typing import Dict
 
 import streamlit as st
 import pandas as pd
@@ -173,7 +173,7 @@ def run_backtest_with_logging_ui(
     system_name: str,
     ui_manager=None,
 ):
-    # System1以降はui_components側へ委譲（ui_manager渡し）
+    # System1以降はui_components側へ委譲(ui_manager渡し)
     if system_name != "System2":
         from common.ui_components import run_backtest_with_logging as _run
 
@@ -191,27 +191,22 @@ def run_backtest_with_logging_ui(
     debug_area = bt.container.empty()
     debug_logs = []
 
-    def _on_log(msg):
-        # System5/6準拠: 取引ログ(💰)はexpanderに、その他はUIログへ
-        s = str(msg)
-        debug_logs.append(s)
-        if isinstance(msg, str) and s.startswith("💰"):
-            return
-        bt.log_area.text(s)
-
-    try:
-        results_df = strategy.run_backtest(
-            prepared_dict,
-            candidates_by_date,
-            capital,
-            on_progress=lambda i, total, start: bt.progress_bar.progress(
-                0 if not total else i / total
-            ),
-            on_log=_on_log,
-        )
-    except Exception as e:
-        bt.error(f"backtest error: {e!r}")
-        raise
+    results_df = strategy.run_backtest(
+        prepared_dict,
+        candidates_by_date,
+        capital,
+        on_progress=lambda i, total, start: bt.progress_bar.progress(
+            0 if not total else i / total
+        ),
+        on_log=lambda msg: (
+            debug_logs.append(str(msg))
+            or (
+                (getattr(bt, "trade_log_area", bt.log_area).text(str(msg)))
+                if (isinstance(msg, str) and str(msg).startswith("💰"))
+                else bt.log_area.text(str(msg))
+            )
+        ),
+    )
 
     if debug_logs:
         with st.expander("💰 取引ログ", expanded=False):

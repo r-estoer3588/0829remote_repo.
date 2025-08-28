@@ -2194,3 +2194,4 @@ ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (
 2025-08-28 21:48:35 | INFO | root | app_integrated start
 2025-08-28 21:48:40 | INFO | root | app_integrated start
 2025-08-28 21:48:51 | INFO | root | app_integrated start
+2025-08-28 22:41:31 | INFO | root | app_integrated start
