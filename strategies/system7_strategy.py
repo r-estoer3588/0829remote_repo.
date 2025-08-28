@@ -74,7 +74,9 @@ class System7Strategy(StrategyBase):
                 stop_price = entry_price + stop_mult * atr
 
                 risk_per_trade = risk_pct * capital_current
-                max_position_value = capital_current if single_mode else capital_current * max_pct
+                max_position_value = (
+                    capital_current if single_mode else capital_current * max_pct
+                )
 
                 shares_by_risk = risk_per_trade / (stop_price - entry_price)
                 shares_by_cap = max_position_value // entry_price
@@ -120,7 +122,11 @@ class System7Strategy(StrategyBase):
             if on_progress:
                 on_progress(i, total_days, start_time)
             if on_log and (i % 10 == 0 or i == total_days):
-                on_log(i, total_days, start_time)
+                try:
+                    on_log(i, total_days, start_time)
+                except TypeError:
+                    # on_log が1引数（msg）の実装に対応（日本語・他システムと整合）
+                    on_log(f"💹 バックテスト: {int(i)}/{int(total_days)} 日")
 
         return pd.DataFrame(results)
 
@@ -143,4 +149,3 @@ class System7Strategy(StrategyBase):
 
     def get_total_days(self, data_dict: dict) -> int:
         return get_total_days_system7(data_dict)
-

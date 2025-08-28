@@ -111,6 +111,14 @@ def prepare_backtest_data_ui(
         log_callback=lambda msg: ind.log_area.text(str(msg)),
         **kwargs,
     )
+    try:
+        ind.progress_bar.empty()
+    except Exception:
+        pass
+    try:
+        ind.log_area.text("インジケーター計算 完了")
+    except Exception:
+        pass
 
     # 3) 候補抽出
     cand = ui_manager.phase("candidates")
@@ -129,6 +137,14 @@ def prepare_backtest_data_ui(
             **kwargs,
         )
         merged_df = None
+    try:
+        cand.progress_bar.empty()
+    except Exception:
+        pass
+    try:
+        cand.log_area.text("候補抽出 完了")
+    except Exception:
+        pass
 
     if not candidates_by_date:
         st.warning("候補がありません")
@@ -165,8 +181,8 @@ def run_backtest_with_logging_ui(
             0 if not total else i / total
         ),
         on_log=lambda msg: (
-            debug_logs.append(msg)
-            if isinstance(msg, str) and msg.startswith("💰")
+            debug_logs.append(str(msg))
+            if isinstance(msg, str) and (msg.startswith("💰") 
             else bt.log_area.text(str(msg))
         ),
     )

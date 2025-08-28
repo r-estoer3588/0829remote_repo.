@@ -477,3 +477,1717 @@ Traceback (most recent call last):
   File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
     app_mod = __import__(f"app_system{idx}")
 ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:50:52 | INFO | root | app_integrated start
+2025-08-28 20:50:52 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 20:51:00 | INFO | root | app_integrated start
+2025-08-28 20:52:18 | ERROR | root | System4 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 89, in prepare_backtest_data_ui
+    return _prepare(
+        strategy,
+    ...<4 lines>...
+        **kwargs,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 248, in prepare_backtest_data
+    candidates_by_date = strategy.generate_candidates(
+        prepared_dict,
+    ...<8 lines>...
+        **kwargs,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system4_strategy.py", line 41, in generate_candidates
+    raise ValueError("System4 には SPYデータ (market_df) が必要です")
+ValueError: System4 には SPYデータ (market_df) が必要です
+2025-08-28 20:52:57 | ERROR | root | System7 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 263, in main
+    res = _run_ui(
+        strat,
+    ...<4 lines>...
+        ui_manager=sys_ui,
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 151, in run_backtest_with_logging_ui
+    return _run(
+        strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 320, in run_backtest_with_logging
+    results_df = strategy.run_backtest(
+        prepared_dict,
+    ...<13 lines>...
+        ),
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\strategies\system7_strategy.py", line 123, in run_backtest
+    on_log(i, total_days, start_time)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_backtest_with_logging.<locals>.<lambda>() takes 1 positional argument but 3 were given
+2025-08-28 20:54:37 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 21:01:47 | INFO | root | app_integrated start
+2025-08-28 21:01:58 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 21:02:04 | INFO | root | app_integrated start
+2025-08-28 21:06:40 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 21:11:01 | INFO | root | app_integrated start
+2025-08-28 21:11:02 | INFO | root | app_integrated start
+2025-08-28 21:11:02 | INFO | root | app_integrated start
+2025-08-28 21:11:02 | INFO | root | app_integrated start
+2025-08-28 21:11:02 | INFO | root | app_integrated start
+2025-08-28 21:11:03 | INFO | root | app_integrated start
+2025-08-28 21:11:29 | INFO | root | app_integrated start
+2025-08-28 21:11:30 | INFO | root | app_integrated start
+2025-08-28 21:11:30 | INFO | root | app_integrated start
+2025-08-28 21:11:31 | INFO | root | app_integrated start
+2025-08-28 21:11:31 | INFO | root | app_integrated start
+2025-08-28 21:11:55 | INFO | root | app_integrated start
+2025-08-28 21:11:56 | INFO | root | app_integrated start
+2025-08-28 21:11:56 | INFO | root | app_integrated start
+2025-08-28 21:11:57 | INFO | root | app_integrated start
+2025-08-28 21:11:58 | INFO | root | app_integrated start
+2025-08-28 21:12:11 | INFO | root | app_integrated start
+2025-08-28 21:14:09 | ERROR | root | System8 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 349, in main
+    app_mod = __import__(f"app_system{idx}")
+ModuleNotFoundError: No module named 'app_system8'
+2025-08-28 21:20:55 | INFO | root | app_integrated start
+2025-08-28 21:21:06 | INFO | root | app_integrated start
+2025-08-28 21:21:16 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:16 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:16 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:16 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:16 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:17 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:17 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | INFO | root | app_integrated start
+2025-08-28 21:21:22 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:22 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:25 | INFO | root | app_integrated start
+2025-08-28 21:21:32 | INFO | root | app_integrated start
+2025-08-28 21:21:32 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:32 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | INFO | root | app_integrated start
+2025-08-28 21:21:38 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:38 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | INFO | root | app_integrated start
+2025-08-28 21:21:39 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:39 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:40 | INFO | root | app_integrated start
+2025-08-28 21:21:40 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:41 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:21:42 | INFO | root | app_integrated start
+2025-08-28 21:21:42 | ERROR | root | System1 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System3 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System4 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System5 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System6 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System7 error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 249, in main
+    prepared, cands, merged = _prepare_ui(
+                              ~~~~~~~~~~~^
+        strat,
+        ^^^^^^
+    ...<3 lines>...
+        ui_manager=sys_ui,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_bridge.py", line 88, in prepare_backtest_data_ui
+    from common.ui_components import prepare_backtest_data as _prepare
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:22:24 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | INFO | root | app_integrated start
+2025-08-28 21:23:12 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:12 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:29 | INFO | root | app_integrated start
+2025-08-28 21:23:29 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:29 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 309
+    except Exception:
+                     ^
+IndentationError: unindent does not match any outer indentation level
+2025-08-28 21:23:49 | INFO | root | app_integrated start
+2025-08-28 21:23:49 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:23:49 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py", line 1
+    """
+    ^^^
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0x8f in position 99: invalid start byte
+2025-08-28 21:24:36 | INFO | root | app_integrated start
+2025-08-28 21:24:36 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:24:36 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1159, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1217, in get_data
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\stair\\OneDrive\\Documents\\Python Scripts\\quant_trading_system\\common\\ui_components.py'
+2025-08-28 21:25:49 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | INFO | root | app_integrated start
+2025-08-28 21:25:50 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:50 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | INFO | root | app_integrated start
+2025-08-28 21:25:52 | INFO | root | app_integrated start
+2025-08-28 21:25:52 | INFO | root | app_integrated start
+2025-08-28 21:25:52 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:25:52 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | INFO | root | app_integrated start
+2025-08-28 21:26:45 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:26:45 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | INFO | root | app_integrated start
+2025-08-28 21:29:55 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:55 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | INFO | root | app_integrated start
+2025-08-28 21:29:56 | INFO | root | app_integrated start
+2025-08-28 21:29:56 | INFO | root | app_integrated start
+2025-08-28 21:29:56 | ERROR | root | System1 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1.py", line 1, in <module>
+    import app_system1_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system1_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System2 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2.py", line 1, in <module>
+    import app_system2_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system2_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System3 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3.py", line 1, in <module>
+    import app_system3_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system3_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System4 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4.py", line 1, in <module>
+    import app_system4_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system4_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System5 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5.py", line 1, in <module>
+    import app_system5_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system5_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System6 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6.py", line 1, in <module>
+    import app_system6_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system6_ui2.py", line 5, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)
+2025-08-28 21:29:56 | ERROR | root | System7 tab error
+Traceback (most recent call last):
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_integrated.py", line 350, in main
+    app_mod = __import__(f"app_system{sys_idx}")
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7.py", line 1, in <module>
+    import app_system7_ui2 as _ui
+  File "C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\app_system7_ui2.py", line 4, in <module>
+    from common.ui_components import (
+    ...<3 lines>...
+    )
+ImportError: cannot import name 'run_backtest_app' from 'common.ui_components' (C:\Users\stair\OneDrive\Documents\Python Scripts\quant_trading_system\common\ui_components.py)

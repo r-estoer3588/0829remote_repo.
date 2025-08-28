@@ -340,14 +340,15 @@ def main():
                 if not any_logs2:
                     st.info("no logs to show")
 
-    # Individual tabs (reuse each system's UI assets via app_systemX.main_process)
-    for idx, tab in enumerate(tabs[1:], start=1):
+    # Individual tabs (skip Integrated and Batch tabs)
+    system_tabs = tabs[2:]
+    for sys_idx, tab in enumerate(system_tabs, start=1):
         with tab:
-            sys_name = f"System{idx}"
+            sys_name = f"System{sys_idx}"
             st.subheader(f"{sys_name} backtest")
             try:
-                app_mod = __import__(f"app_system{idx}")
-                if idx == 1:
+                app_mod = __import__(f"app_system{sys_idx}")
+                if sys_idx == 1:
                     # System1: reuse cached SPY from integrated layer
                     spy_df = get_spy_data_cached()
                     app_mod.main_process(spy_df=spy_df)

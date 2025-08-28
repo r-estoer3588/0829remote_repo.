@@ -42,6 +42,8 @@ def run_tab(spy_df=None, ui_manager=None):
         signal_summary_df = show_signal_trade_summary(merged_df, results_df, "System1")
         save_signal_and_trade_logs(signal_summary_df, results_df, "System1", capital)
         save_prepared_data_cache(data_dict, "System1")
+        # キャッシュ保存後にも完了メッセージを再掲
+        st.success("バックテスト完了")
 
     # フォールバック: リラン時にセッションから復元してランキング/サマリを表示
     elif results_df is None and merged_df is None:
