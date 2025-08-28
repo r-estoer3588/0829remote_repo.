@@ -102,3 +102,32 @@ class StrategyBase(ABC):
 
         shares = min(risk_per_trade / risk_per_share, max_position_value / entry_price)
         return int(shares)
+
+    # ============================================================
+    # 当日シグナル抽出（共通関数）
+    # ============================================================
+    def get_today_signals(
+        self,
+        raw_data_dict: dict,
+        *,
+        market_df: pd.DataFrame | None = None,
+        today: pd.Timestamp | None = None,
+        progress_callback=None,
+        log_callback=None,
+    ) -> pd.DataFrame:
+        """
+        各 strategy の `prepare_data`/`generate_candidates` を流用し、
+        最新営業日のみのシグナルを DataFrame で返す。
+
+        戻り値カラム: symbol, system, side, signal_type, entry_date, entry_price, stop_price, score_key, score
+        """
+        from common.today_signals import get_today_signals_for_strategy
+
+        return get_today_signals_for_strategy(
+            self,
+            raw_data_dict,
+            market_df=market_df,
+            today=today,
+            progress_callback=progress_callback,
+            log_callback=log_callback,
+        )
