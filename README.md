@@ -1,120 +1,39 @@
 # Quant Trading System (Streamlit)
 
-æœ¬ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆãEã€Streamlit ã‚’ç”¨ãEŸ 7 ã¤ã®å£²è²·ã‚·ã‚¹ãƒEƒ ã®å¯è¦–åŒ–ãƒ»ãƒãƒƒã‚¯ãƒE‚¹ãƒˆãEã‚·ã‚°ãƒŠãƒ«ç”ŸæEã‚’è¡Œã†ã‚¢ãƒ—ãƒªã§ã™ã€‚ã‚¿ãƒ–ã§åE‚·ã‚¹ãƒEƒ ã‚’å€‹åˆ¥ã«è©¦ã›ã‚‹ã»ã‹ã€ä¸€æ‹¬å®Ÿè¡Œãƒ¢ãƒ¼ãƒ‰ã§å…¨ã‚·ã‚¹ãƒEƒ ã®ãƒãƒƒã‚¯ãƒE‚¹ãƒˆã‚’ã¾ã¨ã‚ã¦å®Ÿè¡Œã§ãã¾ã™ã€E
-## ç‰¹é•·
-- Streamlit UI: `app_integrated.py` ã‹ã‚‰ System1ã€E ã‚’åEæ›¿è¡¨ç¤º
-- ä¸€æ‹¬å®Ÿè¡E å…¨ã‚·ã‚¹ãƒEƒ ã®ãƒãƒƒã‚¯ãƒE‚¹ãƒEã‚·ã‚°ãƒŠãƒ«æ¤œåEã‚’ã¾ã¨ã‚ã¦å®Ÿè¡E- ã‚­ãƒ£ãƒE‚·ãƒ¥: `data_cache/` ã«ãƒE‚£ãƒE‚«ãƒ¼æ¯ãEæ™‚ç³»åˆ—CSVã‚’ä¿å­E- å…±é€šãƒ­ã‚¸ãƒE‚¯: `common/` ã«ãƒ¦ãƒ¼ãƒE‚£ãƒªãƒE‚£ã¨ãƒãƒƒã‚¯ãƒE‚¹ãƒˆè£œåŠ©
-- æˆ¦ç•¥å®Ÿè£E `strategies/` ã«åE‚·ã‚¹ãƒEƒ ã®æˆ¦ç•¥ã‚¯ãƒ©ã‚¹ã‚’éEç½®
+Streamlit ãƒ™ãƒ¼ã‚¹ã®ã‚¢ãƒ—ãƒªã§ 7 ã¤ã®å£²è²·ã‚·ã‚¹ãƒ†ãƒ ã‚’å¯è¦–åŒ–ãƒ»ãƒãƒƒã‚¯ãƒ†ã‚¹ãƒˆã—ã¾ã™ã€‚
 
-## ã‚»ãƒEƒˆã‚¢ãƒEE
-1) Python ä»®æƒ³ç’°å¢EEä½œæEEˆä»»æ„ï¼E- Windows (PowerShell)
-  ```powershell
-  python -m venv .venv
-  .\\.venv\\Scripts\\Activate.ps1
-  ```
-- macOS/Linux
-  ```bash
-  python -m venv .venv
-  source .venv/bin/activate
-  ```
-
-2) ä¾å­˜é–¢ä¿‚ãEã‚¤ãƒ³ã‚¹ãƒˆãEãƒ«
+## ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
+1. ä»®æƒ³ç’°å¢ƒã‚’ä½œæˆã—ä¾å­˜é–¢ä¿‚ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«:
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
+2. `.env` ã‚’ç”¨æ„ã— `EODHD_API_KEY` ãªã©ã‚’è¨­å®šã—ã¾ã™ã€‚
 
-3) ç’°å¢E¤‰æ•°ã®è¨­å®E- `.env.example` ã‚E`.env` ã«ãƒªãƒãEãƒ ã—ã€å¿E¦ãªå€¤ã‚’è¨­å®šã—ã¦ãã ã•ã„ã€E- å°‘ãªãã¨ã‚‚ä»¥ä¸‹ãEå€¤ã‚’ç¢ºèªEè¨­å®šã—ã¾ã™ã€E  - `EODHD_API_KEY`: EOD Historical Data ã® API ã‚­ãƒ¼
-  - å¿E¦ã«å¿œã˜ã¦ã‚¹ãƒ¬ãƒEƒ‰æ•°ã‚E‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆã€ä¿å­˜åEãƒE‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’èª¿æ•´
+## å®Ÿè¡Œä¾‹
+- UI: `streamlit run app_integrated.py`
+- æ—¥æ¬¡ã‚­ãƒ£ãƒƒã‚·ãƒ¥: `python cache_daily_data.py`
+- ç°¡æ˜“ã‚¹ã‚±ã‚¸ãƒ¥ãƒ¼ãƒ©: `python -m schedulers.runner`
 
-## å®Ÿè¡Œæ–¹æ³E- Streamlit ã‚¢ãƒ—ãƒªã®èµ·å‹E  ```bash
-  streamlit run app_integrated.py
-  ```
-- ãƒEEã‚¿ã‚­ãƒ£ãƒE‚·ãƒ¥ã®ä½œæEEˆä»»æ„ï¼E  ```bash
-  python cache_daily_data.py
-  ```
-  - `.env` ã® `EODHD_API_KEY` ã‚’ä½¿ç”¨ã—ã¦ EODHD API ã‹ã‚‰å–å¾—ã—ã¾ã™ã€E  - æˆåŠŸã—ãŸéŠ˜æŸ„ã®CSVã¯ `data_cache/` ã«ä¿å­˜ã•ã‚Œã¾ã™ã€E
-## ãƒE‚¹ãƒE- äº‹å‰ã« pytest ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãEãƒ«Eˆå¿E¦ãªå ´åˆï¼E  ```bash
-  pip install pytest
-  ```
-- å®Ÿè¡E  ```bash
-  pytest -q
-  ```
+## ãƒ†ã‚¹ãƒˆ
+```bash
+pytest -q
+```
 
-## è¨­å®E(config/)
-- `config/settings.py` ã«è¨­å®šãEé››å½¢ã‚’ç”¨æ„ã—ã¦ãE¾ã™ã€E  ```python
-  from config import get_settings
-  settings = get_settings(create_dirs=True)  # å¿E¦ãªã‚‰åEåŠ›ç³»ãƒE‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’èEå‹•ä½œæE
-  print(settings.DATA_CACHE_DIR)
-  ```
-- ä¸»ãªç’°å¢E¤‰æ•°
-  - `EODHD_API_KEY`: EODHD ã® API ã‚­ãƒ¼
-  - `THREADS_DEFAULT`: ã‚¹ãƒ¬ãƒEƒ‰æ•°ã®æ—¢å®E  - `REQUEST_TIMEOUT`: ãƒªã‚¯ã‚¨ã‚¹ãƒˆãEã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒEç§E
-  - `DOWNLOAD_RETRIES`: ãƒªãƒˆãƒ©ã‚¤å›æ•°
-  - `API_THROTTLE_SECONDS`: API ã‚¹ãƒ­ãƒEƒˆãƒªãƒ³ã‚°(ç§E
-  - `DATA_CACHE_DIR`, `RESULTS_DIR`, `LOGS_DIR`: åE¿å­˜åEãƒ‘ã‚¹
-  - `MARKET_CAL_TZ`: å¸‚å ´ã‚«ãƒ¬ãƒ³ãƒ€ãƒ¼ã®ã‚¿ã‚¤ãƒ ã‚¾ãƒ¼ãƒ³
+## è¨­å®š
+å„ªå…ˆé †ä½ã¯ **JSON > YAML > .env**ï¼ˆ`config/settings.py` å®Ÿè£…ã«æº–æ‹ ï¼‰ã€‚
+æ¨å¥¨: `config.yaml` ã‚’ãƒ™ãƒ¼ã‚¹ã«ã€ç§˜åŒ¿å€¤ã¯ `.env`ã€ä¸Šæ›¸ãã¯ JSON ã§ã€‚
 
-## ãƒE‚£ãƒ¬ã‚¯ãƒˆãƒªæ§‹æE
-- `app_integrated.py`: ãƒ¡ã‚¤ãƒ³UIã‚¨ãƒ³ãƒˆãƒª
-- `app_system*_ui2.py`: åE‚·ã‚¹ãƒEƒ ã®UIã‚¿ãƒE- `strategies/`: æˆ¦ç•¥ã‚¯ãƒ©ã‚¹ç¾¤
-- `common/`: å…±é€šãƒ¦ãƒ¼ãƒE‚£ãƒªãƒE‚£EˆãƒãƒE‚¯ãƒE‚¹ãƒˆè£œåŠ©ã€UIéƒ¨å“ç­‰ï¼E- `config/`: è¨­å®šé››å½¢Eˆç’°å¢E¤‰æ•°ã‚’é›†ç´E¼E- `data_cache/`: ã‚­ãƒ£ãƒE‚·ãƒ¥æ¸ˆã¿ãƒEEã‚¿EEgitignore å¯¾è±¡EE- `results_csv/`: ãƒãƒƒã‚¯ãƒE‚¹ãƒˆçµæœEEgitignore å¯¾è±¡EE- `tests/`: åE‚·ã‚¹ãƒEƒ ã®ãƒ¦ãƒ‹ãƒƒãƒˆãƒ†ã‚¹ãƒE
-## è£œè¶³
-- `requirements.txt` ã¯å®Ÿã‚³ãƒ¼ãƒ‰ãE import è§£æã«åŸºã¥ãæœ€å°æ§‹æEã¸æ•´çE¸ˆã¿ã§ã™ã€E- æ—¢å­˜ã‚³ãƒ¼ãƒ‰ãEç›´æ¥ `config` ã‚’å‚ç…§ã—ã¦ãE¾ã›ã‚“ã€‚æ®µéšçš„ã« `from config import get_settings` ã‚’å°åEã™ã‚‹ã“ã¨ã§è¨­å®šãEä¸€å…EŒ–ãŒå¯èƒ½ã§ã™ã€E
-## ä»Šå¾ŒãEæ”¹å–E€™è£E- ä¸»è¦ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã¸ã® `get_settings()` å°åEãƒ»ç½®æE- GitHub Actions ç­‰ã§ã®ãƒE‚¹ãƒˆèEå‹•åŒ–
-- è¿½åŠ ã®ä½¿ç”¨æ‰‹é E¼ˆæˆ¦ç•¥åˆ¥ã®æ“ä½œã‚¬ã‚¤ãƒ‰ï¼‰ãE README è¿½è¨E
+## ãƒ­ã‚°é‹ç”¨
+`logging_utils` ã«ã¦ãƒ­ãƒ¼ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³è¨­å®šã€‚å®¹é‡ä¸Šé™ã¨æ—¥æ¬¡ãƒ­ãƒ¼ãƒ†ã®ä½¿ã„åˆ†ã‘ã‚’æ˜è¨˜ã—ã€
+å¤ã„ãƒ­ã‚°ã®ã‚¯ãƒªãƒ¼ãƒ³ã‚¢ãƒƒãƒ—æ–¹é‡ã‚’è¿½åŠ ã€‚
 
-## ŠJ”­ƒKƒCƒhií—ªƒCƒ“ƒ^[ƒtƒF[ƒX‚Æ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[j
-‚±‚ÌƒvƒƒWƒFƒNƒg‚Å‚ÍAŠeí—ªiSystem1?7j‚ª“¯ˆê‚Ìƒ‰ƒ“ƒ^ƒCƒ€Œ_–ñ‚Å“®ì‚·‚é‚æ‚¤‚É“ˆê‚µ‚Ä‚¢‚Ü‚·B“Á‚ÉA‘‹àŠÇ—‚Í‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[‚ÅˆêŒ³ŠÇ—‚µAí—ª‘¤‚Í”„”ƒƒ‹[ƒ‹‚ÉW’†‚µ‚Ü‚·B
-
-- –ğŠ„•ª’S‚ÌŒ´‘¥:
-  - í—ªiStrategyBaseŒp³j: ƒf[ƒ^‘Oˆ—iprepare_datajAŒó•â’Šoigenerate_candidatesjAƒGƒ“ƒgƒŠ[/ƒGƒOƒWƒbƒg/PnL‚ÌƒtƒbƒNicompute_*jB
-  - ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[: ‘‹àŠÇ—Eƒ|ƒWƒVƒ‡ƒ“˜gŠÇ—Ei’»’Ê’m‚ğ’S“–icommon/backtest_utils.py::simulate_trades_with_riskjB
-
-- side ‚Ì‹K–ñi•ûŒüw’èj:
-  - Šù’è‚Í longBƒVƒ‡[ƒgí—ª‚Í run_backtest ‚Å `side="short"` ‚ğ“n‚µ‚Ü‚·B
-  - —á: `simulate_trades_with_risk(..., self, on_progress=..., on_log=..., side="short")`
-
-- compute_* ‚ÌÓ–±‚Æ‘O’ñ:
-  - compute_entry(df, candidate, current_capital) -> (entry_price, stop_price) | None
-    - long: stop_price < entry_priceAshort: stop_price > entry_price ‚ğ•K‚¸–‚½‚·‚±‚ÆB
-    - candidate["entry_date"] ‚ª df.index ‚É‘¶İ‚µ‚È‚¢ê‡‚Í None ‚ğ•Ô‚µ‚ÄƒXƒLƒbƒvB
-  - compute_exit(df, entry_idx, entry_price, stop_price) -> (exit_price, exit_date) | None
-    - í—ª“Æ©‚Ì—˜Šm/‘¹Ø‚è/ÄdŠ|‚¯“™‚ğÀ‘•BNone ‚Ìê‡‚ÍƒVƒ~ƒ…ƒŒ[ƒ^[‚ÌƒfƒtƒHƒ‹ƒg‚ÉˆÏ÷B
-  - compute_pnl(entry_price, exit_price, shares) -> float
-    - À‘•‚ª–³‚¯‚ê‚ÎƒVƒ~ƒ…ƒŒ[ƒ^[‚ª side ‚É‰‚¶‚Ä©“®ŒvZilong: (exit-entry)*sharesAshort: (entry-exit)*sharesjB
-
-- ‹¤’ÊƒVƒ~ƒ…ƒŒ[ƒ^[‚Ì‹““®iŠT—vj:
-  - long ƒfƒtƒHƒ‹ƒg: 25%ƒgƒŒ[ƒŠƒ“ƒOAATR20 ‚ğŠî€‚ÉŠÈˆÕƒXƒgƒbƒviƒtƒbƒN–¢À‘•‚ÌƒtƒH[ƒ‹ƒoƒbƒNjB
-  - short ƒfƒtƒHƒ‹ƒg: 25%ã‘¤ƒgƒŒ[ƒŠƒ“ƒOA‚’lƒuƒŒƒCƒN‚ÅƒXƒgƒbƒvi“¯ãjB
-  - ‘‹àŠÇ—: 1ƒgƒŒ[ƒh‚ÌƒŠƒXƒN=2%A“¯•Û—LãŒÀ=10Aexit ‚ÅƒLƒƒƒbƒVƒ…‚ğXViYAML‚Åã‘‚«‰ÂjB
-  - i’»: `on_progress(done, total, start_time)`AƒƒO: `on_log(msg)` ‚ğ’Ê‚¶‚Ä’Ê’mB
-
-- run_backtest ‚Ì“ˆêŒÄ‚Ño‚µ:
-  - Šeí—ª‚Ì `run_backtest` ‚Í•K‚¸ˆÈ‰º‚ÌŒ`‚É‚·‚éi‘‹àŠÇ—ƒƒWƒbƒN‚Í‘‚©‚È‚¢jB
-    ```python
-    trades_df, _ = simulate_trades_with_risk(
-        candidates_by_date,
-        prepared_dict,
-        capital,
-        self,
-        on_progress=on_progress,
-        on_log=on_log,
-        # ƒVƒ‡[ƒgí—ª‚Ì‚İ
-        side="short",
-    )
-    return trades_df
-    ```
-
-- i’»ƒƒO‚Ì“ˆê:
-  - i’»/c‚èŠÔ•t‚«ƒƒO‚Í `common.ui_components.log_with_progress` ‚É“ˆêB
-  - —á: `log_with_progress(i, total, start_time, prefix="?? ƒCƒ“ƒWƒP[ƒ^[ŒvZ", log_func=log_callback)`
-
-- ƒLƒƒƒbƒVƒ…•ûji‹¤’Êƒx[ƒX + Œy—ÊƒVƒXƒeƒ€•Êj:
-  - `data_cache/base/` ‚É OHLCV + ‹¤’Êw•WiSMA25/100/150/200, EMA20/50, ATR10/14/40/50, RSI3/14, ROC200, HV20j‚ğ•Û‘¶B
-  - “Ç‚İ‚İ‚Í `utils.cache_manager.load_base_cache(symbol)` ‚ğ—DæB‘«‚è‚È‚¢ŒÅ—LƒJƒ‰ƒ€‚Í on-the-fly ŒvZB
-  - Šù‘¶‚ÌƒVƒXƒeƒ€•Ê•Û‘¶‚Í“––ÊˆÛ‚µA’iŠK“I‚É base “‡‚ÖˆÚsiSystem7 Š®—¹Œã‚ğ–ÚˆÀjB
-
-- ƒeƒXƒgƒ|ƒŠƒV[i“––Ê‚Ì’ZŠú‘Î‰j:
-  - Šeí—ª‚ÉuÅ¬ƒCƒ“ƒW¶¬vŠÖ”‚ğ‚½‚¹Apytest ‚Å‚Í•K{w•W‚Ì—L–³‚¾‚¯‚ğŒŸØB
-  - –{Ši“I‚È backtest ŒŸØ‚Í“ˆêƒCƒ“ƒ^[ƒtƒF[ƒXŠ®¬Œã‚É’iŠK“I‚ÉŠg[B
-
+## ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªæ§‹æˆ
+- `app_integrated.py` â€“ çµ±åˆUI
+- `strategies/` â€“ æˆ¦ç•¥ãƒ©ãƒƒãƒ‘
+- `core/` â€“ å„ã‚·ã‚¹ãƒ†ãƒ ç´”ãƒ­ã‚¸ãƒƒã‚¯
+- `common/` â€“ å…±é€šãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£
+- `config/` â€“ è¨­å®š
+- `docs/` â€“ ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆ
+- `tests/` â€“ ãƒ†ã‚¹ãƒˆ
