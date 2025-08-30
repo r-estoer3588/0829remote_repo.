@@ -49,7 +49,7 @@ def run_tab(spy_df=None, ui_manager=None):
     elif results_df is None and merged_df is None:
         prev_res = st.session_state.get("System1_results_df")
         prev_merged = st.session_state.get("System1_merged_df")
-        prev_cap = st.session_state.get("System1_capital")
+        prev_cap = st.session_state.get("System1_capital_saved", st.session_state.get("System1_capital"))
         if prev_res is not None and prev_merged is not None:
             daily_df = clean_date_column(prev_merged, col_name="Date")
             display_roc200_ranking(daily_df, title="📊 System1 日別ROC200ランキング（保存済み）")

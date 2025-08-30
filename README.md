@@ -9,7 +9,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-2. `.env` を用意し `EODHD_API_KEY` などを設定します。
+2. `.env` を用意し `EODHD_API_KEY` に加え、Alpaca 連携を行う場合は
+   `ALPACA_API_KEY` と `ALPACA_SECRET_KEY` を設定します。
 
 ## 実行例
 - UI: `streamlit run app_integrated.py`

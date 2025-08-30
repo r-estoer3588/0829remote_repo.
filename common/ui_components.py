@@ -371,14 +371,15 @@ def run_backtest_app(
     key_prepared = f"{system_name}_prepared_dict"
     key_cands = f"{system_name}_candidates_by_date"
     key_capital = f"{system_name}_capital"
+    key_capital_saved = f"{system_name}_capital_saved"
     key_merged = f"{system_name}_merged_df"
     key_debug = f"{system_name}_debug_logs"
 
-    has_prev = any(k in st.session_state for k in [key_results, key_cands, key_capital])
+    has_prev = any(k in st.session_state for k in [key_results, key_cands, f"{system_name}_capital_saved"]) 
     if has_prev:
         with st.expander("前回の結果（リランでも保持）", expanded=False):
             prev_res = st.session_state.get(key_results)
-            prev_cap = st.session_state.get(key_capital, 0)
+            prev_cap = st.session_state.get(key_capital_saved, st.session_state.get(key_capital, 0))
             if prev_res is not None and getattr(prev_res, "empty", False) is False:
                 show_results(prev_res, prev_cap, system_name)
             dbg = st.session_state.get(key_debug)
@@ -386,7 +387,7 @@ def run_backtest_app(
                 with st.expander("保存済み 取引ログ", expanded=False):
                     st.text("\n".join(map(str, dbg)))
             if st.button("保存済み結果をクリア", key=f"{system_name}_clear_saved"):
-                for k in [key_results, key_prepared, key_cands, key_capital, key_merged, key_debug]:
+                for k in [key_results, key_prepared, key_cands, key_capital_saved, key_capital, key_merged, key_debug]:
                     if k in st.session_state:
                         del st.session_state[k]
                 st.experimental_rerun()
@@ -401,8 +402,9 @@ def run_backtest_app(
     st.checkbox("show debug logs", key=debug_key)
 
     use_auto = st.checkbox("auto symbols (all tickers)", value=True, key=f"{system_name}_auto")
+    _init_cap = int(st.session_state.get(key_capital_saved, 1000))
     capital = st.number_input(
-        "capital (USD)", min_value=1000, value=1000, step=100, key=f"{system_name}_capital"
+        "capital (USD)", min_value=1000, value=_init_cap, step=100, key=f"{system_name}_capital"
     )
 
     all_tickers = get_all_tickers()
@@ -460,7 +462,7 @@ def run_backtest_app(
         st.session_state[key_results] = results_df
         st.session_state[key_prepared] = prepared_dict
         st.session_state[key_cands] = candidates_by_date
-        st.session_state[key_capital] = capital
+        st.session_state[key_capital_saved] = capital
         if merged_df is not None:
             st.session_state[key_merged] = merged_df
 
