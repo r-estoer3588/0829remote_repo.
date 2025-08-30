@@ -176,6 +176,15 @@ def simulate_trades_with_risk(
             }
         )
 
+        # --- per-day capital log ---
+        if on_log:
+            try:
+                on_log(
+                    f"💰 {date.date()} | Capital: {current_capital:.2f} USD | Active: {len(active_positions)}"
+                )
+            except Exception:
+                pass
+
         # --- 進捗ログ ---
         if on_progress:
             on_progress(i, total_days, start_time)

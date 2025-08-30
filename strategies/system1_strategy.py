@@ -69,7 +69,7 @@ class System1Strategy(StrategyBase):
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ) -> pd.DataFrame:
-        trades_df, logs_df = simulate_trades_with_risk(
+        trades_df, _ = simulate_trades_with_risk(
             candidates_by_date,
             prepared_dict,
             capital,
@@ -77,14 +77,6 @@ class System1Strategy(StrategyBase):
             on_progress=on_progress,
             on_log=on_log,
         )
-
-        # Optional: stream capital trajectory to UI via on_log
-        if on_log and not logs_df.empty:
-            for _, row in logs_df.iterrows():
-                on_log(
-                    f"{row['date'].date()} | Capital: {row['capital']:.2f} USD | Active: {row['active_count']}"
-                )
-
         return trades_df
 
     def get_total_days(self, data_dict: dict) -> int:

@@ -134,7 +134,7 @@ def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.D
         st.info(f"fetch: start | {total} symbols")
         progress_bar = st.progress(0)
         log_area = st.empty()
-    buffer, start_time = [], time.time()
+    buffer, skipped, start_time = [], [], time.time()
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(load_symbol, sym): sym for sym in symbols}
@@ -143,6 +143,8 @@ def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.D
             if df is not None and not df.empty:
                 data_dict[sym] = df
                 buffer.append(sym)
+            else:
+                skipped.append(sym)
 
             if i % 50 == 0 or i == total:
                 log_with_progress(
@@ -161,6 +163,11 @@ def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.D
         progress_bar.empty()
     except Exception:
         pass
+    if skipped:
+        try:
+            log_area.text(f"⚠️ データなし: {len(skipped)}銘柄\n{', '.join(skipped)}")
+        except Exception:
+            pass
     return data_dict
 
 
@@ -200,6 +207,7 @@ def prepare_backtest_data(
         data_dict,
         progress_callback=lambda done, total: ind_progress.progress(0 if total == 0 else done / total),
         log_callback=lambda msg: ind_log.text(str(msg)),
+        skip_callback=lambda msg: ind_log.text(str(msg)),
         **kwargs,
     )
     try:
@@ -308,14 +316,24 @@ def run_backtest_with_logging(
             pass
         progress = bt_phase.progress_bar
         log_area = bt_phase.log_area
+        trade_log_area = getattr(bt_phase, "trade_log_area", bt_phase.container.empty())
+        setattr(bt_phase, "trade_log_area", trade_log_area)
         debug_area = bt_phase.container.empty()
     else:
         st.info("backtest: running...")
         progress = st.progress(0)
         log_area = st.empty()
+        trade_log_area = st.empty()
         debug_area = st.empty()
     start_time = time.time()
     debug_logs: list[str] = []
+
+    def handle_log(msg):
+        if isinstance(msg, str) and msg.startswith("💰"):
+            debug_logs.append(str(msg))
+            trade_log_area.text(str(msg))
+        else:
+            log_area.text(str(msg))
 
     results_df = strategy.run_backtest(
         prepared_dict,
@@ -330,9 +348,7 @@ def run_backtest_with_logging(
             progress_bar=progress,
             unit="days",
         ),
-        on_log=lambda msg: (
-            debug_logs.append(str(msg)) if isinstance(msg, str) and msg.startswith("💰") else log_area.text(str(msg))
-        ),
+        on_log=lambda msg: handle_log(msg),
     )
 
     try:
@@ -493,7 +509,7 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
         "trades": int(len(df)),
         "total_return": total_return,
         "win_rate": win_rate,
-        "max_dd": max_dd,
+        "max_dd": abs(max_dd),
     }
     return pd.Series(summary), df
 
@@ -553,6 +569,7 @@ def show_results(results_df: pd.DataFrame, capital: float, system_name: str = "S
     heatmap_log.text("drawing heatmap...")
     holding_matrix = generate_holding_matrix(df2)
     display_holding_heatmap(holding_matrix, title=f"{system_name} - holdings heatmap")
+    heatmap_log.text("heatmap generated")
     # unique-key download button to avoid DuplicateElementId across tabs/systems
     csv_bytes = holding_matrix.to_csv().encode("utf-8")
     st.download_button(
