@@ -1,51 +1,48 @@
-"""Daily data cache script (settings-driven).
-
-- Uses YAML/.env via config.settings.get_settings
-- Respects API base/key, cache dir, threads, throttle, retries, timeout
-"""
-
-from __future__ import annotations
-
-import os
+import pandas as pd
+import requests
 import time
 import logging
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterable, List
-
-import pandas as pd
-import requests
-
-from config.settings import get_settings
-from common.logging_utils import setup_logging
+from dotenv import load_dotenv
+import os
+from ta.trend import SMAIndicator
+from ta.momentum import ROCIndicator
+from ta.volatility import AverageTrueRange
 from indicators_common import add_indicators
-
 
 FAILED_LIST = "eodhd_failed_symbols.csv"
 
 
-SETTINGS = get_settings(create_dirs=True)
-LOGGER = setup_logging(SETTINGS)
-API_KEY = SETTINGS.EODHD_API_KEY
-API_BASE = SETTINGS.API_EODHD_BASE.rstrip("/")
-TIMEOUT = SETTINGS.REQUEST_TIMEOUT
-RETRIES = SETTINGS.DOWNLOAD_RETRIES
-THROTTLE = SETTINGS.API_THROTTLE_SECONDS
-
-
-def load_failed_symbols() -> set[str]:
+def load_failed_symbols():
     if os.path.exists(FAILED_LIST):
         return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
     return set()
 
 
-def save_failed_symbols(new_failed: Iterable[str]) -> None:
+def save_failed_symbols(new_failed):
     old_failed = load_failed_symbols()
-    updated_failed = old_failed | {s.upper() for s in new_failed}
-    pd.Series(sorted(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
+    updated_failed = old_failed | set([s.upper() for s in new_failed])
+    pd.Series(list(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
 
 
-def get_all_symbols() -> List[str]:
+# .envからAPIキーを読み込み（相対的なパス）
+load_dotenv(dotenv_path=r".env")
+API_KEY = os.getenv("EODHD_API_KEY")
+
+# logディレクトリは既に存在する想定のため、作成は行わずパスのみ設定
+log_dir = os.path.join(os.path.dirname(__file__), "logs")
+
+# ロギング設定
+logging.basicConfig(
+    filename=os.path.join(log_dir, "cache_log.txt"),
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+def get_all_symbols():
     urls = [
         "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
@@ -53,7 +50,7 @@ def get_all_symbols() -> List[str]:
     symbols = set()
     for url in urls:
         try:
-            r = requests.get(url, timeout=10)
+            r = requests.get(url)
             lines = r.text.splitlines()
             for line in lines[1:]:
                 if "|" in line:
@@ -61,31 +58,25 @@ def get_all_symbols() -> List[str]:
                     if parts[0].isalpha():
                         symbols.add(parts[0])
         except Exception as e:
-            logging.error(f"取得失敗 {url} - {e}")
+            logging.error(f"取得失敗: {url} - {e}")
     return sorted(symbols)
 
 
-def get_with_retry(url: str, retries: int | None = None, delay: float | None = None, timeout: int | None = None):
-    if retries is None:
-        retries = RETRIES
-    if delay is None:
-        delay = THROTTLE
-    if timeout is None:
-        timeout = TIMEOUT
+def get_with_retry(url, retries=3, delay=2):
     for i in range(retries):
         try:
-            r = requests.get(url, timeout=timeout)
+            r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 return r
             logging.warning(f"ステータスコード {r.status_code} - {url}")
         except Exception as e:
-            logging.warning(f"試行{i + 1}回目のエラー: {e}")
+            logging.warning(f"試行{i+1}回目のエラー: {e}")
         time.sleep(delay)
     return None
 
 
-def get_eodhd_data(symbol: str) -> pd.DataFrame | None:
-    url = f"{API_BASE}/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
+def get_eodhd_data(symbol):
+    url = f"https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
     r = get_with_retry(url)
     if r is None:
         return None
@@ -141,13 +132,14 @@ RESERVED_WORDS = {
 }
 
 
-def safe_filename(symbol: str) -> str:
+def safe_filename(symbol):
+    # Windows予約語を避ける（大文字小文字無視）
     if symbol.upper() in RESERVED_WORDS:
         return symbol + "_RESV"
     return symbol
 
 
-def cache_single(symbol: str, output_dir: str):
+def cache_single(symbol, output_dir):
     safe_symbol = safe_filename(symbol)
     filepath = os.path.join(output_dir, f"{safe_symbol}.csv")
     if os.path.exists(filepath):
@@ -156,22 +148,21 @@ def cache_single(symbol: str, output_dir: str):
             return f"{symbol}: already cached", False  # False = no API call
     df = get_eodhd_data(symbol)
     if df is not None and not df.empty:
-        df = add_indicators(df)
+        df = add_indicators(df)  # ← ここで指標を追加
         df.to_csv(filepath)
         return f"{symbol}: saved", True  # True = API call used
     else:
         return f"{symbol}: failed to fetch", True
 
 
-def cache_data(symbols: Iterable[str], output_dir: str | None = None, max_workers: int | None = None):
-    if output_dir is None:
-        output_dir = str(SETTINGS.DATA_CACHE_DIR)
-    if max_workers is None:
-        max_workers = SETTINGS.THREADS_DEFAULT
+def cache_data(symbols, output_dir="data_cache", max_workers=5):
     os.makedirs(output_dir, exist_ok=True)
-    failed: list[str] = []
+    failed = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(cache_single, symbol, output_dir): symbol for symbol in symbols}
+        futures = {
+            executor.submit(cache_single, symbol, output_dir): symbol
+            for symbol in symbols
+        }
         results_list = []
         for i, future in enumerate(as_completed(futures)):
             result, used_api = future.result()
@@ -180,33 +171,28 @@ def cache_data(symbols: Iterable[str], output_dir: str | None = None, max_worker
             logging.info(result)
             print(f"[{i}] {result}")
             if "failed" in result:
-                failed.append(symbol)
+                failed.append(futures[future])
             if used_api:
-                time.sleep(THROTTLE)
+                time.sleep(1.5)  # API使用時のみスロットリング
 
+    # ブラックリストへ追記
     if failed:
         save_failed_symbols(failed)
 
+    # 処理件数のログ（results_listから集計）
     cached_count = sum(1 for _, _, used_api in results_list if not used_api)
     api_count = sum(1 for _, _, used_api in results_list if used_api)
-    print(f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗 {len(failed)}件")
-
-
-def warm_cache_default():
-    """設定の auto_tickers を使って軽量ウォームアップを実施"""
-    tickers = list(SETTINGS.ui.auto_tickers) or [
-        "AAPL",
-        "MSFT",
-        "NVDA",
-        "META",
-        "AMZN",
-        "GOOGL",
-        "TSLA",
-    ]
-    cache_data(tickers)
+    print(
+        f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {len(failed)}件"
+    )
 
 
 if __name__ == "__main__":
-    warm_cache_default()
-    print("デイリーキャッシュ更新が完了しました。")
-
+    # symbols = get_all_symbols()[:3]  # 無料プラン対策（テスト用）
+    symbols = get_all_symbols()
+    # ブラックリスト除外
+    failed_symbols = load_failed_symbols()
+    symbols = [s for s in symbols if s.upper() not in failed_symbols]
+    print(f"{len(symbols)}銘柄を取得します（ブラックリスト除外後）")
+    cache_data(symbols, output_dir="data_cache")
+    print("データのキャッシュが完了しました。")
