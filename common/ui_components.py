@@ -568,7 +568,9 @@ def show_results(results_df: pd.DataFrame, capital: float, system_name: str = "S
         pass
 
 
-def show_signal_trade_summary(source_df, trades_df, system_name: str):
+def show_signal_trade_summary(
+    source_df, trades_df, system_name: str, display_name: str | None = None
+):
     if system_name == "System1" and isinstance(source_df, pd.DataFrame):
         signal_counts = source_df["symbol"].value_counts().reset_index()
         signal_counts.columns = ["symbol", "Signal_Count"]
@@ -587,14 +589,20 @@ def show_signal_trade_summary(source_df, trades_df, system_name: str):
     summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
     summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
 
-    with st.expander(f"{system_name} signals vs trades", expanded=False):
+    label = f"{display_name or system_name} シグナル vs トレード"
+    with st.expander(label, expanded=False):
         st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
     return summary_df
 
 
-def display_roc200_ranking(ranking_df: pd.DataFrame, years: int = 5, top_n: int = 10, title: str = "System1 ROC200 ranking"):
+def display_roc200_ranking(
+    ranking_df: pd.DataFrame,
+    years: int = 5,
+    top_n: int = 10,
+    title: str = "System1 ROC200ランキング",
+):
     if ranking_df is None or ranking_df.empty:
-        st.info("no ranking data")
+        st.info("ランキングデータがありません")
         return
     df = ranking_df.copy()
     df["Date"] = pd.to_datetime(df["Date"]) if "Date" in df.columns else pd.to_datetime(df.index)
@@ -607,7 +615,9 @@ def display_roc200_ranking(ranking_df: pd.DataFrame, years: int = 5, top_n: int 
     if top_n:
         df = df.groupby("Date").head(top_n)
     df = df.sort_values(["Date", "ROC200_Rank"], ascending=[True, True])
-    with st.expander(f"{title} (last {years}y / top{top_n})", expanded=False):
+    with st.expander(
+        f"{title} (直近{years}年 / 上位{top_n}件)", expanded=False
+    ):
         st.dataframe(
             df.reset_index(drop=True)[["Date", "ROC200_Rank", "symbol"]],
             hide_index=False,
@@ -627,10 +637,10 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
     if signal_counts_df is not None and not signal_counts_df.empty:
         signal_path = os.path.join(sig_dir, f"{system_name}_signals_{today_str}_{int(capital)}.csv")
         signal_counts_df.to_csv(signal_path, index=False)
-        st.write(f"saved signals: {signal_path}")
+        st.write(f"シグナルを保存しました: {signal_path}")
         # 即時ダウンロード
         st.download_button(
-            label=f"download {system_name} signals CSV",
+            label=f"{system_name} シグナルCSVをダウンロード",
             data=signal_counts_df.to_csv(index=False).encode("utf-8"),
             file_name=f"{system_name}_signals_{today_str}_{int(capital)}.csv",
             mime="text/csv",
@@ -641,10 +651,10 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
     if trades_df is not None and not trades_df.empty:
         trade_path = os.path.join(trade_dir, f"{system_name}_trades_{today_str}_{int(capital)}.csv")
         trades_df.to_csv(trade_path, index=False)
-        st.write(f"saved trades: {trade_path}")
+        st.write(f"トレードを保存しました: {trade_path}")
         # 即時ダウンロード
         st.download_button(
-            label=f"download {system_name} trades CSV",
+            label=f"{system_name} トレードCSVをダウンロード",
             data=trades_df.to_csv(index=False).encode("utf-8"),
             file_name=f"{system_name}_trades_{today_str}_{int(capital)}.csv",
             mime="text/csv",
@@ -653,9 +663,9 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
 
 
 def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
-    st.info(f"saving prepared daily data ({system_name}) ...")
+    st.info(f"{system_name} の日次データを保存中...")
     if not data_dict:
-        st.warning("no data to save")
+        st.warning("保存するデータがありません")
         return
     total = len(data_dict)
     progress_bar = st.progress(0)
@@ -663,7 +673,7 @@ def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
         path = os.path.join("data_cache", f"{safe_filename(sym)}.csv")
         df.to_csv(path)
         progress_bar.progress(0 if total == 0 else i / total)
-    st.write(f"saved {total} files")
+    st.write(f"{total}件のファイルを保存しました")
     try:
         progress_bar.empty()
     except Exception:

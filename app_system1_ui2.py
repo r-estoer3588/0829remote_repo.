@@ -1,7 +1,6 @@
 import streamlit as st
 import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
 from strategies.system1_strategy import System1Strategy
-import pandas as pd
 from common.ui_components import (
     run_backtest_app,
     show_signal_trade_summary,
@@ -12,14 +11,19 @@ from common.ui_components import (
 from common.cache_utils import save_prepared_data_cache
 
 # ✅ SPY関連は共通ユーティリティから
-from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
+from common.utils_spy import get_spy_with_indicators
+
+SYSTEM_NAME = "System1"
+DISPLAY_NAME = "システム1"
 
 # インスタンス生成
 strategy = System1Strategy()
 
 
 def run_tab(spy_df=None, ui_manager=None):
-    st.header("System1：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）")
+    st.header(
+        f"{DISPLAY_NAME}：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）"
+    )
 
     # SPY はフィルター判定で SMA100 を使用するため、必ずインジ付きで取得
     spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
@@ -29,7 +33,7 @@ def run_tab(spy_df=None, ui_manager=None):
 
     results_df, merged_df, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy,
-        system_name="System1",
+        system_name=SYSTEM_NAME,
         limit_symbols=10,
         spy_df=spy_df,
         ui_manager=ui_manager,
@@ -37,23 +41,31 @@ def run_tab(spy_df=None, ui_manager=None):
 
     if results_df is not None and merged_df is not None:
         daily_df = clean_date_column(merged_df, col_name="Date")
-        display_roc200_ranking(daily_df, title="📊 System1 日別ROC200ランキング")
+        display_roc200_ranking(
+            daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング"
+        )
 
-        signal_summary_df = show_signal_trade_summary(merged_df, results_df, "System1")
-        save_signal_and_trade_logs(signal_summary_df, results_df, "System1", capital)
-        save_prepared_data_cache(data_dict, "System1")
+        signal_summary_df = show_signal_trade_summary(
+            merged_df, results_df, SYSTEM_NAME, display_name=DISPLAY_NAME
+        )
+        save_signal_and_trade_logs(signal_summary_df, results_df, SYSTEM_NAME, capital)
+        save_prepared_data_cache(data_dict, SYSTEM_NAME)
         # キャッシュ保存後にも完了メッセージを再掲
         st.success("バックテスト完了")
 
     # フォールバック: リラン時にセッションから復元してランキング/サマリを表示
     elif results_df is None and merged_df is None:
-        prev_res = st.session_state.get("System1_results_df")
-        prev_merged = st.session_state.get("System1_merged_df")
-        prev_cap = st.session_state.get("System1_capital_saved", st.session_state.get("System1_capital"))
+        prev_res = st.session_state.get(f"{SYSTEM_NAME}_results_df")
+        prev_merged = st.session_state.get(f"{SYSTEM_NAME}_merged_df")
+        prev_cap = st.session_state.get(f"{SYSTEM_NAME}_capital")
         if prev_res is not None and prev_merged is not None:
             daily_df = clean_date_column(prev_merged, col_name="Date")
-            display_roc200_ranking(daily_df, title="📊 System1 日別ROC200ランキング（保存済み）")
-            _ = show_signal_trade_summary(prev_merged, prev_res, "System1")
+            display_roc200_ranking(
+                daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング（保存済み）"
+            )
+            _ = show_signal_trade_summary(
+                prev_merged, prev_res, SYSTEM_NAME, display_name=DISPLAY_NAME
+            )
 
         # ✅ 同時保有銘柄数の最大値をチェック 0823デバッグ用
         # if not results_df.empty:
