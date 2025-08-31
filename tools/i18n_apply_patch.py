@@ -6,8 +6,8 @@
 - dry-run で差分を出力。--apply 指定で実ファイルを更新（バックアップを .bak に作成）
 
 使い方（PowerShell / CMD）:
-  python tools\i18n_apply_patch.py --path common        # dry-run
-  python tools\i18n_apply_patch.py --path common --apply
+  python tools/i18n_apply_patch.py --path common        # dry-run
+  python tools/i18n_apply_patch.py --path common --apply
 """
 
 from __future__ import annotations
