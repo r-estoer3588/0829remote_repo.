@@ -4,6 +4,7 @@ import os
 import json
 from typing import Dict, Optional
 from pathlib import Path
+import re
 
 try:
     import streamlit as st
@@ -59,17 +60,41 @@ _JA_MAP: Dict[str, str] = {
     "use all symbols": "全銘柄を使用",
     "symbols (comma separated)": "銘柄一覧（カンマ区切り）",
     "please input symbols": "銘柄を入力してください",
-    "run": "実行",
+    "run": "バックテスト実行",
     "no trades": "取引なし",
     "backtest finished": "バックテスト完了",
-    "trade logs": "取引ログ",
+    "trade logs": "資金推移",
+    "download holdings csv": "保有状況CSVをダウンロード",
+    # fetch / messages
+    "fetch: start | {total} symbols": "データ取得: 開始 | {total} 銘柄",
+    "⚠️ no data: {n} symbols": "⚠️ データがないためスキップ: {n}銘柄",
+    "indicators: computing...": "インジケーター：計算中...",
+    "candidates: extracting...": "トレード候補：抽出中...",
+    "backtest: running...": "バックテスト：実行中...",
+    # results label
+    "results": "バックテスト結果",
+    "trades": "取引数",
+    "total pnl": "合計損益",
+    "win rate (%)": "勝率 (%)",
+    "max drawdown": "最大ドローダウン",
+    # plot / UI labels
+    "date": "日付",
+    "pnl": "損益",
+    "cumulative pnl": "累積損益",
+    "yearly summary": "年別サマリー",
+    "monthly summary": "月別サマリー",
+    "holdings heatmap (by day)": "保有状況ヒートマップ（日次）",
+    "drawing heatmap...": "ヒートマップを描画中...",
+    "heatmap generated": "ヒートマップ生成完了",
+    "days": "日",
+    "System1 - holdings heatmap": "System1 - 保有銘柄ヒートマップ",
     "download holdings csv": "保有状況CSVをダウンロード",
     # app_integrated.py 周辺（一部）
     "Trading Systems Integrated UI": "トレーディングシステム統合UI",
     "settings": "設定",
     "Integrated": "統合",
     "Batch": "バッチ",
-    "Integrated Backtest (Systems 17)": "統合バックテスト（Systems 17）",
+    "Integrated Backtest (Systems 1-7)": "統合バックテスト（Systems 1-7）",
     "allow gross leverage (sum cost can exceed capital)": "総建玉レバレッジを許可（合計コストが資金を超える場合あり）",
     "long bucket share (%)": "ロング側の配分（%）",
     "short bucket share = 100% - long": "ショート側の配分 = 100% - ロング",
@@ -129,6 +154,11 @@ def _lookup_translation(text: str, lang: str) -> Optional[str]:
         return _TRANSLATIONS[lang][text]
     if lang == "ja" and text in _JA_MAP:
         return _JA_MAP[text]
+    # System1-7 用のヒートマップタイトルを動的に処理
+    if lang == "ja":
+        m = re.match(r"^(System[1-7]) - holdings heatmap$", text)
+        if m:
+            return f"{m.group(1)} - 保有銘柄ヒートマップ"
     return None
 
 

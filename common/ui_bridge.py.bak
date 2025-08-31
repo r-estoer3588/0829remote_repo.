@@ -1,17 +1,19 @@
 from __future__ import annotations
+
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict
+
 import streamlit as st
 import pandas as pd
+
 from common.utils import safe_filename, get_cached_data
 from utils.cache_manager import load_base_cache, base_cache_path
-import os
-from typing import Optional
-from common.i18n import tr
 
 
 def _mtime_or_zero(path: str) -> float:
+    import os
+
     try:
         return os.path.getmtime(path)
     except Exception:
@@ -34,6 +36,8 @@ def _load_symbol_cached(
 
 
 def _load_symbol(symbol: str, cache_dir: str = "data_cache"):
+    import os
+
     base_path = str(base_cache_path(symbol))
     raw_path = os.path.join(cache_dir, f"{safe_filename(symbol)}.csv")
     return _load_symbol_cached(
@@ -103,7 +107,7 @@ def prepare_backtest_data_ui(
     # 1) データ取得
     raw = _fetch_data_ui(symbols, ui_manager=ui_manager)
     if not raw:
-        st.error(tr("有効なデータがありません"))
+        st.error("有効なデータがありません")
         return None, None, None
 
     # 2) インジケーター計算
@@ -155,7 +159,7 @@ def prepare_backtest_data_ui(
         pass
 
     if not candidates_by_date:
-        st.warning(tr("候補がありません"))
+        st.warning("候補がありません")
         return prepared, None, None
     return prepared, candidates_by_date, merged_df
 

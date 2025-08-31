@@ -25,24 +25,6 @@ from holding_tracker import (
     download_holding_csv,
 )
 from system.core import generate_roc200_ranking_system1
-from common.i18n import tr
-import matplotlib as mpl
-import logging
-
-# 日本語表示のためのフォントフォールバック（Windows向け優先）
-try:
-    mpl.rcParams["font.family"] = [
-        "Yu Gothic",
-        "Meiryo",
-        "MS Gothic",
-        "Noto Sans JP",
-        "DejaVu Sans",
-    ]
-except Exception:
-    pass
-
-# matplotlib.font_manager の冗長な INFO を抑制
-logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
 
 
 # ------------------------------
@@ -89,9 +71,7 @@ def log_with_progress(
             pass
 
 
-def default_log_callback(
-    processed: int, total: int, start_time: float, prefix: str = "📊 状況"
-) -> str:
+def default_log_callback(processed: int, total: int, start_time: float, prefix: str = "📊 状況") -> str:
     elapsed = time.time() - start_time
     remain = (elapsed / processed) * (total - processed) if processed else 0
     return (
@@ -111,9 +91,7 @@ def _mtime_or_zero(path: str) -> float:
 
 
 @st.cache_data(show_spinner=False)
-def _load_symbol_cached(
-    symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float
-) -> tuple[str, pd.DataFrame | None]:
+def _load_symbol_cached(symbol: str, *, base_path: str, base_mtime: float, raw_path: str, raw_mtime: float) -> tuple[str, pd.DataFrame | None]:
     """ファイルの更新時刻をキーに含めてキャッシュし、ファイル更新で自動無効化。
     戻り値は (symbol, DataFrame|None)
     """
@@ -128,9 +106,7 @@ def _load_symbol_cached(
     return symbol, None
 
 
-def load_symbol(
-    symbol: str, cache_dir: str = "data_cache"
-) -> tuple[str, pd.DataFrame | None]:
+def load_symbol(symbol: str, cache_dir: str = "data_cache") -> tuple[str, pd.DataFrame | None]:
     base_path = str(base_cache_path(symbol))
     raw_path = os.path.join(cache_dir, f"{safe_filename(symbol)}.csv")
     return _load_symbol_cached(
@@ -142,9 +118,7 @@ def load_symbol(
     )
 
 
-def fetch_data(
-    symbols, max_workers: int = 8, ui_manager=None
-) -> Dict[str, pd.DataFrame]:
+def fetch_data(symbols, max_workers: int = 8, ui_manager=None) -> Dict[str, pd.DataFrame]:
     data_dict: Dict[str, pd.DataFrame] = {}
     total = len(symbols)
     # UIManagerのフェーズ（fetch）があればそこへ出力
@@ -153,11 +127,11 @@ def fetch_data(
         progress_bar = phase.progress_bar
         log_area = phase.log_area
         try:
-            phase.info(tr("fetch: start | {total} symbols", total=total))
+            phase.info(f"fetch: start | {total} symbols")
         except Exception:
             pass
     else:
-        st.info(tr("fetch: start | {total} symbols", total=total))
+        st.info(f"fetch: start | {total} symbols")
         progress_bar = st.progress(0)
         log_area = st.empty()
     buffer, skipped, start_time = [], [], time.time()
@@ -191,11 +165,7 @@ def fetch_data(
         pass
     if skipped:
         try:
-            # use i18n message for skipped count, append symbols list
-            # tr は kwargs を受けてフォーマット済み文字列を返すので .format は不要
-            msg = tr("⚠️ no data: {n} symbols", n=len(skipped))
-            msg = msg + "\n" + ", ".join(skipped)
-            log_area.text(msg)
+            log_area.text(f"⚠️ データなし: {len(skipped)}銘柄\n{', '.join(skipped)}")
         except Exception:
             pass
     return data_dict
@@ -215,7 +185,7 @@ def prepare_backtest_data(
     # 1) fetch
     data_dict = fetch_data(symbols, ui_manager=ui_manager)
     if not data_dict:
-        st.error(tr("no valid data"))
+        st.error("no valid data")
         return None, None, None
 
     # 2) indicators (delegated to strategy)
@@ -223,21 +193,19 @@ def prepare_backtest_data(
     ind_phase = ui_manager.phase("indicators") if ui_manager else None
     if ind_phase:
         try:
-            ind_phase.info(tr("indicators: computing..."))
+            ind_phase.info("indicators: computing...")
         except Exception:
             pass
         ind_progress = ind_phase.progress_bar
         ind_log = ind_phase.log_area
     else:
-        st.info(tr("indicators: computing..."))
+        st.info("indicators: computing...")
         ind_progress = st.progress(0)
         ind_log = st.empty()
     start_time = time.time()
     prepared_dict = strategy.prepare_data(
         data_dict,
-        progress_callback=lambda done, total: ind_progress.progress(
-            0 if total == 0 else done / total
-        ),
+        progress_callback=lambda done, total: ind_progress.progress(0 if total == 0 else done / total),
         log_callback=lambda msg: ind_log.text(str(msg)),
         skip_callback=lambda msg: ind_log.text(str(msg)),
         **kwargs,
@@ -252,13 +220,13 @@ def prepare_backtest_data(
     cand_phase = ui_manager.phase("candidates") if ui_manager else None
     if cand_phase:
         try:
-            cand_phase.info(tr("candidates: extracting..."))
+            cand_phase.info("candidates: extracting...")
         except Exception:
             pass
         cand_log = cand_phase.log_area
         cand_progress = cand_phase.progress_bar
     else:
-        st.info(tr("candidates: extracting..."))
+        st.info("candidates: extracting...")
         cand_log = st.empty()
         cand_progress = st.progress(0)
     start_time = time.time()
@@ -266,7 +234,7 @@ def prepare_backtest_data(
     merged_df = None
     if system_name == "System1":
         if spy_df is None or spy_df.empty:
-            st.error(tr("System1 requires SPY data for market filter"))
+            st.error("System1 requires SPY data for market filter")
             return prepared_dict, None, None
         candidates_by_date, merged_df = generate_roc200_ranking_system1(
             prepared_dict,
@@ -275,10 +243,10 @@ def prepare_backtest_data(
                 i,
                 total,
                 start,
-                prefix="📈 ROC200ランキング",
+                prefix="roc200",
                 log_area=cand_log,
                 progress_bar=cand_progress,
-                unit=tr("days"),
+                unit="days",
             ),
             on_log=None,
         )
@@ -323,7 +291,7 @@ def prepare_backtest_data(
         pass
 
     if not candidates_by_date:
-        st.warning(tr("{system_name}: no candidates"))
+        st.warning(f"{system_name}: no candidates")
         return prepared_dict, None, None
 
     return prepared_dict, candidates_by_date, merged_df
@@ -343,7 +311,7 @@ def run_backtest_with_logging(
     bt_phase = ui_manager.phase("backtest") if ui_manager else None
     if bt_phase:
         try:
-            bt_phase.info(tr("backtest: running..."))
+            bt_phase.info("backtest: running...")
         except Exception:
             pass
         progress = bt_phase.progress_bar
@@ -352,7 +320,7 @@ def run_backtest_with_logging(
         setattr(bt_phase, "trade_log_area", trade_log_area)
         debug_area = bt_phase.container.empty()
     else:
-        st.info(tr("backtest: running..."))
+        st.info("backtest: running...")
         progress = st.progress(0)
         log_area = st.empty()
         trade_log_area = st.empty()
@@ -362,16 +330,8 @@ def run_backtest_with_logging(
 
     def handle_log(msg):
         if isinstance(msg, str) and msg.startswith("💰"):
-            # attempt to localize capital/active segments while preserving date
-            import re
-
-            s = str(msg)
-            # Capital: 3812.31 USD -> 資金: 3812.31 USD
-            s = re.sub(r"Capital:\s*([0-9\.,]+)\s*USD", r"資金: \1 USD", s)
-            # Active: 0 -> 保有ポジション: 0
-            s = re.sub(r"Active:\s*([0-9]+)", r"保有ポジション: \1", s)
-            debug_logs.append(s)
-            trade_log_area.text(s)
+            debug_logs.append(str(msg))
+            trade_log_area.text(str(msg))
         else:
             log_area.text(str(msg))
 
@@ -400,7 +360,7 @@ def run_backtest_with_logging(
     st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
 
     if st.session_state.get("show_debug_logs", True) and debug_logs:
-        with st.expander(tr("trade logs"), expanded=False):
+        with st.expander("trade logs", expanded=False):
             st.text("\n".join(debug_logs))
 
     # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
@@ -431,55 +391,36 @@ def run_backtest_app(
     key_merged = f"{system_name}_merged_df"
     key_debug = f"{system_name}_debug_logs"
 
-    has_prev = any(
-        k in st.session_state
-        for k in [key_results, key_cands, f"{system_name}_capital_saved"]
-    )
+    has_prev = any(k in st.session_state for k in [key_results, key_cands, f"{system_name}_capital_saved"]) 
     if has_prev:
         with st.expander("前回の結果（リランでも保持）", expanded=False):
             prev_res = st.session_state.get(key_results)
-            prev_cap = st.session_state.get(
-                key_capital_saved, st.session_state.get(key_capital, 0)
-            )
+            prev_cap = st.session_state.get(key_capital_saved, st.session_state.get(key_capital, 0))
             if prev_res is not None and getattr(prev_res, "empty", False) is False:
                 show_results(prev_res, prev_cap, system_name, key_context="prev")
             dbg = st.session_state.get(key_debug)
             if dbg:
                 with st.expander("保存済み 取引ログ", expanded=False):
                     st.text("\n".join(map(str, dbg)))
-            if st.button(tr("保存済み結果をクリア"), key=f"{system_name}_clear_saved"):
-                for k in [
-                    key_results,
-                    key_prepared,
-                    key_cands,
-                    key_capital_saved,
-                    key_capital,
-                    key_merged,
-                    key_debug,
-                ]:
+            if st.button("保存済み結果をクリア", key=f"{system_name}_clear_saved"):
+                for k in [key_results, key_prepared, key_cands, key_capital_saved, key_capital, key_merged, key_debug]:
                     if k in st.session_state:
                         del st.session_state[k]
                 st.experimental_rerun()
 
-    if st.button(tr("clear streamlit cache"), key=f"{system_name}_clear_cache"):
+    if st.button("clear streamlit cache", key=f"{system_name}_clear_cache"):
         st.cache_data.clear()
-        st.success(tr("cache cleared"))
+        st.success("cache cleared")
 
     debug_key = f"{system_name}_show_debug_logs"
     if debug_key not in st.session_state:
         st.session_state[debug_key] = True
-    st.checkbox(tr("show debug logs"), key=debug_key)
+    st.checkbox("show debug logs", key=debug_key)
 
-    use_auto = st.checkbox(
-        tr("auto symbols (all tickers)"), value=True, key=f"{system_name}_auto"
-    )
+    use_auto = st.checkbox("auto symbols (all tickers)", value=True, key=f"{system_name}_auto")
     _init_cap = int(st.session_state.get(key_capital_saved, 1000))
     capital = st.number_input(
-        tr("capital (USD)"),
-        min_value=1000,
-        value=_init_cap,
-        step=100,
-        key=f"{system_name}_capital",
+        "capital (USD)", min_value=1000, value=_init_cap, step=100, key=f"{system_name}_capital"
     )
 
     all_tickers = get_all_tickers()
@@ -488,20 +429,20 @@ def run_backtest_app(
 
     if system_name != "System7":
         limit_symbols = st.number_input(
-            tr("symbol limit"),
+            "symbol limit",
             min_value=10,
             max_value=max_allowed,
             value=default_value,
             step=100,
             key=f"{system_name}_limit",
         )
-        if st.checkbox(tr("use all symbols"), key=f"{system_name}_all"):
+        if st.checkbox("use all symbols", key=f"{system_name}_all"):
             limit_symbols = max_allowed
 
     symbols_input = None
     if not use_auto:
         symbols_input = st.text_input(
-            tr("symbols (comma separated)"),
+            "symbols (comma separated)",
             "AAPL,MSFT,TSLA,NVDA,META",
             key=f"{system_name}_symbols_main",
         )
@@ -512,11 +453,11 @@ def run_backtest_app(
         symbols = all_tickers[:limit_symbols]
     else:
         if not symbols_input:
-            st.error(tr("please input symbols"))
+            st.error("please input symbols")
             return None, None, None, None, None
         symbols = [s.strip().upper() for s in symbols_input.split(",")]
 
-    if st.button(tr("run"), key=f"{system_name}_run"):
+    if st.button("run", key=f"{system_name}_run"):
         prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
             strategy,
             symbols,
@@ -529,12 +470,7 @@ def run_backtest_app(
             return None, None, None, None, None
 
         results_df = run_backtest_with_logging(
-            strategy,
-            prepared_dict,
-            candidates_by_date,
-            capital,
-            system_name,
-            ui_manager=ui_manager,
+            strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
         )
         show_results(results_df, capital, system_name, key_context="curr")
 
@@ -567,9 +503,7 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
     df["cum_max"] = df["cumulative_pnl"].cummax()
     df["drawdown"] = df["cumulative_pnl"] - df["cum_max"]
     total_return = float(df["pnl"].sum())
-    win_rate = (
-        float((df["return_%"] > 0).mean() * 100) if "return_%" in df.columns else 0.0
-    )
+    win_rate = float((df["return_%"] > 0).mean() * 100) if "return_%" in df.columns else 0.0
     max_dd = float(df["drawdown"].min())
     summary = {
         "trades": int(len(df)),
@@ -588,11 +522,11 @@ def show_results(
     key_context: str = "main",
 ):
     if results_df is None or results_df.empty:
-        st.info(tr("no trades"))
+        st.info("no trades")
         return
-    st.success(tr("backtest finished"))
+    st.success("backtest finished")
 
-    st.subheader(tr("results"))
+    st.subheader("results")
     st.dataframe(results_df)
 
     summary, df2 = summarize_results(results_df, capital)
@@ -600,40 +534,26 @@ def show_results(
     if isinstance(summary, pd.Series):
         summary = summary.to_dict()
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("取引数", int(summary.get("trades", 0)))
-    col2.metric("合計損益", f"{float(summary.get('total_return', 0.0)):.2f}")
-    col3.metric("勝率 (%)", f"{float(summary.get('win_rate', 0.0)):.2f}")
-    col4.metric("最大ドローダウン", f"{float(summary.get('max_dd', 0.0)):.2f}")
+    col1.metric("trades", int(summary.get("trades", 0)))
+    col2.metric("total pnl", f"{float(summary.get('total_return', 0.0)):.2f}")
+    col3.metric("win rate (%)", f"{float(summary.get('win_rate', 0.0)):.2f}")
+    col4.metric("max drawdown", f"{float(summary.get('max_dd', 0.0)):.2f}")
 
-    st.subheader(tr("cumulative pnl"))
-    # 日本語を軸ラベルに使う際のフォントフォールバック設定（環境にあるフォントを優先して選択）
-    try:
-        mpl.rcParams["font.family"] = [
-            "Noto Sans JP",
-            "IPAPGothic",
-            "TakaoGothic",
-            "DejaVu Sans",
-        ]
-    except Exception:
-        pass
+    st.subheader("cumulative pnl")
     plt.figure(figsize=(10, 4))
     plt.plot(df2["exit_date"], df2["cumulative_pnl"], label="CumPnL")
-    plt.xlabel(tr("date"))
-    plt.ylabel(tr("pnl"))
-    st.subheader(tr("cumulative pnl"))
+    plt.xlabel("date")
+    plt.ylabel("pnl")
+    plt.title("cumulative pnl")
     plt.legend()
     st.pyplot(plt)
 
-    st.subheader(tr("yearly summary"))
-    st.dataframe(
-        df2.groupby(df2["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
-    )
-    st.subheader(tr("monthly summary"))
-    st.dataframe(
-        df2.groupby(df2["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
-    )
+    st.subheader("yearly summary")
+    st.dataframe(df2.groupby(df2["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index())
+    st.subheader("monthly summary")
+    st.dataframe(df2.groupby(df2["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index())
 
-    st.subheader(tr("holdings heatmap (by day)"))
+    st.subheader("holdings heatmap (by day)")
     progress_heatmap = st.progress(0)
     heatmap_log = st.empty()
     start_time = time.time()
@@ -654,10 +574,8 @@ def show_results(
         time.sleep(0.005)
     heatmap_log.text("drawing heatmap...")
     holding_matrix = generate_holding_matrix(df2)
-    display_holding_heatmap(
-        holding_matrix, title=f"{system_name} - {tr('holdings heatmap (by day)')}"
-    )
-    heatmap_log.text(tr("heatmap generated"))
+    display_holding_heatmap(holding_matrix, title=f"{system_name} - holdings heatmap")
+    heatmap_log.text("heatmap generated")
     # unique-key download button to avoid DuplicateElementId across tabs/systems
     csv_bytes = holding_matrix.to_csv().encode("utf-8")
     st.download_button(
@@ -681,27 +599,20 @@ def show_signal_trade_summary(
         signal_counts.columns = ["symbol", "Signal_Count"]
     else:
         signal_counts = {
-            sym: int(df.get("setup", pd.Series(dtype=int)).sum())
-            for sym, df in (source_df or {}).items()
+            sym: int(df.get("setup", pd.Series(dtype=int)).sum()) for sym, df in (source_df or {}).items()
         }
-        signal_counts = pd.DataFrame(
-            signal_counts.items(), columns=["symbol", "Signal_Count"]
-        )
+        signal_counts = pd.DataFrame(signal_counts.items(), columns=["symbol", "Signal_Count"])
 
     if trades_df is not None and not trades_df.empty:
-        trade_counts = (
-            trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
-        )
+        trade_counts = trades_df.groupby("symbol").size().reset_index(name="Trade_Count")
     else:
         trade_counts = pd.DataFrame(columns=["symbol", "Trade_Count"])
 
-    summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(
-        0
-    )
+    summary_df = pd.merge(signal_counts, trade_counts, on="symbol", how="outer").fillna(0)
     summary_df["Signal_Count"] = summary_df["Signal_Count"].astype(int)
     summary_df["Trade_Count"] = summary_df["Trade_Count"].astype(int)
 
-    label = f"{display_name or system_name} signal発生件数 / トレード発生件数"
+    label = f"{display_name or system_name} シグナル vs トレード"
     with st.expander(label, expanded=False):
         st.dataframe(summary_df.sort_values("Signal_Count", ascending=False))
     return summary_df
@@ -714,24 +625,22 @@ def display_roc200_ranking(
     title: str = "System1 ROC200ランキング",
 ):
     if ranking_df is None or ranking_df.empty:
-        st.info(tr("ランキングデータがありません"))
+        st.info("ランキングデータがありません")
         return
     df = ranking_df.copy()
-    df["Date"] = (
-        pd.to_datetime(df["Date"]) if "Date" in df.columns else pd.to_datetime(df.index)
-    )
+    df["Date"] = pd.to_datetime(df["Date"]) if "Date" in df.columns else pd.to_datetime(df.index)
     df = df.reset_index(drop=True)
     if "ROC200_Rank" not in df.columns and "ROC200" in df.columns:
-        df["ROC200_Rank"] = df.groupby("Date")["ROC200"].rank(
-            ascending=False, method="first"
-        )
+        df["ROC200_Rank"] = df.groupby("Date")["ROC200"].rank(ascending=False, method="first")
     if years:
         start_date = pd.Timestamp.now() - pd.DateOffset(years=years)
         df = df[df["Date"] >= start_date]
     if top_n:
         df = df.groupby("Date").head(top_n)
     df = df.sort_values(["Date", "ROC200_Rank"], ascending=[True, True])
-    with st.expander(f"{title} (直近{years}年 / 上位{top_n}件)", expanded=False):
+    with st.expander(
+        f"{title} (直近{years}年 / 上位{top_n}件)", expanded=False
+    ):
         st.dataframe(
             df.reset_index(drop=True)[["Date", "ROC200_Rank", "symbol"]],
             hide_index=False,
@@ -745,17 +654,13 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
     today_str = pd.Timestamp.today().strftime("%Y-%m-%d_%H%M")
     save_dir = "results_csv"
     os.makedirs(save_dir, exist_ok=True)
-    sig_dir = os.path.join(save_dir, "signals")
-    os.makedirs(sig_dir, exist_ok=True)
-    trade_dir = os.path.join(save_dir, "trades")
-    os.makedirs(trade_dir, exist_ok=True)
+    sig_dir = os.path.join(save_dir, "signals"); os.makedirs(sig_dir, exist_ok=True)
+    trade_dir = os.path.join(save_dir, "trades"); os.makedirs(trade_dir, exist_ok=True)
 
     if signal_counts_df is not None and not signal_counts_df.empty:
-        signal_path = os.path.join(
-            sig_dir, f"{system_name}_signals_{today_str}_{int(capital)}.csv"
-        )
+        signal_path = os.path.join(sig_dir, f"{system_name}_signals_{today_str}_{int(capital)}.csv")
         signal_counts_df.to_csv(signal_path, index=False)
-        st.write(tr("シグナルを保存しました: {signal_path}", signal_path=signal_path))
+        st.write(f"シグナルを保存しました: {signal_path}")
         # 即時ダウンロード
         st.download_button(
             label=f"{system_name} シグナルCSVをダウンロード",
@@ -767,11 +672,9 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
 
     trades_df = pd.DataFrame(results) if isinstance(results, list) else results
     if trades_df is not None and not trades_df.empty:
-        trade_path = os.path.join(
-            trade_dir, f"{system_name}_trades_{today_str}_{int(capital)}.csv"
-        )
+        trade_path = os.path.join(trade_dir, f"{system_name}_trades_{today_str}_{int(capital)}.csv")
         trades_df.to_csv(trade_path, index=False)
-        st.write(tr("トレードを保存しました: {trade_path}", trade_path=trade_path))
+        st.write(f"トレードを保存しました: {trade_path}")
         # 即時ダウンロード
         st.download_button(
             label=f"{system_name} トレードCSVをダウンロード",
@@ -783,9 +686,9 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
 
 
 def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
-    st.info(tr("{system_name} の日次データを保存中...", system_name=system_name))
+    st.info(f"{system_name} の日次データを保存中...")
     if not data_dict:
-        st.warning(tr("保存するデータがありません"))
+        st.warning("保存するデータがありません")
         return
     total = len(data_dict)
     progress_bar = st.progress(0)
@@ -793,8 +696,12 @@ def save_prepared_data_cache(data_dict, system_name: str = "SystemX"):
         path = os.path.join("data_cache", f"{safe_filename(sym)}.csv")
         df.to_csv(path)
         progress_bar.progress(0 if total == 0 else i / total)
-    st.write(tr("{total}件のファイルを保存しました", total=total))
+    st.write(f"{total}件のファイルを保存しました")
     try:
         progress_bar.empty()
     except Exception:
         pass
+
+
+
+

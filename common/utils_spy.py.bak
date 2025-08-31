@@ -6,7 +6,6 @@ from datetime import time as dtime
 from ta.trend import SMAIndicator
 import subprocess
 import streamlit as st
-from common.i18n import tr
 
 
 def get_latest_nyse_trading_day(today=None):
@@ -35,10 +34,10 @@ def get_spy_data_cached(folder="data_cache"):
             df = df.sort_index()
             return df
         except Exception as e:
-            st.error(tr("❌ SPY読み込み失敗: {e}"))
+            st.error(f"❌ SPY読み込み失敗: {e}")
             return None
     else:
-        st.error(tr("❌ SPY.csv が存在しません"))
+        st.error("❌ SPY.csv が存在しません")
         return None
 
 
