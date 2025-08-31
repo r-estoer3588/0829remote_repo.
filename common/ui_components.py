@@ -397,7 +397,7 @@ def run_backtest_app(
             prev_res = st.session_state.get(key_results)
             prev_cap = st.session_state.get(key_capital_saved, st.session_state.get(key_capital, 0))
             if prev_res is not None and getattr(prev_res, "empty", False) is False:
-                show_results(prev_res, prev_cap, system_name)
+                show_results(prev_res, prev_cap, system_name, key_context="prev")
             dbg = st.session_state.get(key_debug)
             if dbg:
                 with st.expander("保存済み 取引ログ", expanded=False):
@@ -472,7 +472,7 @@ def run_backtest_app(
         results_df = run_backtest_with_logging(
             strategy, prepared_dict, candidates_by_date, capital, system_name, ui_manager=ui_manager
         )
-        show_results(results_df, capital, system_name)
+        show_results(results_df, capital, system_name, key_context="curr")
 
         # セッションへ保存（リラン対策）
         st.session_state[key_results] = results_df
@@ -514,7 +514,13 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
     return pd.Series(summary), df
 
 
-def show_results(results_df: pd.DataFrame, capital: float, system_name: str = "SystemX"):
+def show_results(
+    results_df: pd.DataFrame,
+    capital: float,
+    system_name: str = "SystemX",
+    *,
+    key_context: str = "main",
+):
     if results_df is None or results_df.empty:
         st.info("no trades")
         return
@@ -577,7 +583,7 @@ def show_results(results_df: pd.DataFrame, capital: float, system_name: str = "S
         data=csv_bytes,
         file_name=f"holding_status_{system_name}.csv",
         mime="text/csv",
-        key=f"{system_name}_download_holding_csv",
+        key=f"{system_name}_{key_context}_download_holding_csv",
     )
     try:
         progress_heatmap.empty()
