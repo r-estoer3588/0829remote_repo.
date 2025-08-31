@@ -666,9 +666,9 @@ def show_results(
     st.dataframe(results_df)
 
     # デバッグ: 列名・型・先頭数行を表示（max drawdown が0の原因確認用、確認後は削除してください）
-    st.write("DEBUG: results_df.head()", results_df.head())
-    st.write("DEBUG: results_df.columns", results_df.columns.tolist())
-    st.write("DEBUG: results_df.dtypes", results_df.dtypes)
+    # removed debug: results_df.head()
+    # removed debug: results_df.columns
+    # removed debug: results_df.dtypes
 
     # 一部環境で summarize_results が 2 引数版でラップされていることがあるため、
     # system_name 固有のデバッグフラグを一時的に共通キーへコピーしてから呼び出す
