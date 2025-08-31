@@ -558,26 +558,78 @@ def run_backtest_app(
 # Rendering helpers
 # ------------------------------
 def summarize_results(results_df: pd.DataFrame, capital: float):
+    """
+    結果DF から集計を返す（日次ベースの計算を追加）
+    - トレード単位の集計に加えて日次ベースのエクイティカーブを計算
+    - 各日の保有ポジションを集計してドローダウンを算出
+    """
     if results_df is None or results_df.empty:
         return {}, results_df
+
     df = results_df.copy()
-    df["exit_date"] = pd.to_datetime(df["exit_date"])  # type: ignore[index]
-    df = df.sort_values("exit_date")
-    df["cumulative_pnl"] = df["pnl"].cumsum()
-    df["cum_max"] = df["cumulative_pnl"].cummax()
-    df["drawdown"] = df["cumulative_pnl"] - df["cum_max"]
+
+    # 日付を確実に日時型に
+    df["entry_date"] = pd.to_datetime(df["entry_date"])
+    df["exit_date"] = pd.to_datetime(df["exit_date"])
+
+    # 1. 基本的な集計（既存）
+    df["cum_pnl"] = df["pnl"].cumsum()
+    df["equity"] = float(capital) + df["cum_pnl"]
+
+    # 2. 日次ベースの保有状況とエクイティを計算
+    if not df.empty:
+        # 全期間の日付レンジを作成
+        date_range = pd.date_range(
+            start=df["entry_date"].min(), end=df["exit_date"].max(), freq="D"
+        )
+
+        # 各日のポジション状態を集計
+        daily_states = []
+        daily_equity = capital  # 初期資金から開始
+
+        for d in date_range:
+            # その日のアクティブなポジションを抽出
+            active = df[(df["entry_date"] <= d) & (df["exit_date"] >= d)]
+
+            # その日の損益を集計
+            day_pnl = df[df["exit_date"].dt.date == d.date()]["pnl"].sum()
+            daily_equity += day_pnl
+
+            daily_states.append(
+                {
+                    "date": d,
+                    "active_positions": len(active),
+                    "equity": daily_equity,
+                }
+            )
+
+        # 日次状態をDataFrameに変換
+        daily_df = pd.DataFrame(daily_states)
+
+        # ドローダウンを計算
+        daily_df["cum_max"] = daily_df["equity"].cummax()
+        daily_df["drawdown"] = daily_df["equity"] - daily_df["cum_max"]
+        max_dd = float(abs(daily_df["drawdown"].min()))
+    else:
+        max_dd = 0.0
+
+    # 集計値を返す
     total_return = float(df["pnl"].sum())
     win_rate = (
         float((df["return_%"] > 0).mean() * 100) if "return_%" in df.columns else 0.0
     )
-    max_dd = float(df["drawdown"].min())
+
     summary = {
         "trades": int(len(df)),
         "total_return": total_return,
         "win_rate": win_rate,
-        "max_dd": abs(max_dd),
+        "max_dd": max_dd,
     }
+
     return pd.Series(summary), df
+
+
+# ...existing code...
 
 
 def show_results(
@@ -595,7 +647,35 @@ def show_results(
     st.subheader(tr("results"))
     st.dataframe(results_df)
 
+    # デバッグ: 列名・型・先頭数行を表示（max drawdown が0の原因確認用、確認後は削除してください）
+    st.write("DEBUG: results_df.head()", results_df.head())
+    st.write("DEBUG: results_df.columns", results_df.columns.tolist())
+    st.write("DEBUG: results_df.dtypes", results_df.dtypes)
+
+    # 一部環境で summarize_results が 2 引数版でラップされていることがあるため、
+    # system_name 固有のデバッグフラグを一時的に共通キーへコピーしてから呼び出す
+    try:
+        prev_flag = st.session_state.get("show_debug_logs", None)
+        # system_name 固有フラグがあれば優先して一時的にセット
+        sys_flag = st.session_state.get(f"{system_name}_show_debug_logs", None)
+        if sys_flag is not None:
+            st.session_state["show_debug_logs"] = sys_flag
+    except Exception:
+        prev_flag = None
+
+    # 互換呼び出し（2 引数版でも動作するようにする）
     summary, df2 = summarize_results(results_df, capital)
+
+    # フラグを元に戻す
+    try:
+        if prev_flag is None:
+            if "show_debug_logs" in st.session_state:
+                del st.session_state["show_debug_logs"]
+        else:
+            st.session_state["show_debug_logs"] = prev_flag
+    except Exception:
+        pass
+
     # Series/Dict いずれにも安全に対応し、欠損キーは 0 扱い
     if isinstance(summary, pd.Series):
         summary = summary.to_dict()
