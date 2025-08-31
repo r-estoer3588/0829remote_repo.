@@ -25,7 +25,9 @@ from holding_tracker import (
     download_holding_csv,
 )
 from system.core import generate_roc200_ranking_system1
-from common.i18n import tr
+import common.i18n as i18n
+# 互換用エイリアス（既存コードの tr(...) 呼び出しを維持）
+tr = i18n.tr
 import matplotlib as mpl
 import logging
 
@@ -177,7 +179,7 @@ def fetch_data(
                     i,
                     total,
                     start_time,
-                    prefix="fetch",
+                    prefix="データ取得",
                     batch=50,
                     log_area=log_area,
                     progress_bar=progress_bar,
@@ -558,7 +560,6 @@ def run_backtest_app(
 # Rendering helpers
 # ------------------------------
 def summarize_results(results_df: pd.DataFrame, capital: float):
-    # ...existing code...
     df = results_df.copy()
 
     # デバッグ出力を強制的に有効化（一時的）
@@ -636,7 +637,6 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
         st.write("Drawdown stats:", daily_df["drawdown"].describe())
     else:
         max_dd = 0.0
-    # ...existing code...
 
 
 def show_results(
@@ -647,11 +647,11 @@ def show_results(
     key_context: str = "main",
 ):
     if results_df is None or results_df.empty:
-        st.info(tr("no trades"))
+        st.info(i18n.tr("no trades"))
         return
-    st.success(tr("backtest finished"))
 
-    st.subheader(tr("results"))
+    st.success(i18n.tr("backtest finished"))
+    st.subheader(i18n.tr("results"))
     st.dataframe(results_df)
 
     # デバッグ: 列名・型・先頭数行を表示（max drawdown が0の原因確認用、確認後は削除してください）
@@ -692,35 +692,40 @@ def show_results(
     col3.metric("勝率 (%)", f"{float(summary.get('win_rate', 0.0)):.2f}")
     col4.metric("最大ドローダウン", f"{float(summary.get('max_dd', 0.0)):.2f}")
 
-    st.subheader(tr("cumulative pnl"))
+    st.subheader(i18n.tr("cumulative pnl"))
     # 日本語を軸ラベルに使う際のフォントフォールバック設定（環境にあるフォントを優先して選択）
     try:
         mpl.rcParams["font.family"] = [
             "Noto Sans JP",
-            "IPAPGothic",
+            "IPAexGothic",
             "TakaoGothic",
-            "DejaVu Sans",
         ]
     except Exception:
         pass
     plt.figure(figsize=(10, 4))
     plt.plot(df2["exit_date"], df2["cumulative_pnl"], label="CumPnL")
-    plt.xlabel(tr("date"))
-    plt.ylabel(tr("pnl"))
-    st.subheader(tr("cumulative pnl"))
+    # Drawdown（累積損益のピークからの下落）を赤線で重ねる
+    try:
+        cum = df2["cumulative_pnl"].astype(float)
+        dd = cum - cum.cummax()
+        plt.plot(df2["exit_date"], dd, color="red", linewidth=1.2, label="Drawdown")
+    except Exception:
+        pass
+    plt.xlabel(i18n.tr("date"))
+    plt.ylabel(i18n.tr("pnl"))
     plt.legend()
     st.pyplot(plt)
 
-    st.subheader(tr("yearly summary"))
+    st.subheader(i18n.tr("yearly summary"))
     st.dataframe(
         df2.groupby(df2["exit_date"].dt.to_period("Y"))["pnl"].sum().reset_index()
     )
-    st.subheader(tr("monthly summary"))
+    st.subheader(i18n.tr("monthly summary"))
     st.dataframe(
         df2.groupby(df2["exit_date"].dt.to_period("M"))["pnl"].sum().reset_index()
     )
 
-    st.subheader(tr("holdings heatmap (by day)"))
+    st.subheader(i18n.tr("holdings heatmap (by day)"))
     progress_heatmap = st.progress(0)
     heatmap_log = st.empty()
     start_time = time.time()
@@ -739,16 +744,16 @@ def show_results(
             unit="days",
         )
         time.sleep(0.005)
-    heatmap_log.text("drawing heatmap...")
+    heatmap_log.text(i18n.tr("drawing heatmap..."))
     holding_matrix = generate_holding_matrix(df2)
     display_holding_heatmap(
-        holding_matrix, title=f"{system_name} - {tr('holdings heatmap (by day)')}"
+        holding_matrix, title=f"{system_name} - {i18n.tr('holdings heatmap (by day)')}"
     )
-    heatmap_log.text(tr("heatmap generated"))
+    heatmap_log.success(tr("heatmap generated"))
     # unique-key download button to avoid DuplicateElementId across tabs/systems
     csv_bytes = holding_matrix.to_csv().encode("utf-8")
     st.download_button(
-        label="download holdings csv",
+        label=(i18n.tr("download holdings csv")),
         data=csv_bytes,
         file_name=f"holding_status_{system_name}.csv",
         mime="text/csv",

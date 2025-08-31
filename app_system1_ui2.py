@@ -67,7 +67,7 @@ def run_tab(spy_df=None, ui_manager=None):
     elif results_df is None and merged_df is None:
         prev_res = st.session_state.get(f"{SYSTEM_NAME}_results_df")
         prev_merged = st.session_state.get(f"{SYSTEM_NAME}_merged_df")
-        prev_cap = st.session_state.get(f"{SYSTEM_NAME}_capital")
+        prev_cap = st.session_state.get(f"{SYSTEM_NAME}_capital_saved")
         if prev_res is not None and prev_merged is not None:
             daily_df = clean_date_column(prev_merged, col_name="Date")
             display_roc200_ranking(
@@ -76,6 +76,12 @@ def run_tab(spy_df=None, ui_manager=None):
             _ = show_signal_trade_summary(
                 prev_merged, prev_res, SYSTEM_NAME, display_name=DISPLAY_NAME
             )
+            # 前回結果の主要出力（表・グラフ・ヒートマップ）も再表示
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
+            except Exception:
+                pass
 
         # ✅ 同時保有銘柄数の最大値をチェック 0823デバッグ用
         # if not results_df.empty:

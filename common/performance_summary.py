@@ -60,7 +60,9 @@ def _max_drawdown(equity: pd.Series) -> float:
     return float(drawdown.min())
 
 
-def _sharpe_daily(returns: pd.Series, risk_free: float = 0.0, periods: int = 252) -> float:
+def _sharpe_daily(
+    returns: pd.Series, risk_free: float = 0.0, periods: int = 252
+) -> float:
     if returns.empty:
         return 0.0
     r = returns - risk_free / periods
@@ -68,7 +70,9 @@ def _sharpe_daily(returns: pd.Series, risk_free: float = 0.0, periods: int = 252
     return float(np.sqrt(periods) * (r.mean() / denom)) if denom > 0 else 0.0
 
 
-def _sortino_daily(returns: pd.Series, risk_free: float = 0.0, periods: int = 252) -> float:
+def _sortino_daily(
+    returns: pd.Series, risk_free: float = 0.0, periods: int = 252
+) -> float:
     if returns.empty:
         return 0.0
     r = returns - risk_free / periods
@@ -90,7 +94,9 @@ def _cagr(equity: pd.Series) -> float | None:
         return None
 
 
-def summarize(trades_df: pd.DataFrame, initial_capital: float) -> Tuple[PerformanceSummary, pd.DataFrame]:
+def summarize(
+    trades_df: pd.DataFrame, initial_capital: float
+) -> Tuple[PerformanceSummary, pd.DataFrame]:
     """トレード一覧からパフォーマンスを集計し、概要と拡張済みDFを返す。
 
     - `df` の各行はトレードで、`exit_date` と `pnl` が必要。
@@ -98,18 +104,21 @@ def summarize(trades_df: pd.DataFrame, initial_capital: float) -> Tuple[Performa
     - 日次リターンの計算は重複インデックスでも安全な `resample("D").last().ffill()` を用いる。
     """
     if trades_df is None or trades_df.empty:
-        return PerformanceSummary(
-            trades=0,
-            total_return=0.0,
-            win_rate=0.0,
-            max_drawdown=0.0,
-            sharpe=0.0,
-            sortino=0.0,
-            profit_factor=0.0,
-            avg_win=0.0,
-            avg_loss=0.0,
-            cagr=None,
-        ), pd.DataFrame()
+        return (
+            PerformanceSummary(
+                trades=0,
+                total_return=0.0,
+                win_rate=0.0,
+                max_drawdown=0.0,
+                sharpe=0.0,
+                sortino=0.0,
+                profit_factor=0.0,
+                avg_win=0.0,
+                avg_loss=0.0,
+                cagr=None,
+            ),
+            pd.DataFrame(),
+        )
 
     df = trades_df.copy()
     df["exit_date"] = pd.to_datetime(df["exit_date"])  # ensure
@@ -166,4 +175,3 @@ def to_frame(summary: PerformanceSummary) -> pd.DataFrame:
 
 def save_summary_csv(summary: PerformanceSummary, path: str) -> None:
     to_frame(summary).to_csv(path, index=False)
-

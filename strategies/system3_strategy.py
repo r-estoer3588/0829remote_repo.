@@ -19,7 +19,12 @@ class System3Strategy(StrategyBase):
 
     # データ準備（共通コアへ委譲）
     def prepare_data(
-        self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
+        self,
+        raw_data_dict,
+        progress_callback=None,
+        log_callback=None,
+        skip_callback=None,
+        batch_size=50,
     ):
         return prepare_data_vectorized_system3(
             raw_data_dict,
@@ -120,4 +125,3 @@ class System3Strategy(StrategyBase):
 
     def get_total_days(self, data_dict: dict) -> int:
         return get_total_days_system3(data_dict)
-

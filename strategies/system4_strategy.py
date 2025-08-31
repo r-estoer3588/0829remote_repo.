@@ -19,7 +19,12 @@ class System4Strategy(StrategyBase):
 
     # インジケーター計算（共通コア）
     def prepare_data(
-        self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
+        self,
+        raw_data_dict,
+        progress_callback=None,
+        log_callback=None,
+        skip_callback=None,
+        batch_size=50,
     ):
         return prepare_data_vectorized_system4(
             raw_data_dict,
@@ -116,4 +121,3 @@ class System4Strategy(StrategyBase):
 
     def get_total_days(self, data_dict: dict) -> int:
         return get_total_days_system4(data_dict)
-

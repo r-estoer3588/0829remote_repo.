@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 from typing import Dict
 from common.utils import safe_filename
-from common.i18n import tr
+import common.i18n as i18n
 
 
 def save_prepared_data_cache(
@@ -22,14 +22,14 @@ def save_prepared_data_cache(
     - batch: progress/log update cadence
     """
     if not data_dict:
-        st.warning(tr("⚠️ 保存対象のデータがありません"))
+        st.warning(i18n.tr("⚠️ 保存対象のデータがありません"))
         return
 
     # Save flat under base_dir (no per-system subfolder)
     dest_dir = base_dir
     os.makedirs(dest_dir, exist_ok=True)
 
-    st.info(tr("💾 {system_name} 加工済データのキャッシュ保存を開始します..."))
+    st.info(i18n.tr("💾 {system_name} 加工済データのキャッシュ保存を開始します...", system_name=system_name))
     total = len(data_dict)
     progress_bar = st.progress(0)
     log_area = st.empty()
@@ -60,4 +60,4 @@ def save_prepared_data_cache(
             buffer.clear()
 
     progress_bar.empty()
-    st.success(tr("✅ {system_name} キャッシュ保存完了: {dest_dir} ({total} 件)"))
+    st.success(i18n.tr("✅ {system_name} キャッシュ保存完了: {dest_dir} ({total} 件)", system_name=system_name, dest_dir=dest_dir, total=total))
