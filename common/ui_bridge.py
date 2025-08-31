@@ -11,6 +11,30 @@ from typing import Optional
 from common.i18n import tr
 
 
+class _FallbackPhase:
+    """ui_manager が無い場合の簡易フェーズ代替。"""
+
+    def __init__(self):
+        # st は上で import 済み
+        self.log_area = st.empty()
+        self.progress_bar = st.progress(0)
+        self.container = st.container()
+
+    def info(self, *args, **kwargs):  # 互換 API
+        try:
+            st.info(*args, **kwargs)
+        except Exception:
+            pass
+
+
+def _phase(ui_manager, name: str):
+    """UIManager があればそのフェーズ、無ければフォールバック。"""
+    try:
+        return ui_manager.phase(name) if ui_manager else _FallbackPhase()
+    except Exception:
+        return _FallbackPhase()
+
+
 def _mtime_or_zero(path: str) -> float:
     try:
         return os.path.getmtime(path)
@@ -107,7 +131,7 @@ def prepare_backtest_data_ui(
         return None, None, None
 
     # 2) インジケーター計算
-    ind = ui_manager.phase("indicators")
+    ind = _phase(ui_manager, "indicators")
     ind.info("📊 インジケーター計算中...")
     prepared = strategy.prepare_data(
         raw,
@@ -125,7 +149,7 @@ def prepare_backtest_data_ui(
         pass
 
     # 3) 候補抽出
-    cand = ui_manager.phase("candidates")
+    cand = _phase(ui_manager, "candidates")
     cand.info("📊 候補抽出中...")
     try:
         candidates_by_date, merged_df = strategy.generate_candidates(
@@ -182,7 +206,7 @@ def run_backtest_with_logging_ui(
             ui_manager=ui_manager,
         )
 
-    bt = ui_manager.phase("backtest")
+    bt = _phase(ui_manager, "backtest")
     bt.info("💹 バックテスト実行中...")
     debug_area = bt.container.empty()
     debug_logs = []

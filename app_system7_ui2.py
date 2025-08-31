@@ -8,14 +8,19 @@ from common.ui_components import (
 )
 from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
 
+# 翻訳辞書ロード + 言語選択
+load_translations_from_dir(Path(__file__).parent / "translations")
+language_selector(in_sidebar=True)
 
 strategy = System7Strategy()
 
 
 def run_tab(single_mode=None, ui_manager=None):
-    st.header("System7｜ショート・カタストロフィーヘッジ（SPY専用）")
-    single_mode = st.checkbox("単独運用モード（資金100%を使用）", value=False)
+    st.header(tr("System7 バックテスト（カタストロフィー・ヘッジ：SPYのみ）"))
+    single_mode = st.checkbox(tr("単体モード（資金100%を使用）"), value=False)
 
     ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
@@ -26,25 +31,30 @@ def run_tab(single_mode=None, ui_manager=None):
         single_mode=single_mode,
     )
 
-    if st.checkbox("チェック: インジケーターの確認", value=False):
+    if st.checkbox(tr("チェック: インジケーターの確認"), value=False):
         if data_dict:
             for sym, df in data_dict.items():
-                st.write("例: 2020年2〜3月")
+                st.write(tr("例: 2020年02月〜03月"))
                 st.dataframe(df.loc["2020-02-01":"2020-03-31"])  # 確認用
         else:
-            st.info("データ未取得のため表示できません。バックテストを一度実行してください。")
+            st.info(tr("データが取得できていないため表示できません。バックテストを先に実行してください。"))
 
     if results_df is not None and candidates_by_date is not None:
         summary_df = show_signal_trade_summary(data_dict, results_df, "System7")
         save_signal_and_trade_logs(summary_df, results_df, "System7", capital)
         save_prepared_data_cache(data_dict, "System7")
     else:
-        # フォールバック（リラン時にセッションから復元）
+        # フォールバック表示（セッション保存から復元）
         prev_res = st.session_state.get("System7_results_df")
         prev_data = st.session_state.get("System7_prepared_dict")
-        prev_cap = st.session_state.get("System7_capital")
+        prev_cap = st.session_state.get("System7_capital_saved")
         if prev_res is not None:
             _ = show_signal_trade_summary(prev_data, prev_res, "System7")
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, "System7", key_context="prev")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

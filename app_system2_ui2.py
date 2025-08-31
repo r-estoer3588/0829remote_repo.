@@ -9,6 +9,12 @@ from common.ui_components import (
 )
 from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
+
+# 翻訳辞書ロードと言語選択
+load_translations_from_dir(Path(__file__).parent / "translations")
+language_selector(in_sidebar=True)
 
 
 # 戦略インスタンス
@@ -48,7 +54,7 @@ def display_adx7_ranking(
 
 
 def run_tab(ui_manager=None):
-    st.header("System2｜ショート・RSIスパイク（ADX強度ランキング）")
+    st.header("System2 バックテスト（ショートRSIスパイク + ADX傾きランキング）")
     ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy, system_name="System2", limit_symbols=100, ui_manager=ui
@@ -64,10 +70,15 @@ def run_tab(ui_manager=None):
         prev_res = st.session_state.get("System2_results_df")
         prev_cands = st.session_state.get("System2_candidates_by_date")
         prev_data = st.session_state.get("System2_prepared_dict")
-        prev_cap = st.session_state.get("System2_capital")
+        prev_cap = st.session_state.get("System2_capital_saved")
         if prev_res is not None and prev_cands is not None:
             display_adx7_ranking(prev_cands)
             _ = show_signal_trade_summary(prev_data, prev_res, "System2")
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, "System2", key_context="prev")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

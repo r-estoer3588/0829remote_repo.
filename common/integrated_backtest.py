@@ -298,6 +298,7 @@ def build_system_states(
     spy_df: Optional[pd.DataFrame] = None,
     *,
     ui_bridge_prepare=None,
+    ui_manager=None,
 ) -> List[SystemState]:
     """
     各Systemのデータ準備＋候補抽出を実行して SystemState のリストを返す。
@@ -325,11 +326,14 @@ def build_system_states(
             except Exception:
                 cands = strat.generate_candidates(prepared)  # type: ignore[assignment]
         else:
+            # UI が指定されていればシステムごとのコンテキストを渡す
+            sys_ui = ui_manager.system(sys_name) if ui_manager is not None else None
             prepared, cands, _merged = ui_bridge_prepare(
                 strat,
                 syms,
                 system_name=sys_name,
                 spy_df=spy_df,
+                ui_manager=sys_ui,
             )
 
         if not prepared:
@@ -348,4 +352,3 @@ def build_system_states(
         )
 
     return states
-

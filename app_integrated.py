@@ -94,7 +94,13 @@ def main():
             prep_phase.info("preparing per-system data / candidates...")
 
             # states 構築（UI連携）
-            states = build_system_states(symbols, spy_df=spy_base, ui_bridge_prepare=_prepare_ui)
+            # UIManager を build_system_states に渡して各システムのフェーズUIを利用
+            states = build_system_states(
+                symbols,
+                spy_df=spy_base,
+                ui_bridge_prepare=_prepare_ui,
+                ui_manager=ui,
+            )
 
             # シグナル件数表示
             import pandas as _pd

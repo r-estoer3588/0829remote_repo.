@@ -10,7 +10,12 @@ from common.ui_components import (
 from common.cache_utils import save_prepared_data_cache
 from common.utils_spy import get_spy_data_cached
 from common.ui_manager import UIManager
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
 
+# 翻訳辞書ロード + 言語選択
+load_translations_from_dir(Path(__file__).parent / "translations")
+language_selector(in_sidebar=True)
 
 strategy = System4Strategy()
 
@@ -19,10 +24,9 @@ def display_rsi4_ranking(
     candidates_by_date,
     years: int = 5,
     top_n: int = 100,
-    title: str = "📊 System4 日別 RSI4 ランキング（直近{years}年 / 上位{top_n}銘柄）",
 ):
     if not candidates_by_date:
-        st.warning("RSI4ランキングが空です")
+        st.warning(tr("RSI4ランキングデータがありません"))
         return
 
     rows = []
@@ -33,11 +37,12 @@ def display_rsi4_ranking(
     df["Date"] = pd.to_datetime(df["Date"])  # type: ignore[arg-type]
     start_date = pd.Timestamp.now() - pd.DateOffset(years=years)
     df = df[df["Date"] >= start_date]
-    # RSIは小さいほど上位（買われ過ぎ反転狙いの想定）
+    # RSI は小さいほど良い（逆張り指標の一例）
     df["RSI4_Rank"] = df.groupby("Date")["RSI4"].rank(ascending=True, method="first")
     df = df.sort_values(["Date", "RSI4_Rank"], ascending=[True, True])
     df = df.groupby("Date").head(top_n)
-    with st.expander(title.format(years=years, top_n=top_n), expanded=False):
+    title = tr("System4 RSI4 ランキング（直近{years}年 / 上位{top_n}銘柄）", years=years, top_n=top_n)
+    with st.expander(title, expanded=False):
         st.dataframe(
             df.reset_index(drop=True)[["Date", "RSI4_Rank", "symbol", "RSI4"]],
             hide_index=False,
@@ -45,10 +50,10 @@ def display_rsi4_ranking(
 
 
 def run_tab(ui_manager=None):
-    st.header("System4｜ロング・トレンドフォロー（RSI4ランク）")
+    st.header(tr("System4 バックテスト（ロング・トレンドフォロー：RSI4 ランキング）"))
     spy_df = get_spy_data_cached()
     if spy_df is None or spy_df.empty:
-        st.error("SPYの取得に失敗しました。キャッシュの更新を確認してください。")
+        st.error(tr("SPYの取得に失敗しました。キャッシュの更新をご確認ください。"))
         return
 
     ui = ui_manager or UIManager()
@@ -65,14 +70,19 @@ def run_tab(ui_manager=None):
         save_signal_and_trade_logs(summary_df, results_df, "System4", capital)
         save_prepared_data_cache(data_dict, "System4")
     else:
-        # フォールバック（リラン時にセッションから復元）
+        # フォールバック表示（セッション保存から復元）
         prev_res = st.session_state.get("System4_results_df")
         prev_cands = st.session_state.get("System4_candidates_by_date")
         prev_data = st.session_state.get("System4_prepared_dict")
-        prev_cap = st.session_state.get("System4_capital")
+        prev_cap = st.session_state.get("System4_capital_saved")
         if prev_res is not None and prev_cands is not None:
             display_rsi4_ranking(prev_cands)
             _ = show_signal_trade_summary(prev_data, prev_res, "System4")
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, "System4", key_context="prev")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

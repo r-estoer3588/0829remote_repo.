@@ -9,6 +9,12 @@ from common.ui_components import (
 )
 from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
+
+# 翻訳辞書ロードと言語選択
+load_translations_from_dir(Path(__file__).parent / "translations")
+language_selector(in_sidebar=True)
 
 
 strategy = System3Strategy()
@@ -42,7 +48,7 @@ def display_drop3d_ranking(
 
 
 def run_tab(ui_manager=None):
-    st.header("System3｜ロング・ミーンリバージョン（急落の反発狙い）")
+    st.header("System3 バックテスト（ロング・ミーンリバージョン：急落の反発狙い）")
     ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy, system_name="System3", limit_symbols=100, ui_manager=ui
@@ -57,14 +63,18 @@ def run_tab(ui_manager=None):
         prev_res = st.session_state.get("System3_results_df")
         prev_cands = st.session_state.get("System3_candidates_by_date")
         prev_data = st.session_state.get("System3_prepared_dict")
-        prev_cap = st.session_state.get("System3_capital")
+        prev_cap = st.session_state.get("System3_capital_saved")
         if prev_res is not None and prev_cands is not None:
             display_drop3d_ranking(prev_cands)
             _ = show_signal_trade_summary(prev_data, prev_res, "System3")
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, "System3", key_context="prev")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
     import sys
     if "streamlit" not in sys.argv[0]:
         run_tab()
-

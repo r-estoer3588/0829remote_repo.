@@ -9,7 +9,12 @@ from common.ui_components import (
 )
 from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
 
+# 翻訳辞書ロード + 言語選択
+load_translations_from_dir(Path(__file__).parent / "translations")
+language_selector(in_sidebar=True)
 
 strategy = System6Strategy()
 
@@ -18,10 +23,9 @@ def display_return6d_ranking(
     candidates_by_date,
     years: int = 5,
     top_n: int = 100,
-    title: str = "📊 System6 日別 6日リターン ランキング（直近{years}年 / 上位{top_n}銘柄）",
 ):
     if not candidates_by_date:
-        st.warning("Return6Dランキングが空です")
+        st.warning(tr("Return6Dランキングデータがありません"))
         return
     rows = []
     for date, cands in candidates_by_date.items():
@@ -34,7 +38,8 @@ def display_return6d_ranking(
     df["Return6D_Rank"] = df.groupby("Date")["Return6D"].rank(ascending=False, method="first")
     df = df.sort_values(["Date", "Return6D_Rank"], ascending=[True, True])
     df = df.groupby("Date").head(top_n)
-    with st.expander(title.format(years=years, top_n=top_n), expanded=False):
+    title = tr("System6 Return6D ランキング（直近{years}年 / 上位{top_n}銘柄）", years=years, top_n=top_n)
+    with st.expander(title, expanded=False):
         st.dataframe(
             df.reset_index(drop=True)[["Date", "Return6D_Rank", "symbol", "Return6D"]],
             hide_index=False,
@@ -42,7 +47,7 @@ def display_return6d_ranking(
 
 
 def run_tab(ui_manager=None):
-    st.header("System6｜ショート・ミーンリバージョン（ハイ・シェア・サージ）")
+    st.header(tr("System6 バックテスト（Return6D ランキング）"))
     ui = ui_manager or UIManager()
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy, system_name="System6", limit_symbols=100, ui_manager=ui
@@ -53,14 +58,19 @@ def run_tab(ui_manager=None):
         save_signal_and_trade_logs(summary_df, results_df, "System6", capital)
         save_prepared_data_cache(data_dict, "System6")
     else:
-        # フォールバック（リラン時にセッションから復元）
+        # フォールバック表示（セッション保存から復元）
         prev_res = st.session_state.get("System6_results_df")
         prev_cands = st.session_state.get("System6_candidates_by_date")
         prev_data = st.session_state.get("System6_prepared_dict")
-        prev_cap = st.session_state.get("System6_capital")
+        prev_cap = st.session_state.get("System6_capital_saved")
         if prev_res is not None and prev_cands is not None:
             display_return6d_ranking(prev_cands)
             _ = show_signal_trade_summary(prev_data, prev_res, "System6")
+            try:
+                from common.ui_components import show_results
+                show_results(prev_res, prev_cap or 0.0, "System6", key_context="prev")
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

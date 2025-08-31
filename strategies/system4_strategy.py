@@ -17,7 +17,7 @@ class System4Strategy(StrategyBase):
     def __init__(self):
         super().__init__()
 
-    # インジケーター計算（共通コア）
+    # インジケータ計算（コア委譲）
     def prepare_data(
         self,
         raw_data_dict,
@@ -33,7 +33,7 @@ class System4Strategy(StrategyBase):
             batch_size=batch_size,
         )
 
-    # 候補生成（SPYフィルター適用、共通コア）
+    # 候補抽出（SPYフィルタ適用。market_df 後方互換あり）
     def generate_candidates(
         self,
         prepared_dict,
@@ -42,7 +42,10 @@ class System4Strategy(StrategyBase):
         log_callback=None,
         batch_size=50,
     ):
+        # market_df 未指定時は prepared_dict から SPY を使用（後方互換）
         if market_df is None:
+            market_df = prepared_dict.get("SPY")
+        if market_df is None or getattr(market_df, "empty", False):
             raise ValueError("System4 には SPYデータ (market_df) が必要です")
         try:
             from config.settings import get_settings
@@ -59,7 +62,7 @@ class System4Strategy(StrategyBase):
             batch_size=batch_size,
         )
 
-    # バックテスト実行（共通シミュレーター）
+    # バックテスト実行（コアシミュレーター）
     def run_backtest(
         self, prepared_dict, candidates_by_date, capital, on_progress=None, on_log=None
     ):
@@ -73,7 +76,7 @@ class System4Strategy(StrategyBase):
         )
         return trades_df
 
-    # シミュレーター用フック（System4）
+    # システムフック群
     def compute_entry(self, df: pd.DataFrame, candidate: dict, current_capital: float):
         try:
             entry_idx = df.index.get_loc(candidate["entry_date"])
@@ -121,3 +124,4 @@ class System4Strategy(StrategyBase):
 
     def get_total_days(self, data_dict: dict) -> int:
         return get_total_days_system4(data_dict)
+

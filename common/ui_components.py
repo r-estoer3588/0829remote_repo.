@@ -235,15 +235,26 @@ def prepare_backtest_data(
         ind_progress = st.progress(0)
         ind_log = st.empty()
     start_time = time.time()
-    prepared_dict = strategy.prepare_data(
-        data_dict,
-        progress_callback=lambda done, total: ind_progress.progress(
-            0 if total == 0 else done / total
-        ),
-        log_callback=lambda msg: ind_log.text(str(msg)),
-        skip_callback=lambda msg: ind_log.text(str(msg)),
-        **kwargs,
-    )
+    try:
+        prepared_dict = strategy.prepare_data(
+            data_dict,
+            progress_callback=lambda done, total: ind_progress.progress(
+                0 if total == 0 else done / total
+            ),
+            log_callback=lambda msg: ind_log.text(str(msg)),
+            skip_callback=lambda msg: ind_log.text(str(msg)),
+            **kwargs,
+        )
+    except TypeError:
+        # 古い戦略実装との後方互換: skip_callback 未対応の戦略に再試行
+        prepared_dict = strategy.prepare_data(
+            data_dict,
+            progress_callback=lambda done, total: ind_progress.progress(
+                0 if total == 0 else done / total
+            ),
+            log_callback=lambda msg: ind_log.text(str(msg)),
+            **kwargs,
+        )
     try:
         ind_progress.empty()
     except Exception:
@@ -299,7 +310,7 @@ def prepare_backtest_data(
                 ),
                 **kwargs,
             )
-        except TypeError:
+        except (TypeError, ValueError):
             # 戻り値の形 or 引数不一致（例: System4 の market_df）に対応
             if system_name == "System4" and spy_df is not None:
                 ret = strategy.generate_candidates(
@@ -672,6 +683,17 @@ def show_results(
 
     # 互換呼び出し（2 引数版でも動作するようにする）
     summary, df2 = summarize_results(results_df, capital)
+    # 最大ドローダウンを再計算して summary に反映（表示のゼロを防止）
+    try:
+        cum = df2["cumulative_pnl"].astype(float)
+        dd_series = cum - cum.cummax()
+        max_dd_val = float(abs(dd_series.min()))
+        try:
+            summary["max_dd"] = max_dd_val
+        except Exception:
+            pass
+    except Exception:
+        pass
 
     # フラグを元に戻す
     try:
