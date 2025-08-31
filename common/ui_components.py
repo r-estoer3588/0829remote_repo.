@@ -558,23 +558,30 @@ def run_backtest_app(
 # Rendering helpers
 # ------------------------------
 def summarize_results(results_df: pd.DataFrame, capital: float):
-    """
-    結果DF から集計を返す（日次ベースの計算を追加）
-    - トレード単位の集計に加えて日次ベースのエクイティカーブを計算
-    - 各日の保有ポジションを集計してドローダウンを算出
-    """
-    if results_df is None or results_df.empty:
-        return {}, results_df
-
+    # ...existing code...
     df = results_df.copy()
+
+    # デバッグ出力を強制的に有効化（一時的）
+    st.write("DEBUG 1: データフレーム基本情報")
+    st.write("Shape:", df.shape)
+    st.write("Columns:", df.columns.tolist())
+    st.write("Sample data:", df[["entry_date", "exit_date", "pnl"]].head())
 
     # 日付を確実に日時型に
     df["entry_date"] = pd.to_datetime(df["entry_date"])
     df["exit_date"] = pd.to_datetime(df["exit_date"])
 
+    st.write("DEBUG 2: 日付範囲")
+    st.write("Entry date range:", df["entry_date"].min(), "to", df["entry_date"].max())
+    st.write("Exit date range:", df["exit_date"].min(), "to", df["exit_date"].max())
+
     # 1. 基本的な集計（既存）
     df["cum_pnl"] = df["pnl"].cumsum()
     df["equity"] = float(capital) + df["cum_pnl"]
+
+    st.write("DEBUG 3: 累積PnL確認")
+    st.write("Cumulative PnL range:", df["cum_pnl"].min(), "to", df["cum_pnl"].max())
+    st.write("Equity range:", df["equity"].min(), "to", df["equity"].max())
 
     # 2. 日次ベースの保有状況とエクイティを計算
     if not df.empty:
@@ -583,14 +590,17 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
             start=df["entry_date"].min(), end=df["exit_date"].max(), freq="D"
         )
 
-        # 各日のポジション状態を集計
+        st.write("DEBUG 4: 日次集計前")
+        st.write("Date range length:", len(date_range))
+        st.write("First/Last dates:", date_range[0], date_range[-1])
+
+        # 各日のポジション状態を集計（既存コード）
         daily_states = []
         daily_equity = capital  # 初期資金から開始
 
-        for d in date_range:
+        for i, d in enumerate(date_range):
             # その日のアクティブなポジションを抽出
             active = df[(df["entry_date"] <= d) & (df["exit_date"] >= d)]
-
             # その日の損益を集計
             day_pnl = df[df["exit_date"].dt.date == d.date()]["pnl"].sum()
             daily_equity += day_pnl
@@ -603,33 +613,30 @@ def summarize_results(results_df: pd.DataFrame, capital: float):
                 }
             )
 
+            # 途中経過を表示（最初の5日分）
+            if i < 5:
+                st.write(f"DEBUG 5-{i}: Day {d.date()}")
+                st.write(f"Active positions: {len(active)}")
+                st.write(f"Day PnL: {day_pnl}")
+                st.write(f"Daily equity: {daily_equity}")
+
         # 日次状態をDataFrameに変換
         daily_df = pd.DataFrame(daily_states)
 
-        # ドローダウンを計算
+        st.write("DEBUG 6: 日次集計結果サンプル")
+        st.write(daily_df.head())
+
+        # ドローダウン計算
         daily_df["cum_max"] = daily_df["equity"].cummax()
         daily_df["drawdown"] = daily_df["equity"] - daily_df["cum_max"]
         max_dd = float(abs(daily_df["drawdown"].min()))
+
+        st.write("DEBUG 7: ドローダウン計算結果")
+        st.write("Max drawdown:", max_dd)
+        st.write("Drawdown stats:", daily_df["drawdown"].describe())
     else:
         max_dd = 0.0
-
-    # 集計値を返す
-    total_return = float(df["pnl"].sum())
-    win_rate = (
-        float((df["return_%"] > 0).mean() * 100) if "return_%" in df.columns else 0.0
-    )
-
-    summary = {
-        "trades": int(len(df)),
-        "total_return": total_return,
-        "win_rate": win_rate,
-        "max_dd": max_dd,
-    }
-
-    return pd.Series(summary), df
-
-
-# ...existing code...
+    # ...existing code...
 
 
 def show_results(
