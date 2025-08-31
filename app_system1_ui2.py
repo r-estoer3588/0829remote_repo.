@@ -9,6 +9,13 @@ from common.ui_components import (
     clean_date_column,
 )
 from common.cache_utils import save_prepared_data_cache
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
+
+# 外部翻訳を読み込む（任意・起動時に一度）
+load_translations_from_dir(Path(__file__).parent / "translations")
+# サイドバーに言語選択を表示
+language_selector(in_sidebar=True)
 
 # ✅ SPY関連は共通ユーティリティから
 from common.utils_spy import get_spy_with_indicators
@@ -21,8 +28,11 @@ strategy = System1Strategy()
 
 
 def run_tab(spy_df=None, ui_manager=None):
+    # 例: 既存のヘッダを i18n で包む
     st.header(
-        f"{DISPLAY_NAME}：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）"
+        tr(
+            f"{DISPLAY_NAME}：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）"
+        )
     )
 
     # SPY はフィルター判定で SMA100 を使用するため、必ずインジ付きで取得
