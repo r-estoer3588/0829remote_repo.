@@ -118,7 +118,15 @@ def _amount_pick(
     return out
 
 
-def _submit_orders(final_df: pd.DataFrame, *, paper: bool = True, order_type: str = "market", tif: str = "GTC") -> pd.DataFrame:
+def _submit_orders(
+    final_df: pd.DataFrame,
+    *,
+    paper: bool = True,
+    order_type: str = "market",
+    tif: str = "GTC",
+    retries: int = 2,
+    delay: float = 0.5,
+) -> pd.DataFrame:
     """final_df をもとに Alpaca へ注文送信（shares 必須）。
     返り値: 実行結果の DataFrame（order_id/status/error を含む）
     """
@@ -143,7 +151,7 @@ def _submit_orders(final_df: pd.DataFrame, *, paper: bool = True, order_type: st
             continue
         limit_price = float(r.get("entry_price")) if order_type == "limit" else None
         try:
-            order = ba.submit_order(
+            order = ba.submit_order_with_retry(
                 client,
                 sym,
                 qty,
@@ -151,6 +159,9 @@ def _submit_orders(final_df: pd.DataFrame, *, paper: bool = True, order_type: st
                 order_type=order_type,
                 limit_price=limit_price,
                 time_in_force=tif,
+                retries=max(0, int(retries)),
+                backoff_seconds=max(0.0, float(delay)),
+                rate_limit_seconds=max(0.0, float(delay)),
                 log_callback=_log,
             )
             results.append({
@@ -173,6 +184,21 @@ def _submit_orders(final_df: pd.DataFrame, *, paper: bool = True, order_type: st
         _log(out.to_string(index=False))
         return out
     return pd.DataFrame()
+
+
+def _apply_filters(df: pd.DataFrame, *, only_long: bool = False, only_short: bool = False, top_per_system: int = 0) -> pd.DataFrame:
+    if df is None or df.empty:
+        return df
+    out = df.copy()
+    if "side" in out.columns:
+        if only_long and not only_short:
+            out = out[out["side"].str.lower() == "long"]
+        if only_short and not only_long:
+            out = out[out["side"].str.lower() == "short"]
+    if top_per_system and top_per_system > 0 and "system" in out.columns:
+        by = ["system"] + (["side"] if "side" in out.columns else [])
+        out = out.groupby(by, as_index=False, group_keys=False).head(int(top_per_system))
+    return out
 
 
 def compute_today_signals(

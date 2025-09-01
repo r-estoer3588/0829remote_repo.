@@ -10,6 +10,8 @@ try:
     from common.performance_summary import summarize as _summarize_perf
     import common.ui_components as _ui
     import pandas as pd
+    from config.settings import get_settings
+    import streamlit as st
 except Exception:  # pragma: no cover
     _core_log_with_progress = None  # type: ignore
     _summarize_perf = None  # type: ignore
@@ -73,3 +75,18 @@ if _ui is not None:
     _ui.log_with_progress = _patched_log_with_progress  # type: ignore[attr-defined]
     _ui.summarize_results = _patched_summarize_results  # type: ignore[attr-defined]
 
+# ダウンロードボタンの一括無効化（自動保存がある場合に隠す）
+try:
+    _settings = get_settings(create_dirs=True) if 'get_settings' in globals() else None
+    if _settings is not None:
+        _ui_cfg = getattr(_settings, 'ui', None)
+        if not getattr(_ui_cfg, 'show_download_buttons', True):
+            def _no_download_button(*args, **kwargs):  # noqa: D401
+                """Disabled by config (auto-save enabled)."""
+                return False
+
+            if 'st' in globals() and st is not None:
+                st.download_button = _no_download_button  # type: ignore[attr-defined]
+except Exception:
+    # 失敗時は従来動作のまま
+    pass

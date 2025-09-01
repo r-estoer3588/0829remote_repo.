@@ -40,19 +40,11 @@ with st.sidebar:
 
     save_csv = st.checkbox("Save CSV to signals_dir", value=False)
 
-    st.header("Filters")
-    only_long = st.checkbox("Trade only LONG", value=False)
-    only_short = st.checkbox("Trade only SHORT", value=False)
-    top_per_system = st.number_input("Top N per system", min_value=0, step=1, value=0, help="0 for unlimited")
-
     st.header("Alpaca Auto-Trade")
     do_trade = st.checkbox("Auto submit via Alpaca", value=False)
     order_type = st.selectbox("Order Type", ["market", "limit"], index=0)
     tif = st.selectbox("Time In Force", ["GTC", "DAY"], index=0)
     paper_mode = st.checkbox("Use Paper Trading", value=True)
-    retries = st.number_input("Retries", min_value=0, max_value=5, value=2)
-    delay = st.number_input("Delay (sec)", min_value=0.0, step=0.5, value=0.5)
-    poll_status = st.checkbox("Poll order status (10s)", value=False)
 
 if st.button("▶ Run Today Signals", type="primary"):
     with st.spinner("Running..."):
@@ -67,19 +59,8 @@ if st.button("▶ Run Today Signals", type="primary"):
     if final_df is None or final_df.empty:
         st.info("No signals today.")
     else:
-        # filters
-        filtered = final_df.copy()
-        if "side" in filtered.columns:
-            if only_long and not only_short:
-                filtered = filtered[filtered["side"].str.lower() == "long"]
-            if only_short and not only_long:
-                filtered = filtered[filtered["side"].str.lower() == "short"]
-        if top_per_system and top_per_system > 0 and "system" in filtered.columns:
-            by = ["system"] + (["side"] if "side" in filtered.columns else [])
-            filtered = filtered.groupby(by, as_index=False, group_keys=False).head(int(top_per_system))
-
-        st.dataframe(filtered, use_container_width=True)
-        csv = filtered.to_csv(index=False).encode("utf-8")
+        st.dataframe(final_df, use_container_width=True)
+        csv = final_df.to_csv(index=False).encode("utf-8")
         st.download_button("Download Final CSV", data=csv, file_name="today_signals_final.csv")
 
         # Alpaca 自動発注（任意）
@@ -93,7 +74,7 @@ if st.button("▶ Run Today Signals", type="primary"):
                 client = None
             results = []
             if client is not None:
-                for _, r in filtered.iterrows():
+                for _, r in final_df.iterrows():
                     sym = str(r.get("symbol"))
                     qty = int(r.get("shares") or 0)
                     side = "buy" if str(r.get("side")).lower() == "long" else "sell"
@@ -101,7 +82,7 @@ if st.button("▶ Run Today Signals", type="primary"):
                         continue
                     limit_price = float(r.get("entry_price")) if order_type == "limit" else None
                     try:
-                        order = ba.submit_order_with_retry(
+                        order = ba.submit_order(
                             client,
                             sym,
                             qty,
@@ -109,9 +90,6 @@ if st.button("▶ Run Today Signals", type="primary"):
                             order_type=order_type,
                             limit_price=limit_price,
                             time_in_force=tif,
-                            retries=int(retries),
-                            backoff_seconds=float(max(0.0, delay)),
-                            rate_limit_seconds=float(max(0.0, delay)),
                             log_callback=lambda m: st.write(m),
                         )
                         results.append({
@@ -130,18 +108,6 @@ if st.button("▶ Run Today Signals", type="primary"):
                         })
             if results:
                 st.dataframe(pd.DataFrame(results), use_container_width=True)
-                if poll_status and any(r.get("order_id") for r in results):
-                    st.info("Polling order status for 10 seconds...")
-                    import time
-                    order_ids = [r.get("order_id") for r in results if r.get("order_id")]
-                    end = time.time() + 10
-                    last = {}
-                    while time.time() < end:
-                        status_map = ba.get_orders_status_map(client, order_ids)
-                        if status_map != last:
-                            st.write(status_map)
-                            last = status_map
-                        time.sleep(1.0)
 
     with st.expander("Per-system details"):
         for name, df in per_system.items():
@@ -152,3 +118,4 @@ if st.button("▶ Run Today Signals", type="primary"):
                 st.dataframe(df, use_container_width=True)
                 csv2 = df.to_csv(index=False).encode("utf-8")
                 st.download_button(f"Download {name}", data=csv2, file_name=f"signals_{name}.csv")
+

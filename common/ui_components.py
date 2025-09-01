@@ -17,6 +17,12 @@ import pandas as pd
 import streamlit as st
 
 from common.utils import safe_filename, get_cached_data
+try:
+    # 設定からUIフラグを参照（失敗時はデフォルト動作にフォールバック）
+    from config.settings import get_settings
+    _APP_SETTINGS = get_settings(create_dirs=True)
+except Exception:
+    _APP_SETTINGS = None
 from tickers_loader import get_all_tickers
 from utils.cache_manager import load_base_cache, base_cache_path
 from holding_tracker import (
@@ -428,7 +434,7 @@ def run_backtest_with_logging(
 
     if st.session_state.get("show_debug_logs", True) and debug_logs:
         # ログはバックテスト・フェーズのコンテナ内に配置（システムごとにまとまるように）
-        with bt_phase.container.expander(tr("trade logs"), expanded=False):
+        with (bt_phase.container if bt_phase else st).expander(tr("trade logs"), expanded=False):
             st.text("\n".join(debug_logs))
 
     # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
@@ -544,7 +550,20 @@ def run_backtest_app(
             return None, None, None, None, None
         symbols = [s.strip().upper() for s in symbols_input.split(",")]
 
-    if st.button(tr("run"), key=f"{system_name}_run"):
+    # System1 専用: SPY セットアップ確認（SMA100/200 付与の確認）
+    run_permitted = True
+    if system_name == "System1":
+        spy_confirm_key = f"{system_name}_spy_setup_confirm"
+        spy_confirm = st.checkbox(
+            tr("チェック: SPYセットアップ確認（SMA100/200付与済み）"),
+            value=False,
+            key=spy_confirm_key,
+        )
+        if not spy_confirm:
+            st.info(tr("SPYのセットアップ確認にチェックを入れてください"))
+            run_permitted = False
+
+    if run_permitted and st.button(tr("run"), key=f"{system_name}_run"):
         prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
             strategy,
             symbols,
@@ -789,7 +808,8 @@ def show_results(
     heatmap_log.success(tr("heatmap generated"))
     # unique-key download button to avoid DuplicateElementId across tabs/systems
     csv_bytes = holding_matrix.to_csv().encode("utf-8")
-    st.download_button(
+    if getattr(getattr(_APP_SETTINGS, "ui", None), "show_download_buttons", True):
+        st.download_button(
         label=(i18n.tr("download holdings csv")),
         data=csv_bytes,
         file_name=f"holding_status_{system_name}.csv",

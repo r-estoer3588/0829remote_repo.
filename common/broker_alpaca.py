@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Dict, Iterable
+import time
 
 from dotenv import load_dotenv
 
@@ -127,6 +128,79 @@ def submit_order(
     return order
 
 
+def submit_order_with_retry(
+    client,
+    symbol: str,
+    qty: int,
+    *,
+    side: str = "buy",
+    order_type: str = "market",
+    limit_price: float | None = None,
+    stop_price: float | None = None,
+    take_profit: float | None = None,
+    stop_loss: float | None = None,
+    trail_percent: float | None = None,
+    time_in_force: str = "GTC",
+    retries: int = 2,
+    backoff_seconds: float = 1.0,
+    rate_limit_seconds: float = 0.0,
+    log_callback=None,
+):
+    """submit_order をリトライ付きで実行。
+    - retries: 失敗時の再試行回数
+    - backoff_seconds: 失敗毎に待機する秒数（指数ではなく線形）
+    - rate_limit_seconds: 成功/失敗に関わらず各試行後に待機
+    """
+    last_exc: Optional[Exception] = None
+    for i in range(retries + 1):
+        try:
+            order = submit_order(
+                client,
+                symbol,
+                qty,
+                side=side,
+                order_type=order_type,
+                limit_price=limit_price,
+                stop_price=stop_price,
+                take_profit=take_profit,
+                stop_loss=stop_loss,
+                trail_percent=trail_percent,
+                time_in_force=time_in_force,
+                log_callback=log_callback,
+            )
+            if rate_limit_seconds > 0:
+                time.sleep(rate_limit_seconds)
+            return order
+        except Exception as e:  # pragma: no cover - ネットワーク/SDK例外
+            last_exc = e
+            if log_callback:
+                try:
+                    log_callback(f"submit retry {i+1}/{retries}: {symbol} qty={qty} error={e}")
+                except Exception:
+                    pass
+            if i < retries:
+                time.sleep(max(0.0, backoff_seconds))
+            if rate_limit_seconds > 0:
+                time.sleep(rate_limit_seconds)
+    assert last_exc is not None
+    raise last_exc
+
+
+def get_orders_status_map(client, order_ids: Iterable[str]) -> Dict[str, Any]:
+    """order_id -> status の簡易マップを返す。"""
+    id_set = {oid for oid in order_ids if oid}
+    out: Dict[str, Any] = {}
+    if not id_set:
+        return out
+    for oid in id_set:
+        try:
+            o = client.get_order_by_id(oid)
+            out[oid] = getattr(o, "status", None)
+        except Exception:
+            out[oid] = None
+    return out
+
+
 def log_orders_positions(client) -> Tuple[Any, Any]:
     """現在の注文とポジションを取得し、必要ならログ出力。"""
     orders = client.get_orders(status="all")
@@ -160,4 +234,3 @@ __all__ = [
     "log_orders_positions",
     "subscribe_order_updates",
 ]
-

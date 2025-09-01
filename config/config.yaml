@@ -74,3 +74,4 @@ ui:
   default_capital: 100000
   auto_tickers: [AAPL, MSFT, NVDA, META, AMZN, GOOGL, TSLA]
   debug_mode: false
+  show_download_buttons: false

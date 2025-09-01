@@ -88,6 +88,7 @@ class UIConfig:
     default_capital: int = 100000
     auto_tickers: tuple[str, ...] = tuple()
     debug_mode: bool = False
+    show_download_buttons: bool = True
 
 
 @dataclass(frozen=True)
@@ -290,6 +291,7 @@ def get_settings(create_dirs: bool = False) -> Settings:
         default_capital=int(os.getenv("DEFAULT_CAPITAL", ui_cfg.get("default_capital", 100000))),
         auto_tickers=tuple(ui_cfg.get("auto_tickers", ()) or ()),
         debug_mode=bool(os.getenv("DEBUG_MODE", str(ui_cfg.get("debug_mode", False))).lower() in ("1", "true", "yes")),
+        show_download_buttons=bool(os.getenv("SHOW_DOWNLOAD_BUTTONS", str(ui_cfg.get("show_download_buttons", True))).lower() in ("1", "true", "yes")),
     )
 
     # 既存互換フィールド（Settings 直下）

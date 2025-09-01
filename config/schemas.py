@@ -56,6 +56,7 @@ class UIModel(BaseModel):
     default_capital: int = 100000
     auto_tickers: List[str] = []
     debug_mode: bool = False
+    show_download_buttons: bool = True
 
 
 class AppConfigModel(BaseModel):
@@ -78,4 +79,3 @@ class AppConfigModel(BaseModel):
 def validate_config_dict(d: Mapping[str, object]) -> AppConfigModel:
     """YAML辞書をPydanticで検証し、正規化したモデルを返す。"""
     return AppConfigModel.model_validate(d)
-
