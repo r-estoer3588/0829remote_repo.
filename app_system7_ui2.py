@@ -13,7 +13,7 @@ from common.i18n import tr, load_translations_from_dir, language_selector
 
 # 翻訳辞書ロード + 言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
-language_selector(in_sidebar=True)
+language_selector()
 
 strategy = System7Strategy()
 

@@ -185,19 +185,9 @@ def tr(text: str, **kwargs) -> str:
         return out
 
 
-def language_selector(in_sidebar: bool = True) -> None:
-    """UIに言語セレクタを表示し、選択をセッションへ保持する。既定は日本語。"""
+def language_selector() -> None:
+    """Display language selector using a checkbox in the main area."""
     if st is None:
         return
-    options = {"日本語": "ja", "English": "en"}
-    current = get_language()
-    labels = list(options.keys())
-    default_index = 0 if current == "ja" else 1
-    label = "言語 / Language"
-    if in_sidebar:
-        choice = st.sidebar.selectbox(
-            label, labels, index=default_index, key="_lang_select"
-        )
-    else:
-        choice = st.selectbox(label, labels, index=default_index, key="_lang_select")
-    set_language(options.get(choice, "ja"))
+    is_en = st.checkbox("English", value=get_language() == "en", key="_lang_select")
+    set_language("en" if is_en else "ja")
