@@ -14,8 +14,8 @@ from common.i18n import tr, load_translations_from_dir, language_selector
 
 # 外部翻訳を読み込む（任意・起動時に一度）
 load_translations_from_dir(Path(__file__).parent / "translations")
-# サイドバーに言語選択を表示
-language_selector(in_sidebar=True)
+# 言語選択を表示
+language_selector()
 
 # ✅ SPY関連は共通ユーティリティから
 from common.utils_spy import get_spy_with_indicators
