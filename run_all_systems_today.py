@@ -10,6 +10,7 @@ from config.settings import get_settings
 from common.utils import get_cached_data
 from common.utils_spy import get_spy_with_indicators, get_latest_nyse_trading_day
 from common.today_signals import LONG_SYSTEMS, SHORT_SYSTEMS
+from common import broker_alpaca as ba
 
 # strategies
 from strategies.system1_strategy import System1Strategy
@@ -117,6 +118,63 @@ def _amount_pick(
     return out
 
 
+def _submit_orders(final_df: pd.DataFrame, *, paper: bool = True, order_type: str = "market", tif: str = "GTC") -> pd.DataFrame:
+    """final_df をもとに Alpaca へ注文送信（shares 必須）。
+    返り値: 実行結果の DataFrame（order_id/status/error を含む）
+    """
+    if final_df is None or final_df.empty:
+        _log("(submit) final_df is empty; skip")
+        return pd.DataFrame()
+    if "shares" not in final_df.columns:
+        _log("(submit) shares 列がありません。資金配分モードで実行してください。")
+        return pd.DataFrame()
+    try:
+        client = ba.get_client(paper=paper)
+    except Exception as e:
+        _log(f"(submit) Alpaca接続エラー: {e}")
+        return pd.DataFrame()
+
+    results = []
+    for _, r in final_df.iterrows():
+        sym = str(r.get("symbol"))
+        qty = int(r.get("shares") or 0)
+        side = "buy" if str(r.get("side")).lower() == "long" else "sell"
+        if not sym or qty <= 0:
+            continue
+        limit_price = float(r.get("entry_price")) if order_type == "limit" else None
+        try:
+            order = ba.submit_order(
+                client,
+                sym,
+                qty,
+                side=side,
+                order_type=order_type,
+                limit_price=limit_price,
+                time_in_force=tif,
+                log_callback=_log,
+            )
+            results.append({
+                "symbol": sym,
+                "side": side,
+                "qty": qty,
+                "order_id": getattr(order, "id", None),
+                "status": getattr(order, "status", None),
+            })
+        except Exception as e:
+            results.append({
+                "symbol": sym,
+                "side": side,
+                "qty": qty,
+                "error": str(e),
+            })
+    if results:
+        out = pd.DataFrame(results)
+        _log("\n=== Alpaca submission results ===")
+        _log(out.to_string(index=False))
+        return out
+    return pd.DataFrame()
+
+
 def compute_today_signals(
     symbols: List[str] | None,
     *,
@@ -161,7 +219,7 @@ def compute_today_signals(
     # データ読み込み
     raw_data = _load_raw_data(symbols, cache_dir)
     if "SPY" not in raw_data:
-        _log("⚠ SPY が data_cache に見つかりません。SPY.csv を用意してください。")
+        _log("⚠️ SPY が data_cache に見つかりません。SPY.csv を用意してください。")
         spy_df = None
     else:
         spy_df = get_spy_with_indicators(raw_data["SPY"])  # type: ignore[arg-type]
@@ -177,7 +235,7 @@ def compute_today_signals(
     per_system: Dict[str, pd.DataFrame] = {}
     for name, stg in strategies.items():
         if name == "system4" and spy_df is None:
-            _log("⚠ System4 は SPY 指標が必要ですが SPY データがありません。スキップします。")
+            _log("⚠️ System4 は SPY 指標が必要ですが SPY データがありません。スキップします。")
             per_system[name] = pd.DataFrame()
             continue
         base = {"SPY": raw_data.get("SPY")} if name == "system7" else raw_data
@@ -290,6 +348,11 @@ def main():
     parser.add_argument("--capital-long", type=float, default=None, help="買いサイド予算（ドル）。指定時は金額配分モード")
     parser.add_argument("--capital-short", type=float, default=None, help="売りサイド予算（ドル）。指定時は金額配分モード")
     parser.add_argument("--save-csv", action="store_true", help="signalsディレクトリにCSVを保存する")
+    # Alpaca 自動発注オプション
+    parser.add_argument("--alpaca-submit", action="store_true", help="Alpaca に自動発注（shares 必須）")
+    parser.add_argument("--order-type", choices=["market", "limit"], default="market", help="注文種別")
+    parser.add_argument("--tif", choices=["GTC", "DAY"], default="GTC", help="Time In Force")
+    parser.add_argument("--live", action="store_true", help="ライブ口座で発注（デフォルトはPaper）")
     args = parser.parse_args()
 
     final_df, per_system = compute_today_signals(
@@ -320,6 +383,8 @@ def main():
         ]
         show = [c for c in cols if c in final_df.columns]
         _log(final_df[show].to_string(index=False))
+        if args.alpaca_submit:
+            _submit_orders(final_df, paper=(not args.live), order_type=args.order_type, tif=args.tif)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""System4 core logic (Long trend low-vol pullback)。"""
+"""System4 core logic (Long trend low-vol pullback)."""
 
 from typing import Dict, Tuple
 import time
@@ -7,6 +7,7 @@ import pandas as pd
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
 from ta.momentum import RSIIndicator
+from common.i18n import tr
 
 
 def prepare_data_vectorized_system4(
@@ -20,7 +21,7 @@ def prepare_data_vectorized_system4(
     total = len(raw_data_dict)
     start_time = time.time()
     processed, skipped = 0, 0
-    buffer = []
+    buffer: list[str] = []
 
     for sym, df in raw_data_dict.items():
         x = df.copy()
@@ -51,9 +52,17 @@ def prepare_data_vectorized_system4(
             remain = (elapsed / processed) * (total - processed) if processed else 0
             em, es = divmod(int(elapsed), 60)
             rm, rs = divmod(int(remain), 60)
-            msg = f"📊 インジケーター計算 {processed}/{total} 件 完了 | 経過: {em}分{es}秒 / 残り: 約{rm}分{rs}秒\n"
+            msg = tr(
+                "📊 indicators progress: {done}/{total} | elapsed: {em}m{es}s / remain: ~{rm}m{rs}s",
+                done=processed,
+                total=total,
+                em=em,
+                es=es,
+                rm=rm,
+                rs=rs,
+            )
             if buffer:
-                msg += f"銘柄: {', '.join(buffer)}"
+                msg += "\n" + tr("symbols: {names}", names=", ".join(buffer))
             try:
                 log_callback(msg)
             except Exception:
@@ -62,7 +71,7 @@ def prepare_data_vectorized_system4(
 
     if skipped > 0 and log_callback:
         try:
-            log_callback(f"⚠ データ不足/計算失敗でスキップ: {skipped} 件")
+            log_callback(f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件")
         except Exception:
             pass
     return result_dict
@@ -81,9 +90,8 @@ def generate_candidates_system4(
     total = len(prepared_dict)
     start_time = time.time()
     processed, skipped = 0, 0
-    buffer = []
+    buffer: list[str] = []
 
-    # SPY フィルター
     spy_df = market_df.copy()
     spy_df["SMA200"] = SMAIndicator(spy_df["Close"], window=200).sma_indicator()
     spy_df["spy_filter"] = (spy_df["Close"] > spy_df["SMA200"]).astype(int)
@@ -94,12 +102,11 @@ def generate_candidates_system4(
             x["setup"] = (
                 (x["DollarVolume50"] > 100_000_000)
                 & (x["HV50"].between(10, 40))
-                & (x["Close"] > x["SMA200"])  # 個別上昇トレンド
+                & (x["Close"] > x["SMA200"])
             ).astype(int)
 
             setup_days = x[x["setup"] == 1]
             for date, row in setup_days.iterrows():
-                # 市場フィルター
                 if date not in spy_df.index:
                     continue
                 if int(spy_df.loc[date, "spy_filter"]) == 0:
@@ -129,26 +136,33 @@ def generate_candidates_system4(
             remain = (elapsed / processed) * (total - processed) if processed else 0
             em, es = divmod(int(elapsed), 60)
             rm, rs = divmod(int(remain), 60)
-            msg = f"📊 セットアップ抽出 {processed}/{total} 件 完了 | 経過: {em}分{es}秒 / 残り: 約{rm}分{rs}秒\n"
+            msg = tr(
+                "📊 candidates progress: {done}/{total} | elapsed: {em}m{es}s / remain: ~{rm}m{rs}s",
+                done=processed,
+                total=total,
+                em=em,
+                es=es,
+                rm=rm,
+                rs=rs,
+            )
             if buffer:
-                msg += f"銘柄: {', '.join(buffer)}"
+                msg += "\n" + tr("symbols: {names}", names=", ".join(buffer))
             try:
                 log_callback(msg)
             except Exception:
                 pass
             buffer.clear()
 
-    # RSI4 小さい順に top_n
+    # rank by RSI4 ascending
     for date in list(candidates_by_date.keys()):
-        ranked = sorted(candidates_by_date[date], key=lambda x: x["RSI4"])
+        ranked = sorted(candidates_by_date[date], key=lambda r: r["RSI4"])
         candidates_by_date[date] = ranked[: int(top_n)]
 
     if skipped > 0 and log_callback:
         try:
-            log_callback(f"⚠ 候補抽出中にスキップ: {skipped} 件")
+            log_callback(f"⚠️ 候補抽出中にスキップ: {skipped} 件")
         except Exception:
             pass
-
     return candidates_by_date, None
 
 

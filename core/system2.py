@@ -85,7 +85,7 @@ def prepare_data_vectorized_system2(
 
     if skipped_count > 0 and log_callback:
         try:
-            log_callback(f"⚠ データ不足/計算失敗でスキップ: {skipped_count} 件")
+            log_callback(f"⚠️ データ不足/計算失敗でスキップ: {skipped_count} 件")
         except Exception:
             pass
 

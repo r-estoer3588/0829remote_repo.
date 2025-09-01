@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict
@@ -88,7 +88,13 @@ def _fetch_data_ui(
                 buffer.append(sym)
             if i % 50 == 0 or i == total:
                 elapsed = time.time() - start
-                msg = f"fetch: {i}/{total} items | elapsed {int(elapsed//60)}m{int(elapsed%60)}s"
+                msg = tr(
+                    "fetch: {done}/{total} items | elapsed {em}m{es}s",
+                    done=i,
+                    total=total,
+                    em=int(elapsed // 60),
+                    es=int(elapsed % 60),
+                )
                 if buffer:
                     msg += "\n" + ", ".join(buffer)
                 log_area.text(msg)
@@ -132,7 +138,7 @@ def prepare_backtest_data_ui(
 
     # 2) インジケーター計算
     ind = _phase(ui_manager, "indicators")
-    ind.info("📊 インジケーター計算中...")
+    ind.info(tr("indicators: computing..."))
     prepared = strategy.prepare_data(
         raw,
         progress_callback=lambda done, total: ind.progress_bar.progress(done / total),
@@ -144,13 +150,34 @@ def prepare_backtest_data_ui(
     except Exception:
         pass
     try:
-        ind.log_area.text("インジケーター計算 完了")
+    try:
+        ind.log_area.text(tr("indicators: done"))
     except Exception:
         pass
-
     # 3) 候補抽出
     cand = _phase(ui_manager, "candidates")
-    cand.info("📊 候補抽出中...")
+    # 各システムの指標一覧（表示用）
+    indicators_per_system = {
+        "System1": "ROC200, Rank, setup",
+        "System2": "RSI3, ADX7, ATR10, DollarVolume20, ATR_Ratio, TwoDayUp, setup",
+        "System3": "SMA150, ATR10, DropRate_3D, AvgVolume50, ATR_Ratio, setup",
+        "System4": "SMA200, ATR40, HV50, RSI4, DollarVolume50, setup",
+        "System5": "SMA100, ATR10, ADX7, RSI3, AvgVolume50, DollarVolume50, ATR_Pct, setup",
+        "System6": "ATR10, DollarVolume50, Return6D, UpTwoDays, setup",
+        "System7": "ATR50, min_50, max_70, setup",
+    }
+    try:
+        meta = indicators_per_system.get(system_name)
+        if meta:
+            cand.info(f"インジケーター: {meta}")
+    except Exception:
+        pass
+    # 翻訳メッセージで統一
+    try:
+        cand.info(tr("candidates: extracting..."))
+    except Exception:
+        pass
+    # cand.info removed (duplicate)
     try:
         candidates_by_date, merged_df = strategy.generate_candidates(
             prepared,
@@ -174,9 +201,15 @@ def prepare_backtest_data_ui(
     except Exception:
         pass
     try:
-        cand.log_area.text("候補抽出 完了")
+        cand.log_area.text(tr("candidates: done"))
     except Exception:
         pass
+
+
+
+
+
+
 
     if not candidates_by_date:
         st.warning(tr("候補がありません"))

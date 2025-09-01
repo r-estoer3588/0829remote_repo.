@@ -154,6 +154,17 @@ def fetch_data(
     if phase:
         progress_bar = phase.progress_bar
         log_area = phase.log_area
+        # フェーズ配下に「no data」用の別スロットを確保（未作成なら生成）
+        no_data_area = getattr(phase, "no_data_area", None)
+        if no_data_area is None:
+            try:
+                no_data_area = getattr(phase, "container").empty()
+            except Exception:
+                no_data_area = st.empty()
+            try:
+                setattr(phase, "no_data_area", no_data_area)
+            except Exception:
+                pass
         try:
             phase.info(tr("fetch: start | {total} symbols", total=total))
         except Exception:
@@ -162,6 +173,8 @@ def fetch_data(
         st.info(tr("fetch: start | {total} symbols", total=total))
         progress_bar = st.progress(0)
         log_area = st.empty()
+        # フェーズ未使用時は直下にno-data用スロットを用意
+        no_data_area = st.empty()
     buffer, skipped, start_time = [], [], time.time()
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -197,7 +210,8 @@ def fetch_data(
             # tr は kwargs を受けてフォーマット済み文字列を返すので .format は不要
             msg = tr("⚠️ no data: {n} symbols", n=len(skipped))
             msg = msg + "\n" + ", ".join(skipped)
-            log_area.text(msg)
+            # 取得ログを上書きせず、下の行に表示
+            no_data_area.text(msg)
         except Exception:
             pass
     return data_dict
@@ -413,7 +427,8 @@ def run_backtest_with_logging(
     st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
 
     if st.session_state.get("show_debug_logs", True) and debug_logs:
-        with st.expander(tr("trade logs"), expanded=False):
+        # ログはバックテスト・フェーズのコンテナ内に配置（システムごとにまとまるように）
+        with bt_phase.container.expander(tr("trade logs"), expanded=False):
             st.text("\n".join(debug_logs))
 
     # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）

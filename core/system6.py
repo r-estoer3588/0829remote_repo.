@@ -61,7 +61,7 @@ def prepare_data_vectorized_system6(
             buffer.clear()
 
     if skipped > 0:
-        msg = f"⚠ データ不足/計算失敗でスキップ: {skipped} 件"
+        msg = f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件"
         try:
             if skip_callback:
                 skip_callback(msg)
@@ -132,7 +132,7 @@ def generate_candidates_system6(
         candidates_by_date[date] = ranked[: int(top_n)]
 
     if skipped > 0:
-        msg = f"⚠ 候補抽出中にスキップ: {skipped} 件"
+        msg = f"⚠️ 候補抽出中にスキップ: {skipped} 件"
         try:
             if skip_callback:
                 skip_callback(msg)

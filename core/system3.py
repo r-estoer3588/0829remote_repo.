@@ -1,10 +1,11 @@
-"""System3 core logic (Long mean-reversion) を共通化。"""
+"""System3 core logic (Long mean-reversion)."""
 
 from typing import Dict, Tuple
 import time
 import pandas as pd
 from ta.trend import SMAIndicator
 from ta.volatility import AverageTrueRange
+from common.i18n import tr
 
 
 def prepare_data_vectorized_system3(
@@ -57,9 +58,17 @@ def prepare_data_vectorized_system3(
             remain = (elapsed / processed) * (total - processed) if processed else 0
             em, es = divmod(int(elapsed), 60)
             rm, rs = divmod(int(remain), 60)
-            msg = f"📊 インジケーター計算 {processed}/{total} 件 完了 | 経過: {em}分{es}秒 / 残り: 約{rm}分{rs}秒\n"
+            msg = tr(
+                "📊 indicators progress: {done}/{total} | elapsed: {em}m{es}s / remain: ~{rm}m{rs}s",
+                done=processed,
+                total=total,
+                em=em,
+                es=es,
+                rm=rm,
+                rs=rs,
+            )
             if buffer:
-                msg += f"銘柄: {', '.join(buffer)}"
+                msg += "\n" + tr("symbols: {names}", names=", ".join(buffer))
             try:
                 log_callback(msg)
             except Exception:
@@ -68,7 +77,7 @@ def prepare_data_vectorized_system3(
 
     if skipped > 0 and log_callback:
         try:
-            log_callback(f"⚠ データ不足/計算失敗でスキップ: {skipped} 件")
+            log_callback(f"⚠️ データ不足/計算失敗でスキップ: {skipped} 件")
         except Exception:
             pass
 
@@ -110,9 +119,17 @@ def generate_candidates_system3(
             remain = (elapsed / processed) * (total - processed) if processed else 0
             em, es = divmod(int(elapsed), 60)
             rm, rs = divmod(int(remain), 60)
-            msg = f"📊 セットアップ抽出 {processed}/{total} 件 完了 | 経過: {em}分{es}秒 / 残り: 約{rm}分{rs}秒\n"
+            msg = tr(
+                "📊 candidates progress: {done}/{total} | elapsed: {em}m{es}s / remain: ~{rm}m{rs}s",
+                done=processed,
+                total=total,
+                em=em,
+                es=es,
+                rm=rm,
+                rs=rs,
+            )
             if buffer:
-                msg += f"銘柄: {', '.join(buffer)}"
+                msg += "\n" + tr("symbols: {names}", names=", ".join(buffer))
             try:
                 log_callback(msg)
             except Exception:

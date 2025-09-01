@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import streamlit as st
 import common.ui_patch  # noqa: F401
@@ -314,10 +314,6 @@ def main():
                         sys_log.text(f"{sys_name}: no candidates (skip)")
                         done_sys += 1
                         sys_progress.progress(done_sys / total_sys)
-                        try:
-                            prep_phase.progress_bar.progress(done_sys / total_sys)
-                        except Exception:
-                            pass
                         continue
 
                     sys_log.text(f"{sys_name}: running...")
@@ -332,36 +328,16 @@ def main():
                     if res is not None and not res.empty:
                         res["system"] = sys_name
                         overall.append(res)
-                        # 完了メッセージ（件数付き）
-                        try:
-                            with sys_ui.container:
-                                st.success(f"{sys_name}: 完了（取引 {len(res)} 件）")
-                        except Exception:
-                            pass
                         with sys_ui.container.expander(f"{sys_name} result", expanded=False):
                             _show_sys_result(res, capital)
                     else:
-                        with sys_ui.container:
-                            st.info(f"{sys_name}: 取引なし")
-                        try:
-                            sys_log.text(f"{sys_name}: done (no trades)")
-                        except Exception:
-                            pass
+                        st.info(f"{sys_name}: no trades")
                 except Exception as e:  # noqa: BLE001
                     logger.exception("%s error", sys_name)
                     st.exception(e)
                 finally:
                     done_sys += 1
                     sys_progress.progress(done_sys / total_sys)
-                    try:
-                        if done_sys <= total_sys:
-                            sys_log.text(f"{sys_name}: done")
-                    except Exception:
-                        pass
-                    try:
-                        prep_phase.progress_bar.progress(done_sys / total_sys)
-                    except Exception:
-                        pass
 
             st.markdown("---")
             st.subheader(tr("All systems summary"))
@@ -403,40 +379,6 @@ def main():
                 st.session_state["Batch_all_trades_df"] = all_df2
                 st.session_state["Batch_summary_dict"] = d
                 st.session_state["Batch_capital"] = capital
-                
-                # システム別 資金推移（サマリー折れ線）
-                try:
-                    import matplotlib.pyplot as _plt
-                    st.markdown("---")
-                    st.subheader("システム別 資金推移（サマリー）")
-                    # 各システムごとに資金推移（日次補間）を作成
-                    eq_map = {}
-                    for df_sys in overall:
-                        try:
-                            df_tmp = df_sys.copy()
-                            df_tmp["exit_date"] = pd.to_datetime(df_tmp["exit_date"])  # type: ignore
-                            df_tmp = df_tmp.sort_values("exit_date")
-                            equity = float(capital) + df_tmp["pnl"].cumsum()
-                            daily = equity.rename(df_tmp["system"].iloc[0]).copy()
-                            # 日次の最後値で前方埋め
-                            daily_df = daily.to_frame()
-                            daily_df.index = df_tmp["exit_date"].values
-                            daily_df = daily_df.resample("D").last().ffill()
-                            eq_map[daily.name] = daily_df.iloc[:, 0]
-                        except Exception:
-                            continue
-                    if eq_map:
-                        # 共通インデックスへ結合
-                        eq_df = pd.DataFrame(eq_map)
-                        _plt.figure(figsize=(10, 4))
-                        for col in eq_df.columns:
-                            _plt.plot(eq_df.index, eq_df[col], label=col)
-                        _plt.legend()
-                        _plt.xlabel(tr("date"))
-                        _plt.ylabel("Equity (USD)")
-                        st.pyplot(_plt)
-                except Exception:
-                    pass
             else:
                 st.info(tr("no results"))
 
@@ -462,14 +404,13 @@ def main():
             sys_name = f"System{sys_idx}"
             st.subheader(f"{sys_name} backtest")
             try:
-                # 接尾辞 ui2 を廃止し、通常名で読み込む
                 app_mod = __import__(f"app_system{sys_idx}")
                 if sys_idx == 1:
                     # System1: reuse cached SPY from integrated layer
                     spy_df = get_spy_data_cached()
-                    app_mod.run_tab(spy_df=spy_df)
+                    app_mod.main_process(spy_df=spy_df)
                 else:
-                    app_mod.run_tab()
+                    app_mod.main_process()
             except Exception as e:  # noqa: BLE001
                 logger.exception("%s tab error", sys_name)
                 st.exception(e)
