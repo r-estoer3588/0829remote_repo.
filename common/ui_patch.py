@@ -78,15 +78,34 @@ if _ui is not None:
 # ダウンロードボタンの一括無効化（自動保存がある場合に隠す）
 try:
     _settings = get_settings(create_dirs=True) if 'get_settings' in globals() else None
-    if _settings is not None:
+    if _settings is not None and 'st' in globals() and st is not None:
         _ui_cfg = getattr(_settings, 'ui', None)
-        if not getattr(_ui_cfg, 'show_download_buttons', True):
-            def _no_download_button(*args, **kwargs):  # noqa: D401
-                """Disabled by config (auto-save enabled)."""
+
+        # 元の download_button を退避
+        if not hasattr(st, '_orig_download_button') and hasattr(st, 'download_button'):
+            st._orig_download_button = st.download_button  # type: ignore[attr-defined]
+
+        def _patched_download_button(*args, **kwargs):  # noqa: D401
+            """一部 CSV ダウンロードを非表示にし、その他は設定に従う。"""
+            fname = kwargs.get('file_name')
+            if fname is None and len(args) >= 3:
+                fname = args[2]
+            try:
+                # シグナル/トレードの CSV は常に非表示（自動保存のため）
+                if isinstance(fname, str) and ('_signals_' in fname or '_trades_' in fname):
+                    return False
+            except Exception:
+                pass
+
+            # それ以外は設定のフラグに従う
+            if not getattr(_ui_cfg, 'show_download_buttons', True):
+                return False
+            try:
+                return st._orig_download_button(*args, **kwargs)  # type: ignore[attr-defined]
+            except Exception:
                 return False
 
-            if 'st' in globals() and st is not None:
-                st.download_button = _no_download_button  # type: ignore[attr-defined]
+        st.download_button = _patched_download_button  # type: ignore[attr-defined]
 except Exception:
     # 失敗時は従来動作のまま
     pass
