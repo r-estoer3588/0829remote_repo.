@@ -150,7 +150,6 @@ def prepare_backtest_data_ui(
     except Exception:
         pass
     try:
-    try:
         ind.log_area.text(tr("indicators: done"))
     except Exception:
         pass
