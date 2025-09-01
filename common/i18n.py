@@ -98,9 +98,13 @@ _JA_MAP: Dict[str, str] = {
     "allow gross leverage (sum cost can exceed capital)": "総建玉レバレッジを許可（合計コストが資金を超える場合あり）",
     "long bucket share (%)": "ロング側の配分（%）",
     "short bucket share = 100% - long": "ショート側の配分 = 100% - ロング",
+    "allocation is fixed: long 1/3/4/5: each 25%, short 2:40%,6:40%,7:20%": "資金配分は規定: long=1/3/4/5:各25%, short=2:40%,6:40%,7:20%",
     "run integrated": "統合実行",
     "signals per system:": "各システムのシグナル数:",
     "simulate integrated": "統合シミュレーション",
+    "prepare all systems": "全システムを準備",
+    "preparing per-system data / candidates...": "システム別データ/候補を準備中...",
+    "running integrated engine...": "統合エンジン実行中...",
     "Integrated Summary": "統合サマリー",
     "download integrated trades CSV": "統合トレードCSVをダウンロード",
     "no trades in integrated run": "統合実行での取引はありません",
@@ -117,11 +121,13 @@ _JA_MAP: Dict[str, str] = {
     "Saved Per-System Logs": "保存済みシステム別ログ",
     "Per-System Logs (latest)": "システム別ログ（最新）",
     "no saved logs yet": "保存済みのログはまだありません",
+    "no logs to show": "表示するログはありません",
     "Signal detection mode will be added soon.": "シグナル検出モードは近日追加予定です。",
     "no results": "結果はありません",
     "All systems summary": "全システムのサマリー",
     "download batch trades CSV": "バッチ取引CSVをダウンロード",
     "save batch CSV to disk": "バッチCSVをディスクへ保存",
+    "saved to {out_dir}": "{out_dir} に保存しました",
 }
 
 
