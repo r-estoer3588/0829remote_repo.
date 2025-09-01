@@ -2,6 +2,8 @@
 
 import streamlit as st
 import common.ui_patch  # noqa: F401
+from pathlib import Path
+from common.i18n import tr, load_translations_from_dir, language_selector
 
 from config.settings import get_settings
 from common.logging_utils import setup_logging
@@ -14,20 +16,24 @@ from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
 from tickers_loader import get_all_tickers
 from common.ui_manager import UIManager
 
+# 外部翻訳を読み込む（任意・起動時に一度）
+load_translations_from_dir(Path(__file__).parent / "translations")
+# 言語選択を表示
+language_selector()
 
 def _show_sys_result(df, capital):
     if df is None or getattr(df, "empty", True):
-        st.info("no trades")
+        st.info(tr("no trades"))
         return
     summary, _ = summarize_perf(df, capital)
     d = summary.to_dict()
     cols = st.columns(6)
-    cols[0].metric("trades", d.get("trades"))
-    cols[1].metric("total pnl", f"{d.get('total_return', 0):.2f}")
-    cols[2].metric("win(%)", f"{d.get('win_rate', 0):.2f}")
+    cols[0].metric(tr("trades"), d.get("trades"))
+    cols[1].metric(tr("total pnl"), f"{d.get('total_return', 0):.2f}")
+    cols[2].metric(tr("win rate (%)"), f"{d.get('win_rate', 0):.2f}")
     cols[3].metric("PF", f"{d.get('profit_factor', 0):.2f}")
     cols[4].metric("Sharpe", f"{d.get('sharpe', 0):.2f}")
-    cols[5].metric("MDD", f"{d.get('max_drawdown', 0):.2f}")
+    cols[5].metric(tr("max drawdown"), f"{d.get('max_drawdown', 0):.2f}")
     st.dataframe(df)
 
 
@@ -38,8 +44,8 @@ def main():
     logger = setup_logging(settings)
     logger.info("app_integrated start")
 
-    st.title("Trading Systems Integrated UI")
-    with st.expander("settings", expanded=False):
+    st.title(tr("Trading Systems Integrated UI"))
+    with st.expander(tr("settings"), expanded=False):
         col1, col2, col3 = st.columns(3)
         with col1:
             st.write("RESULTS_DIR:", str(settings.RESULTS_DIR))
@@ -51,11 +57,11 @@ def main():
             st.write("DEFAULT CAPITAL:", settings.ui.default_capital)
             st.write("LOG LEVEL:", settings.logging.level)
 
-    tabs = st.tabs(["Integrated", "Batch"] + [f"System{i}" for i in range(1, 8)])
+    tabs = st.tabs([tr("Integrated"), tr("Batch")] + [f"System{i}" for i in range(1, 8)])
 
     # Integrated Engine tab
     with tabs[0]:
-        st.subheader("Integrated Backtest (Systems 1–7)")
+        st.subheader(tr("Integrated Backtest (Systems 1-7)"))
         from common.integrated_backtest import (
             build_system_states,
             run_integrated_backtest,
@@ -66,32 +72,56 @@ def main():
         from common.holding_tracker import generate_holding_matrix, display_holding_heatmap
 
         capital_i = st.number_input(
-            "capital (USD)", min_value=1000, value=int(settings.ui.default_capital), step=1000, key="integrated_capital"
+            tr("capital (USD)"),
+            min_value=1000,
+            value=int(settings.ui.default_capital),
+            step=1000,
+            key="integrated_capital",
         )
         limit_i = st.number_input(
-            "symbol limit", min_value=50, max_value=5000, value=min(500, get_all_tickers().__len__()), step=50, key="integrated_limit"
+            tr("symbol limit"),
+            min_value=50,
+            max_value=5000,
+            value=min(500, get_all_tickers().__len__()),
+            step=50,
+            key="integrated_limit",
         )
         colA, colB = st.columns(2)
         with colA:
-            allow_gross = st.checkbox("allow gross leverage (sum cost can exceed capital)", value=False, key="integrated_gross")
+            allow_gross = st.checkbox(
+                tr("allow gross leverage (sum cost can exceed capital)"),
+                value=False,
+                key="integrated_gross",
+            )
         with colB:
-            st.caption("資金配分は規定: long=1/3/4/5:各25%, short=2:40%,6:40%,7:20%")
+            st.caption(
+                tr(
+                    "allocation is fixed: long 1/3/4/5: each 25%, short 2:40%,6:40%,7:20%"
+                )
+            )
         colL, colS = st.columns(2)
         with colL:
-            long_share = st.slider("long bucket share (%)", min_value=0, max_value=100, value=50, step=5, key="integrated_long_share")
+            long_share = st.slider(
+                tr("long bucket share (%)"),
+                min_value=0,
+                max_value=100,
+                value=50,
+                step=5,
+                key="integrated_long_share",
+            )
         with colS:
-            st.caption("short bucket share = 100% - long")
+            st.caption(tr("short bucket share = 100% - long"))
         short_share = 100 - int(long_share)
-        run_btn_i = st.button("run integrated")
+        run_btn_i = st.button(tr("run integrated"))
 
         if run_btn_i:
             all_tickers = get_all_tickers()
             symbols = all_tickers[: int(limit_i)]
             spy_base = get_spy_with_indicators(get_spy_data_cached())
 
-            ui = UIManager().system("Integrated", title="Integrated")
-            prep_phase = ui.phase("prepare", title="prepare all systems")
-            prep_phase.info("preparing per-system data / candidates...")
+            ui = UIManager().system("Integrated", title=tr("Integrated"))
+            prep_phase = ui.phase("prepare", title=tr("prepare all systems"))
+            prep_phase.info(tr("preparing per-system data / candidates..."))
 
             # states 構築（UI連携）
             # UIManager を build_system_states に渡して各システムのフェーズUIを利用
@@ -105,11 +135,11 @@ def main():
             # シグナル件数表示
             import pandas as _pd
             sig_counts = {s.name: int(sum(len(v) for v in s.candidates_by_date.values())) for s in states}
-            st.write("signals per system:")
+            st.write(tr("signals per system:"))
             st.dataframe(_pd.DataFrame([sig_counts]))
 
-            sim = ui.phase("simulate", title="simulate integrated")
-            sim.info("running integrated engine...")
+            sim = ui.phase("simulate", title=tr("simulate integrated"))
+            sim.info(tr("running integrated engine..."))
             trades_df, _sig = run_integrated_backtest(
                 states,
                 capital_i,
@@ -120,17 +150,17 @@ def main():
             )
 
             st.markdown("---")
-            st.subheader("Integrated Summary")
+            st.subheader(tr("Integrated Summary"))
             if trades_df is not None and not trades_df.empty:
                 summary, df2 = summarize_perf(trades_df, capital_i)
                 d = summary.to_dict()
                 cols = st.columns(6)
-                cols[0].metric("trades", d.get("trades"))
-                cols[1].metric("total pnl", f"{d.get('total_return', 0):.2f}")
-                cols[2].metric("win(%)", f"{d.get('win_rate', 0):.2f}")
+                cols[0].metric(tr("trades"), d.get("trades"))
+                cols[1].metric(tr("total pnl"), f"{d.get('total_return', 0):.2f}")
+                cols[2].metric(tr("win rate (%)"), f"{d.get('win_rate', 0):.2f}")
                 cols[3].metric("PF", f"{d.get('profit_factor', 0):.2f}")
                 cols[4].metric("Sharpe", f"{d.get('sharpe', 0):.2f}")
-                cols[5].metric("MDD", f"{d.get('max_drawdown', 0):.2f}")
+                cols[5].metric(tr("max drawdown"), f"{d.get('max_drawdown', 0):.2f}")
                 st.dataframe(df2)
 
                 # Holdings heatmap (optional)
@@ -141,32 +171,53 @@ def main():
                 # Download
                 _ts_i = _pd.Timestamp.now().strftime("%Y-%m-%d_%H%M")
                 st.download_button(
-                    label="download integrated trades CSV",
+                    label=tr("download integrated trades CSV"),
                     data=df2.to_csv(index=False).encode("utf-8"),
                     file_name=f"integrated_trades_{_ts_i}_{int(capital_i)}.csv",
                     mime="text/csv",
                     key="download_integrated_csv",
                 )
             else:
-                st.info("no trades in integrated run")
+                st.info(tr("no trades in integrated run"))
 
     # Batch run tab
     with tabs[1]:
-        st.subheader("Batch Backtest / Summary")
-        mode = st.radio(
-            "mode",
-            ["Backtest", "Future signals (coming soon)"],
+        st.subheader(tr("Batch Backtest / Summary"))
+        _mode_options = {
+            "Backtest": tr("Backtest"),
+            "Future": tr("Future signals (coming soon)"),
+        }
+        _mode_label = st.radio(
+            tr("mode"),
+            list(_mode_options.values()),
             index=0,
             horizontal=True,
             key="batch_mode",
         )
-        capital = st.number_input("capital (USD)", min_value=1000, value=int(settings.ui.default_capital), step=1000)
-        limit_symbols = st.number_input("symbol limit", min_value=50, max_value=5000, value=min(500, get_all_tickers().__len__()), step=50)
-        run_btn = st.button("run batch", disabled=(mode != "Backtest"))
+        mode = "Backtest" if _mode_label == _mode_options["Backtest"] else "Future"
+        capital = st.number_input(
+            tr("capital (USD)"),
+            min_value=1000,
+            value=int(settings.ui.default_capital),
+            step=1000,
+        )
+        limit_symbols = st.number_input(
+            tr("symbol limit"),
+            min_value=50,
+            max_value=5000,
+            value=min(500, get_all_tickers().__len__()),
+            step=50,
+        )
+        run_btn = st.button(tr("run batch"), disabled=(mode != "Backtest"))
 
         # Log display option
         log_tail_lines = st.number_input(
-            "max log lines shown per system", min_value=10, max_value=10000, value=500, step=50, key="batch_log_tail_n"
+            tr("max log lines shown per system"),
+            min_value=10,
+            max_value=10000,
+            value=500,
+            step=50,
+            key="batch_log_tail_n",
         )
 
         # Saved results (persist across reruns)
@@ -175,28 +226,28 @@ def main():
         saved_capital = st.session_state.get("Batch_capital")
         if saved_df is not None:
             st.markdown("---")
-            st.subheader("Saved Batch Results (persisted)")
+            st.subheader(tr("Saved Batch Results (persisted)"))
             if isinstance(saved_summary, dict):
                 cols = st.columns(6)
-                cols[0].metric("trades", saved_summary.get("trades"))
-                cols[1].metric("total pnl", f"{saved_summary.get('total_return', 0):.2f}")
-                cols[2].metric("win(%)", f"{saved_summary.get('win_rate', 0):.2f}")
+                cols[0].metric(tr("trades"), saved_summary.get("trades"))
+                cols[1].metric(tr("total pnl"), f"{saved_summary.get('total_return', 0):.2f}")
+                cols[2].metric(tr("win rate (%)"), f"{saved_summary.get('win_rate', 0):.2f}")
                 cols[3].metric("PF", f"{saved_summary.get('profit_factor', 0):.2f}")
                 cols[4].metric("Sharpe", f"{saved_summary.get('sharpe', 0):.2f}")
-                cols[5].metric("MDD", f"{saved_summary.get('max_drawdown', 0):.2f}")
+                cols[5].metric(tr("max drawdown"), f"{saved_summary.get('max_drawdown', 0):.2f}")
             st.dataframe(saved_df)
             # Download / Save buttons for saved batch
             import pandas as _pd
             import os as _os
             _ts = _pd.Timestamp.now().strftime("%Y-%m-%d_%H%M")
             st.download_button(
-                label="download saved batch trades CSV",
+                label=tr("download saved batch trades CSV"),
                 data=saved_df.to_csv(index=False).encode("utf-8"),
                 file_name=f"batch_trades_saved_{_ts}_{int(saved_capital or 0)}.csv",
                 mime="text/csv",
                 key="download_saved_batch_csv",
             )
-            if st.button("save saved batch CSV to disk", key="save_saved_batch_to_disk"):
+            if st.button(tr("save saved batch CSV to disk"), key="save_saved_batch_to_disk"):
                 out_dir = _os.path.join("results_csv", "batch"); _os.makedirs(out_dir, exist_ok=True)
                 trades_path = _os.path.join(out_dir, f"batch_trades_saved_{_ts}_{int(saved_capital or 0)}.csv")
                 saved_df.to_csv(trades_path, index=False)
@@ -205,8 +256,8 @@ def main():
                     sum_df = _pd.DataFrame([saved_summary])
                     sum_path = _os.path.join(out_dir, f"batch_summary_saved_{_ts}_{int(saved_capital or 0)}.csv")
                     sum_df.to_csv(sum_path, index=False)
-                st.success(f"saved to {out_dir}")
-            if st.button("clear saved batch results", key="clear_saved_batch"):
+                st.success(tr("saved to {out_dir}", out_dir=out_dir))
+            if st.button(tr("clear saved batch results"), key="clear_saved_batch"):
                 for k in ["Batch_all_trades_df", "Batch_summary_dict", "Batch_capital"]:
                     if k in st.session_state:
                         del st.session_state[k]
@@ -214,7 +265,7 @@ def main():
 
         # Saved per-system logs
         st.markdown("---")
-        with st.expander("Saved Per-System Logs", expanded=False):
+        with st.expander(tr("Saved Per-System Logs"), expanded=False):
             any_logs = False
             for i in range(1, 8):
                 sys_name = f"System{i}"
@@ -225,10 +276,10 @@ def main():
                         tail = list(map(str, logs))[-int(log_tail_lines):]
                         st.text("\n".join(tail))
             if not any_logs:
-                st.info("no saved logs yet")
+                st.info(tr("no saved logs yet"))
 
         if mode != "Backtest":
-            st.info("Signal detection mode will be added soon.")
+            st.info(tr("Signal detection mode will be added soon."))
 
         if run_btn:
             all_tickers = get_all_tickers()
@@ -289,7 +340,7 @@ def main():
                     sys_progress.progress(done_sys / total_sys)
 
             st.markdown("---")
-            st.subheader("All systems summary")
+            st.subheader(tr("All systems summary"))
             if overall:
                 import pandas as pd
 
@@ -297,24 +348,24 @@ def main():
                 summary, all_df2 = summarize_perf(all_df, capital)
                 cols = st.columns(6)
                 d = summary.to_dict()
-                cols[0].metric("trades", d.get("trades"))
-                cols[1].metric("total pnl", f"{d.get('total_return', 0):.2f}")
-                cols[2].metric("win(%)", f"{d.get('win_rate', 0):.2f}")
+                cols[0].metric(tr("trades"), d.get("trades"))
+                cols[1].metric(tr("total pnl"), f"{d.get('total_return', 0):.2f}")
+                cols[2].metric(tr("win rate (%)"), f"{d.get('win_rate', 0):.2f}")
                 cols[3].metric("PF", f"{d.get('profit_factor', 0):.2f}")
                 cols[4].metric("Sharpe", f"{d.get('sharpe', 0):.2f}")
-                cols[5].metric("MDD", f"{d.get('max_drawdown', 0):.2f}")
+                cols[5].metric(tr("max drawdown"), f"{d.get('max_drawdown', 0):.2f}")
                 st.dataframe(all_df2)
 
                 # Download / Save buttons for current batch output
                 _ts2 = pd.Timestamp.now().strftime("%Y-%m-%d_%H%M")
                 st.download_button(
-                    label="download batch trades CSV",
+                    label=tr("download batch trades CSV"),
                     data=all_df2.to_csv(index=False).encode("utf-8"),
                     file_name=f"batch_trades_{_ts2}_{int(capital)}.csv",
                     mime="text/csv",
                     key="download_batch_csv_current",
                 )
-                if st.button("save batch CSV to disk", key="save_batch_to_disk_current"):
+                if st.button(tr("save batch CSV to disk"), key="save_batch_to_disk_current"):
                     import os as _os
                     out_dir = _os.path.join("results_csv", "batch"); _os.makedirs(out_dir, exist_ok=True)
                     trades_path = _os.path.join(out_dir, f"batch_trades_{_ts2}_{int(capital)}.csv")
@@ -322,18 +373,18 @@ def main():
                     sum_df = pd.DataFrame([d])
                     sum_path = _os.path.join(out_dir, f"batch_summary_{_ts2}_{int(capital)}.csv")
                     sum_df.to_csv(sum_path, index=False)
-                    st.success(f"saved to {out_dir}")
+                    st.success(tr("saved to {out_dir}", out_dir=out_dir))
 
                 # Save to session (persist across reruns)
                 st.session_state["Batch_all_trades_df"] = all_df2
                 st.session_state["Batch_summary_dict"] = d
                 st.session_state["Batch_capital"] = capital
             else:
-                st.info("no results")
+                st.info(tr("no results"))
 
             # Show latest per-system logs after batch run
             st.markdown("---")
-            with st.expander("Per-System Logs (latest)", expanded=False):
+            with st.expander(tr("Per-System Logs (latest)"), expanded=False):
                 any_logs2 = False
                 for i in range(1, 8):
                     sys_name = f"System{i}"
@@ -344,7 +395,7 @@ def main():
                             tail2 = list(map(str, logs))[-int(log_tail_lines):]
                             st.text("\n".join(tail2))
                 if not any_logs2:
-                    st.info("no logs to show")
+                    st.info(tr("no logs to show"))
 
     # Individual tabs (skip Integrated and Batch tabs)
     system_tabs = tabs[2:]
