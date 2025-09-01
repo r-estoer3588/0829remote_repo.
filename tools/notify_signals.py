@@ -1,16 +1,21 @@
-"""Simple signal notification placeholder.
+"""Simple signal notification utilities.
 
-Reads today's signals (if any) under settings.outputs.signals_dir
-and logs a summary. Extend this to send emails/Slack/etc.
+`notify_signals()` reads today's CSVs under ``settings.outputs.signals_dir``
+and logs a summary. ``send_signal_notification`` posts a short text message to
+webhooks defined by ``TEAMS_WEBHOOK_URL`` or ``SLACK_WEBHOOK_URL`` environment
+variables.  The payload is compatible with Microsoft Teams and Slack incoming
+webhooks.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 from config.settings import get_settings
 
@@ -39,6 +44,25 @@ def notify_signals():
             logging.exception("シグナルCSVの読み込みに失敗: %s", f)
 
     logging.info("本日の合計シグナル件数: %d", total)
+
+
+def _post_webhook(url: str, text: str) -> None:
+    try:
+        requests.post(url, json={"text": text}, timeout=5)
+    except Exception:
+        logging.exception("Webhook post failed: %s", url)
+
+
+def send_signal_notification(df: pd.DataFrame) -> None:
+    """Send a brief notification for the given signals DataFrame."""
+    if df is None or df.empty:
+        return
+    syms = ", ".join(df["symbol"].astype(str).head(10))
+    text = f"Today signals: {len(df)} picks\n{syms}"
+    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL"):
+        url = os.getenv(env)
+        if url:
+            _post_webhook(url, text)
 
 
 if __name__ == "__main__":

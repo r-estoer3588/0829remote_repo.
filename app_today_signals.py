@@ -18,15 +18,18 @@ settings = get_settings(create_dirs=True)
 with st.sidebar:
     st.header("Universe")
     if st.button("🔁 Rebuild Universe (cached)"):
-        syms = build_universe_from_cache()
+        syms = build_universe_from_cache(limit=None)
         path = save_universe_file(syms)
         st.success(f"Universe updated: {path} ({len(syms)} symbols)")
 
     universe = load_universe_file()
-    default_syms = universe or list(settings.ui.auto_tickers) or []
+    if not universe:
+        universe = build_universe_from_cache(limit=None)
+        save_universe_file(universe)
+    default_syms = universe
     syms_text = st.text_area(
         "Symbols (comma/space separated)",
-        value=", ".join(default_syms[:200]),
+        value=", ".join(default_syms),
         height=100,
     )
     syms = [s.strip().upper() for s in syms_text.replace("\n", ",").replace(" ", ",").split(",") if s.strip()]

@@ -227,11 +227,15 @@ def compute_today_signals(
     if symbols and len(symbols) > 0:
         symbols = [s.upper() for s in symbols]
     else:
-        symbols = [s.upper() for s in (settings.ui.auto_tickers or ())]
+        from utils.universe import build_universe_from_cache, load_universe_file
+
+        universe = load_universe_file()
+        if not universe:
+            universe = build_universe_from_cache(limit=None)
+        symbols = [s.upper() for s in universe]
         if not symbols:
             try:
                 files = list(Path(cache_dir).glob("*.csv"))
-                # 軽量に SPY + 先頭少数を利用
                 primaries = [p.stem for p in files if p.stem.upper() == "SPY"]
                 others = sorted({p.stem for p in files if len(p.stem) <= 5})[:200]
                 symbols = list(dict.fromkeys(primaries + others))
@@ -349,6 +353,13 @@ def compute_today_signals(
     if not final_df.empty:
         sort_cols = [c for c in ["side", "system", "score"] if c in final_df.columns]
         final_df = final_df.sort_values(sort_cols, ascending=[True, True, True][: len(sort_cols)]).reset_index(drop=True)
+
+        try:
+            from tools.notify_signals import send_signal_notification
+
+            send_signal_notification(final_df)
+        except Exception:
+            _log("⚠️ 通知に失敗しました。")
 
     # CSV 保存（任意）
     if save_csv and not final_df.empty:
