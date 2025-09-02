@@ -1,5 +1,6 @@
 import streamlit as st  
 import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
+import pandas as pd
 from strategies.system1_strategy import System1Strategy
 from common.ui_components import (
     run_backtest_app,
@@ -11,6 +12,8 @@ from common.ui_components import (
 from common.cache_utils import save_prepared_data_cache
 from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
+from common.performance_summary import summarize as summarize_perf
+from common.notifier import Notifier
 
 # 外部翻訳を読み込む（任意・起動時に一度）
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -25,6 +28,7 @@ DISPLAY_NAME = "システム1"
 
 # インスタンス生成
 strategy = System1Strategy()
+notifier = Notifier(platform="discord")
 
 
 def run_tab(spy_df=None, ui_manager=None):
@@ -62,6 +66,23 @@ def run_tab(spy_df=None, ui_manager=None):
         save_prepared_data_cache(data_dict, SYSTEM_NAME)
         # キャッシュ保存後にも完了メッセージを再掲
         st.success("バックテスト完了")
+        summary, _ = summarize_perf(results_df, capital)
+        stats = {
+            "総リターン": f"{summary.total_return:.2f}",
+            "最大DD": f"{summary.max_drawdown:.2f}",
+            "Sharpe": f"{summary.sharpe:.2f}",
+        }
+        ranking = (
+            [str(s) for s in results_df["symbol"].head(10)]
+            if "symbol" in results_df.columns
+            else []
+        )
+        period = ""
+        if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
+            start = pd.to_datetime(results_df["entry_date"]).min()
+            end = pd.to_datetime(results_df["exit_date"]).max()
+            period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
+        notifier.send_backtest("system1", period, stats, ranking)
 
     # フォールバック: リラン時にセッションから復元してランキング/サマリを表示
     elif results_df is None and merged_df is None:

@@ -11,6 +11,7 @@ from common.utils import get_cached_data
 from common.utils_spy import get_spy_with_indicators, get_latest_nyse_trading_day
 from common.today_signals import LONG_SYSTEMS, SHORT_SYSTEMS
 from common import broker_alpaca as ba
+from common.notifier import Notifier
 
 # strategies
 from strategies.system1_strategy import System1Strategy
@@ -182,6 +183,8 @@ def _submit_orders(
         out = pd.DataFrame(results)
         _log("\n=== Alpaca submission results ===")
         _log(out.to_string(index=False))
+        notifier = Notifier(platform="discord")
+        notifier.send_trade_report("integrated", results)
         return out
     return pd.DataFrame()
 
