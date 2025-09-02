@@ -150,19 +150,22 @@ class Notifier:
         if self.platform not in {"discord", "slack"}:
             raise ValueError(f"未知のplatform: {platform}")
         env = "DISCORD_WEBHOOK_URL" if self.platform == "discord" else "SLACK_WEBHOOK_URL"
-        self.webhook_url = webhook_url or os.getenv(env)
         self.logger = _setup_logger()
+        self.webhook_url = webhook_url or os.getenv(env)
         if not self.webhook_url:
-            self.logger.error("Webhook URLが設定されていません: %s", env)
-            raise ValueError("Webhook URLが設定されていません")
-        self.logger.info(
-            "Notifier 初期化 platform=%s webhook=%s",
-            self.platform,
-            mask_secret(self.webhook_url),
-        )
+            self.logger.warning("Webhook URLが設定されていません: %s", env)
+        else:
+            self.logger.info(
+                "Notifier 初期化 platform=%s webhook=%s",
+                self.platform,
+                mask_secret(self.webhook_url),
+            )
 
     # internal send with retry
     def _post(self, payload: Dict[str, Any]) -> None:
+        if not self.webhook_url:
+            self.logger.debug("Webhook未設定のため通知をスキップしました")
+            return
         url = self.webhook_url
         masked = mask_secret(url)
         for i in range(3):
