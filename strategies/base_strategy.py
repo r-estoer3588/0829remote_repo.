@@ -1,5 +1,7 @@
-﻿from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
+import logging
 import pandas as pd
+
 
 class StrategyBase(ABC):
     """
@@ -9,16 +11,21 @@ class StrategyBase(ABC):
     """
 
     def __init__(self) -> None:
-        # YAML 設定からリスク/システム固有パラメータを注入
+        logger = logging.getLogger(__name__)
         try:
             from config.settings import get_settings, get_system_params
-        except Exception:
+        except ImportError as exc:
+            logger.error("設定モジュールの読み込みに失敗: %s", exc)
             self.config = {}
             return
 
-        settings = get_settings(create_dirs=True)
+        try:
+            settings = get_settings(create_dirs=True)
+        except Exception as exc:
+            logger.error("設定の初期化に失敗: %s", exc)
+            self.config = {}
+            return
 
-        # システム名を推定（例: strategies.system1_strategy -> system1）
         module = getattr(self.__class__, "__module__", "")
         sys_name = getattr(self, "SYSTEM_NAME", None)
         if not sys_name:
@@ -26,9 +33,13 @@ class StrategyBase(ABC):
             cand = next((p for p in parts if p.startswith('system') and any(ch.isdigit() for ch in p)), None)
             sys_name = cand or ""
 
-        system_params = get_system_params(sys_name) if sys_name else {}
+        system_params = {}
+        if sys_name:
+            try:
+                system_params = get_system_params(sys_name)
+            except Exception as exc:
+                logger.warning("システム固有パラメータ取得失敗: %s", exc)
 
-        # 既定のリスク管理値 + システム固有をマージ
         cfg = {
             "risk_pct": settings.risk.risk_pct,
             "max_positions": settings.risk.max_positions,
@@ -36,8 +47,8 @@ class StrategyBase(ABC):
         }
         try:
             cfg.update(system_params or {})
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("config update failed: %s", exc)
         self.config = cfg
 
     @abstractmethod
@@ -71,7 +82,6 @@ class StrategyBase(ABC):
             p["pnl"] for p in active_positions if p["exit_date"] == current_date
         )
         capital += realized_pnl
-        # exit済みを除去
         active_positions = [
             p for p in active_positions if p["exit_date"] > current_date
         ]

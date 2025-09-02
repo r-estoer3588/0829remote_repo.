@@ -1,6 +1,111 @@
-﻿import time
+import time
+from typing import Any, Dict, Tuple
+
 import pandas as pd
-from typing import Any, Dict
+
+
+def _compute_entry(
+    strategy,
+    df: pd.DataFrame,
+    candidate: dict,
+    current_capital: float,
+    side: str | None,
+) -> Tuple[float | None, float | None]:
+    """戦略フックを用いたエントリー価格とストップを計算"""
+    if hasattr(strategy, "compute_entry"):
+        try:
+            computed = strategy.compute_entry(df, candidate, current_capital)
+        except Exception:
+            return None, None
+        return computed if computed else (None, None)
+
+    try:
+        entry_idx = df.index.get_loc(candidate["entry_date"])
+        entry_price = df.iloc[entry_idx]["Open"]
+        atr = df.iloc[entry_idx - 1]["ATR20"]
+        if (side or "long") == "short":
+            stop_loss_price = entry_price + 5 * atr
+        else:
+            stop_loss_price = entry_price - 5 * atr
+        return entry_price, stop_loss_price
+    except Exception:
+        return None, None
+
+
+def _calculate_shares(
+    strategy,
+    capital: float,
+    entry_price: float,
+    stop_loss_price: float,
+    *,
+    risk_pct: float,
+    max_pct: float,
+) -> int:
+    try:
+        return strategy.calculate_position_size(
+            capital,
+            entry_price,
+            stop_loss_price,
+            risk_pct=risk_pct,
+            max_pct=max_pct,
+        )
+    except Exception:
+        return 0
+
+
+def _compute_exit(
+    strategy,
+    df: pd.DataFrame,
+    entry_idx: int,
+    entry_price: float,
+    stop_loss_price: float,
+    side: str | None,
+) -> Tuple[float | None, pd.Timestamp | None]:
+    if hasattr(strategy, "compute_exit"):
+        try:
+            exit_calc = strategy.compute_exit(df, entry_idx, entry_price, stop_loss_price)
+        except Exception:
+            return None, None
+        return exit_calc if exit_calc else (None, None)
+
+    trail_pct = 0.25
+    exit_price, exit_date = entry_price, df.index[-1]
+    if (side or "long") == "short":
+        low_since_entry = entry_price
+        for j in range(entry_idx + 1, len(df)):
+            low_since_entry = min(low_since_entry, df["Low"].iloc[j])
+            trailing_stop = low_since_entry * (1 + trail_pct)
+            if df["High"].iloc[j] > stop_loss_price:
+                return stop_loss_price, df.index[j]
+            if df["High"].iloc[j] > trailing_stop:
+                return trailing_stop, df.index[j]
+    else:
+        high_since_entry = entry_price
+        for j in range(entry_idx + 1, len(df)):
+            high_since_entry = max(high_since_entry, df["High"].iloc[j])
+            trailing_stop = high_since_entry * (1 - trail_pct)
+            if df["Low"].iloc[j] < stop_loss_price:
+                return stop_loss_price, df.index[j]
+            if df["Low"].iloc[j] < trailing_stop:
+                return trailing_stop, df.index[j]
+    return exit_price, exit_date
+
+
+def _compute_pnl(
+    strategy,
+    entry_price: float,
+    exit_price: float,
+    shares: int,
+    side: str | None,
+) -> float:
+    if hasattr(strategy, "compute_pnl"):
+        try:
+            return strategy.compute_pnl(entry_price, exit_price, shares)
+        except Exception:
+            pass
+    if (side or "long") == "short":
+        return (entry_price - exit_price) * shares
+    return (exit_price - entry_price) * shares
 
 
 def simulate_trades_with_risk(
@@ -57,39 +162,20 @@ def simulate_trades_with_risk(
                 except KeyError:
                     continue
 
-                # --- 戦略フック: エントリー計算（なければデフォルト/Long） ---
-                entry_price = None
-                stop_loss_price = None
-                if hasattr(strategy, "compute_entry"):
-                    try:
-                        computed = strategy.compute_entry(df, c, current_capital)
-                    except Exception:
-                        computed = None
-                    if not computed:
-                        continue
-                    entry_price, stop_loss_price = computed
-                else:
-                    try:
-                        entry_price = df.iloc[entry_idx]["Open"]
-                        atr = df.iloc[entry_idx - 1]["ATR20"]
-                        if (side or "long") == "short":
-                            stop_loss_price = entry_price + 5 * atr
-                        else:
-                            stop_loss_price = entry_price - 5 * atr
-                    except Exception:
-                        continue
+                entry_price, stop_loss_price = _compute_entry(
+                    strategy, df, c, current_capital, side
+                )
+                if not entry_price or not stop_loss_price:
+                    continue
 
-                # --- ポジションサイズ計算 ---
-                try:
-                    shares = strategy.calculate_position_size(
-                        current_capital,
-                        entry_price,
-                        stop_loss_price,
-                        risk_pct=risk_pct,
-                        max_pct=max_pct,
-                    )
-                except Exception:
-                    shares = 0
+                shares = _calculate_shares(
+                    strategy,
+                    current_capital,
+                    entry_price,
+                    stop_loss_price,
+                    risk_pct=risk_pct,
+                    max_pct=max_pct,
+                )
                 if shares <= 0:
                     continue
 
@@ -97,54 +183,13 @@ def simulate_trades_with_risk(
                 if shares * abs(entry_price) > current_capital:
                     continue
 
-                # --- 戦略フック: エグジット計算（なければデフォルト/Long） ---
-                if hasattr(strategy, "compute_exit"):
-                    try:
-                        exit_calc = strategy.compute_exit(
-                            df, entry_idx, entry_price, stop_loss_price
-                        )
-                    except Exception:
-                        exit_calc = None
-                    if not exit_calc:
-                        continue
-                    exit_price, exit_date = exit_calc
-                else:
-                    trail_pct = 0.25
-                    exit_price, exit_date = entry_price, df.index[-1]
-                    if (side or "long") == "short":
-                        low_since_entry = entry_price
-                        for j in range(entry_idx + 1, len(df)):
-                            low_since_entry = min(low_since_entry, df["Low"].iloc[j])
-                            trailing_stop = low_since_entry * (1 + trail_pct)
-                            if df["High"].iloc[j] > stop_loss_price:
-                                exit_price, exit_date = stop_loss_price, df.index[j]
-                                break
-                            elif df["High"].iloc[j] > trailing_stop:
-                                exit_price, exit_date = trailing_stop, df.index[j]
-                                break
-                    else:
-                        high_since_entry = entry_price
-                        for j in range(entry_idx + 1, len(df)):
-                            high_since_entry = max(high_since_entry, df["High"].iloc[j])
-                            trailing_stop = high_since_entry * (1 - trail_pct)
-                            if df["Low"].iloc[j] < stop_loss_price:
-                                exit_price, exit_date = stop_loss_price, df.index[j]
-                                break
-                            elif df["Low"].iloc[j] < trailing_stop:
-                                exit_price, exit_date = trailing_stop, df.index[j]
-                                break
+                exit_price, exit_date = _compute_exit(
+                    strategy, df, entry_idx, entry_price, stop_loss_price, side
+                )
+                if exit_price is None or exit_date is None:
+                    continue
 
-                # --- PnL計算（ショート対応のフックがあればそちらを優先） ---
-                if hasattr(strategy, "compute_pnl"):
-                    try:
-                        pnl = strategy.compute_pnl(entry_price, exit_price, shares)
-                    except Exception:
-                        pnl = (exit_price - entry_price) * shares
-                else:
-                    if (side or "long") == "short":
-                        pnl = (entry_price - exit_price) * shares
-                    else:
-                        pnl = (exit_price - entry_price) * shares
+                pnl = _compute_pnl(strategy, entry_price, exit_price, shares, side)
 
                 results.append(
                     {
@@ -194,7 +239,7 @@ def simulate_trades_with_risk(
             on_log(
                 f"💹 バックテスト: {i}/{total_days} 日処理完了"
                 f" | 経過: {int(elapsed//60)}分{int(elapsed%60)}秒"
-                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒"
+                f" / 残り: 約 {int(remain//60)}分{int(remain%60)}秒",
             )
 
     return pd.DataFrame(results), pd.DataFrame(log_records)

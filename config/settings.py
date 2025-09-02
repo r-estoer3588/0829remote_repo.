@@ -152,20 +152,26 @@ def _as_path(base: Path, p: str | os.PathLike) -> Path:
     return pth if pth.is_absolute() else (base / pth)
 
 
-def _load_yaml_config(project_root: Path) -> Dict[str, Any]:
-    """config/config.yaml を読み込んで辞書を返す。未存在なら空。"""
-    cfg_path_env = os.getenv("APP_CONFIG", "")
-    cfg_path = Path(cfg_path_env) if cfg_path_env else project_root / "config" / "config.yaml"
+def _load_config_generic(env_var: str, default_path: Path, loader) -> Dict[str, Any]:
+    cfg_path_env = os.getenv(env_var, "")
+    cfg_path = Path(cfg_path_env) if cfg_path_env else default_path
     if not cfg_path.exists():
         return {}
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            return loader(f) or {}
+    except Exception:
+        return {}
+
+
+def _load_yaml_config(project_root: Path) -> Dict[str, Any]:
+    """config/config.yaml を読み込んで辞書を返す。未存在なら空。"""
     if yaml is None:
-        # PyYAML 未導入
         raise RuntimeError(
             "PyYAML が見つかりません。requirements.txt に PyYAML を追加しインストールしてください。"
         )
-    with open(cfg_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return data
+    default_path = project_root / "config" / "config.yaml"
+    return _load_config_generic("APP_CONFIG", default_path, lambda f: yaml.safe_load(f))
 
 
 def _load_yaml_config_validated(project_root: Path) -> Dict[str, Any]:
@@ -184,15 +190,8 @@ def _load_yaml_config_validated(project_root: Path) -> Dict[str, Any]:
 
 def _load_json_config(project_root: Path) -> Dict[str, Any]:
     """config/config.json を読み込んで辞書として返す。存在しなければ {}。"""
-    try:
-        cfg_path_env = os.getenv("APP_CONFIG_JSON", "")
-        cfg_path = Path(cfg_path_env) if cfg_path_env else project_root / "config" / "config.json"
-        if not cfg_path.exists():
-            return {}
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            return json.load(f) or {}
-    except Exception:
-        return {}
+    default_path = project_root / "config" / "config.json"
+    return _load_config_generic("APP_CONFIG_JSON", default_path, lambda f: json.load(f))
 
 
 def _load_config_json_or_yaml_validated(project_root: Path) -> Dict[str, Any]:
