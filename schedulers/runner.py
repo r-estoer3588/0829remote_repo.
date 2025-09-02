@@ -77,10 +77,40 @@ def task_notify_signals():
     notify_signals()
 
 
+def task_run_today_signals():
+    try:
+        from run_all_systems_today import compute_today_signals
+
+        compute_today_signals(None, save_csv=True, notify=False)
+    except Exception:
+        logging.exception("run_today_signals タスクが失敗しました")
+
+
+def task_bulk_last_day():
+    try:
+        from update_from_bulk_last_day import main as bulk_update
+
+        bulk_update()
+    except Exception:
+        logging.exception("bulk_last_day タスクが失敗しました")
+
+
+def task_update_tickers():
+    try:
+        from tickers_loader import update_ticker_list
+
+        update_ticker_list()
+    except Exception:
+        logging.exception("update_tickers タスクが失敗しました")
+
+
 TASKS: Dict[str, Callable[[], None]] = {
     "cache_daily_data": task_cache_daily_data,
     "warm_cache": task_cache_daily_data,
     "notify_signals": task_notify_signals,
+    "run_today_signals": task_run_today_signals,
+    "bulk_last_day": task_bulk_last_day,
+    "update_tickers": task_update_tickers,
 }
 
 

@@ -212,6 +212,7 @@ def compute_today_signals(
     capital_long: float | None = None,
     capital_short: float | None = None,
     save_csv: bool = False,
+    notify: bool = True,
 ) -> Tuple[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """当日シグナル抽出＋配分の本体。
 
@@ -357,12 +358,13 @@ def compute_today_signals(
         sort_cols = [c for c in ["side", "system", "score"] if c in final_df.columns]
         final_df = final_df.sort_values(sort_cols, ascending=[True, True, True][: len(sort_cols)]).reset_index(drop=True)
 
-        try:
-            from tools.notify_signals import send_signal_notification
+        if notify:
+            try:
+                from tools.notify_signals import send_signal_notification
 
-            send_signal_notification(final_df)
-        except Exception:
-            _log("⚠️ 通知に失敗しました。")
+                send_signal_notification(final_df)
+            except Exception:
+                _log("⚠️ 通知に失敗しました。")
 
     # CSV 保存（任意）
     if save_csv and not final_df.empty:

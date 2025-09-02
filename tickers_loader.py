@@ -4,6 +4,7 @@ import requests
 import zipfile
 import io
 from datetime import datetime
+from pathlib import Path
 import streamlit as st
 import time
 import os
@@ -55,6 +56,50 @@ def get_all_tickers():
 
     print(f"ブラックリスト除外: {len(symbols_list) - len(symbols_filtered)}件")
     return symbols_filtered
+
+
+def update_ticker_list(output_path: str | Path | None = None) -> Path:
+    """Fetch latest ticker list and save to cache dir.
+
+    Parameters
+    ----------
+    output_path: Optional path to save CSV. Defaults to
+        ``settings.data.cache_dir / 'tickers.csv'``.
+
+    Returns
+    -------
+    Path
+        Path to the saved ticker CSV.
+    """
+    from config.settings import get_settings
+    from tools.notify_signals import _post_webhook
+
+    settings = get_settings(create_dirs=True)
+    out = Path(output_path) if output_path else Path(settings.data.cache_dir) / "tickers.csv"
+
+    tickers = get_all_tickers()
+    prev: set[str] = set()
+    if out.exists():
+        try:
+            prev = set(pd.read_csv(out)["Symbol"].astype(str).str.upper())
+        except Exception:
+            prev = set()
+    df = pd.DataFrame({"Symbol": tickers})
+    df.to_csv(out, index=False)
+
+    new = sorted(set(tickers) - prev)
+    removed = sorted(prev - set(tickers))
+    text = f"Ticker update: {len(tickers)} symbols ( +{len(new)} / -{len(removed)} )"
+    if new:
+        text += f"\nAdded: {', '.join(new[:10])}"
+    if removed:
+        text += f"\nRemoved: {', '.join(removed[:10])}"
+    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL"):
+        url = os.getenv(env)
+        if url:
+            _post_webhook(url, text)
+
+    return out
 
 
 # System1用のフィルター関数（例）
