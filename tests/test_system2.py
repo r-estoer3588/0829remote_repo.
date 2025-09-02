@@ -28,5 +28,22 @@ def test_minimal_indicators(dummy_data):
 
 
 def test_placeholder_run(dummy_data):
-    # 短期対応: 実バックテストは未完成UIに依存するためスキップ扱い
-    pytest.skip("System2 full backtest integration pending")
+    strategy = System2Strategy()
+    dates = pd.date_range("2024-01-01", periods=3, freq="D")
+    df = pd.DataFrame(
+        {
+            "Open": [100, 110, 110],
+            "High": [101, 112, 120],
+            "Low": [99, 108, 108],
+            "Close": [100, 109, 109],
+            "Volume": [2_000_000] * 3,
+            "ATR10": [1, 1, 1],
+        },
+        index=dates,
+    )
+    prepared = {"DUMMY": df}
+    entry_date = dates[1]
+    candidates = {entry_date: [{"symbol": "DUMMY", "entry_date": entry_date}]}
+    trades = strategy.run_backtest(prepared, candidates, capital=10_000)
+    assert not trades.empty
+    assert "pnl" in trades.columns
