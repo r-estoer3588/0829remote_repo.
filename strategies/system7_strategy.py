@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import pandas as pd
 import time
+
 from .base_strategy import StrategyBase
+from common.alpaca_order import AlpacaOrderMixin
 from core.system7 import (
     prepare_data_vectorized_system7,
     generate_candidates_system7,
@@ -11,7 +13,7 @@ from core.system7 import (
 )
 
 
-class System7Strategy(StrategyBase):
+class System7Strategy(AlpacaOrderMixin, StrategyBase):
     """
     SPY専用のショート・カタストロフィー・ヘッジ。
     - エントリー: SPYが直近50日安値を更新の翌日寄りでショート

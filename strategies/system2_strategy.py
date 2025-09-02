@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import pandas as pd
+
 from .base_strategy import StrategyBase
+from common.alpaca_order import AlpacaOrderMixin
 from common.backtest_utils import simulate_trades_with_risk
 from core.system2 import (
     prepare_data_vectorized_system2,
@@ -11,7 +13,7 @@ from core.system2 import (
 )
 
 
-class System2Strategy(StrategyBase):
+class System2Strategy(AlpacaOrderMixin, StrategyBase):
     SYSTEM_NAME = "system2"
 
     def __init__(self):
