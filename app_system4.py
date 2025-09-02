@@ -12,12 +12,15 @@ from common.utils_spy import get_spy_data_cached
 from common.ui_manager import UIManager
 from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
+from common.performance_summary import summarize as summarize_perf
+from common.notifier import Notifier
 
 # 翻訳辞書ロード + 言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
 language_selector()
 
 strategy = System4Strategy()
+notifier = Notifier(platform="discord")
 
 
 def display_rsi4_ranking(
@@ -69,6 +72,23 @@ def run_tab(ui_manager=None):
         summary_df = show_signal_trade_summary(data_dict, results_df, "System4")
         save_signal_and_trade_logs(summary_df, results_df, "System4", capital)
         save_prepared_data_cache(data_dict, "System4")
+        summary, _ = summarize_perf(results_df, capital)
+        stats = {
+            "総リターン": f"{summary.total_return:.2f}",
+            "最大DD": f"{summary.max_drawdown:.2f}",
+            "Sharpe": f"{summary.sharpe:.2f}",
+        }
+        ranking = (
+            [str(s) for s in results_df["symbol"].head(10)]
+            if "symbol" in results_df.columns
+            else []
+        )
+        period = ""
+        if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
+            start = pd.to_datetime(results_df["entry_date"]).min()
+            end = pd.to_datetime(results_df["exit_date"]).max()
+            period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
+        notifier.send_backtest("system4", period, stats, ranking)
     else:
         # フォールバック表示（セッション保存から復元）
         prev_res = st.session_state.get("System4_results_df")

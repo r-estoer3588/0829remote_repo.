@@ -11,6 +11,8 @@ from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
 from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
+from common.performance_summary import summarize as summarize_perf
+from common.notifier import Notifier
 
 # 翻訳辞書ロードと言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -19,6 +21,7 @@ language_selector()
 
 # 戦略インスタンス
 strategy = System2Strategy()
+notifier = Notifier(platform="discord")
 
 
 def display_adx7_ranking(
@@ -65,6 +68,23 @@ def run_tab(ui_manager=None):
         summary_df = show_signal_trade_summary(data_dict, results_df, "System2")
         save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
         save_prepared_data_cache(data_dict, "System2")
+        summary, _ = summarize_perf(results_df, capital)
+        stats = {
+            "総リターン": f"{summary.total_return:.2f}",
+            "最大DD": f"{summary.max_drawdown:.2f}",
+            "Sharpe": f"{summary.sharpe:.2f}",
+        }
+        ranking = (
+            [str(s) for s in results_df["symbol"].head(10)]
+            if "symbol" in results_df.columns
+            else []
+        )
+        period = ""
+        if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
+            start = pd.to_datetime(results_df["entry_date"]).min()
+            end = pd.to_datetime(results_df["exit_date"]).max()
+            period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
+        notifier.send_backtest("system2", period, stats, ranking)
     # リラン時のフォールバック表示（セッションから復元）
     elif results_df is None and candidates_by_date is None:
         prev_res = st.session_state.get("System2_results_df")

@@ -15,6 +15,7 @@ from common.ui_bridge import (
 from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
 from tickers_loader import get_all_tickers
 from common.ui_manager import UIManager
+from common.notifier import Notifier
 
 # 外部翻訳を読み込む（任意・起動時に一度）
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -43,6 +44,7 @@ def main():
     settings = get_settings(create_dirs=True)
     logger = setup_logging(settings)
     logger.info("app_integrated start")
+    notifier = Notifier(platform="discord")
 
     st.title(tr("Trading Systems Integrated UI"))
     with st.expander(tr("settings"), expanded=False):
@@ -176,6 +178,12 @@ def main():
                     file_name=f"integrated_trades_{_ts_i}_{int(capital_i)}.csv",
                     mime="text/csv",
                     key="download_integrated_csv",
+                )
+                notifier.send_summary(
+                    "integrated",
+                    "daily",
+                    _pd.Timestamp.now().strftime("%Y-%m-%d"),
+                    d,
                 )
             else:
                 st.info(tr("no trades in integrated run"))

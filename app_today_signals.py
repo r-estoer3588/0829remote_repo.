@@ -8,12 +8,14 @@ from config.settings import get_settings
 from common import broker_alpaca as ba
 from run_all_systems_today import compute_today_signals
 from utils.universe import build_universe_from_cache, save_universe_file, load_universe_file
+from common.notifier import Notifier
 
 
 st.set_page_config(page_title="Today Signals", layout="wide")
 st.title("📈 Today Signals (All Systems)")
 
 settings = get_settings(create_dirs=True)
+notifier = Notifier(platform="discord")
 
 with st.sidebar:
     st.header("Universe")
@@ -65,6 +67,10 @@ if st.button("▶ Run Today Signals", type="primary"):
             capital_short=cap_short,
             save_csv=save_csv,
         )
+
+    for name, df in per_system.items():
+        syms2 = df["symbol"].tolist() if df is not None and not df.empty else []
+        notifier.send_signals(name, syms2)
 
     st.subheader("Final Picks")
     if final_df is None or final_df.empty:
@@ -133,6 +139,7 @@ if st.button("▶ Run Today Signals", type="primary"):
                         })
             if results:
                 st.dataframe(pd.DataFrame(results), use_container_width=True)
+                notifier.send_trade_report("integrated", results)
                 if poll_status and any(r.get("order_id") for r in results):
                     st.info("Polling order status for 10 seconds...")
                     import time
