@@ -34,16 +34,23 @@ def notify_signals():
         return
 
     total = 0
+    frames = []
     for f in files:
         try:
             df = pd.read_csv(f)
             n = len(df)
             total += n
+            frames.append(df)
             logging.info("シグナル: %s (%d 件)", f.name, n)
         except Exception:
             logging.exception("シグナルCSVの読み込みに失敗: %s", f)
 
     logging.info("本日の合計シグナル件数: %d", total)
+    if frames:
+        try:
+            send_signal_notification(pd.concat(frames, ignore_index=True))
+        except Exception:
+            logging.exception("signal notification failed")
 
 
 def _post_webhook(url: str, text: str) -> None:
