@@ -74,3 +74,11 @@ def get_manual_data(symbol: str, folder: str = "data_cache") -> pd.DataFrame:
     get_cached_dataのラッパー
     """
     return get_cached_data(symbol, folder=folder)
+
+
+def clamp01(value: float) -> float:
+    """Clamp numeric value into the 0..1 range."""
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except Exception:
+        return 0.0

@@ -21,6 +21,7 @@ from strategies.system4_strategy import System4Strategy
 from strategies.system5_strategy import System5Strategy
 from strategies.system6_strategy import System6Strategy
 from strategies.system7_strategy import System7Strategy
+from common.signal_merge import Signal, merge_signals
 
 
 def _log(msg: str):
@@ -425,6 +426,17 @@ def main():
         ]
         show = [c for c in cols if c in final_df.columns]
         _log(final_df[show].to_string(index=False))
+        signals_for_merge = [
+            Signal(
+                system_id=int(str(r.get("system")).replace("system", "") or 0),
+                symbol=str(r.get("symbol")),
+                side="BUY" if str(r.get("side")).lower() == "long" else "SELL",
+                strength=float(r.get("score") or 0.0),
+                meta={},
+            )
+            for _, r in final_df.iterrows()
+        ]
+        merge_signals([signals_for_merge], portfolio_state={}, market_state={})
         if args.alpaca_submit:
             _submit_orders(final_df, paper=(not args.live), order_type=args.order_type, tif=args.tif)
 
