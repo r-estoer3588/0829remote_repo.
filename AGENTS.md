@@ -10,11 +10,12 @@
 - データ/出力: `data_cache/`, `results_csv/`, `logs/`（git 追跡外）
 - テスト: `tests/`（`test_system1.py` … `test_system7.py`）
 - ツール: `tools/`（インポート解析や補助スクリプト）
+- スクリプト: `scripts/`（キャッシュ更新やユニバース作成など）
 
 ## Build, Test, and Development Commands
 - 依存関係: `pip install -r requirements.txt`
 - UI 起動: `streamlit run app_integrated.py`
-- データキャッシュ: `python cache_daily_data.py`（`EODHD_API_KEY` 必須）
+- データキャッシュ: `python scripts/cache_daily_data.py`（`EODHD_API_KEY` 必須）
 - テスト: `pytest -q`（例: 集中実行 `pytest tests/test_system3.py::test_entry_rules`）
 - 単体モジュール実行: `python -m strategies.system1_strategy`
 

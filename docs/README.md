@@ -3,7 +3,7 @@
 ### 共通前提
 - データ: EODHD 日足（初回 /eod、以後 /eod-bulk-last-day/US）
 - 必須: SPY キャッシュ、ブラックリスト適用、Asia/Tokyo運用
-- ベース指標: SMA, ATR, RSI, ROC, HV … (`utils/cache_manager.py`)
+- ベース指標: SMA, ATR, RSI, ROC, HV … (`common/cache_manager.py`)
 
 ### 設定の優先順位
 - JSON > YAML > .env (`config/settings.py`)

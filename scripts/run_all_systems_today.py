@@ -232,7 +232,7 @@ def compute_today_signals(
     if symbols and len(symbols) > 0:
         symbols = [s.upper() for s in symbols]
     else:
-        from utils.universe import build_universe_from_cache, load_universe_file
+        from common.universe import build_universe_from_cache, load_universe_file
 
         universe = load_universe_file()
         if not universe:

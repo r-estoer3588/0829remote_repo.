@@ -1,8 +1,7 @@
 import importlib
 
 mods = [
-    'system.core',
-    'strategies.system1',
+    'core.system1',
     'strategies.system1_strategy',
     'common.ui_components',
 ]

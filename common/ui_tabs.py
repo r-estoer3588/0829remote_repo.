@@ -12,7 +12,7 @@ from common.ui_bridge import (
 )
 from common.ui_manager import UIManager
 from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
-from tickers_loader import get_all_tickers
+from scripts.tickers_loader import get_all_tickers
 from common.notifier import Notifier
 
 

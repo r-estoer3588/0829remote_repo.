@@ -1,6 +1,5 @@
 """System1 core logic.
 
-Formerly stored in `system.core`, now lives here directly.
 Provides data preparation, ROC200 ranking, and total-days helpers.
 """
 

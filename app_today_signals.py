@@ -6,8 +6,8 @@ import streamlit as st
 
 from config.settings import get_settings
 from common import broker_alpaca as ba
-from run_all_systems_today import compute_today_signals
-from utils.universe import build_universe_from_cache, save_universe_file, load_universe_file
+from scripts.run_all_systems_today import compute_today_signals
+from common.universe import build_universe_from_cache, save_universe_file, load_universe_file
 from common.notifier import Notifier
 
 

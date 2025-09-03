@@ -5,7 +5,7 @@ from typing import Dict
 import streamlit as st
 import pandas as pd
 from common.utils import safe_filename, get_cached_data
-from utils.cache_manager import load_base_cache, base_cache_path
+from common.cache_manager import load_base_cache, base_cache_path
 import os
 from typing import Optional
 from common.i18n import tr

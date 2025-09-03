@@ -23,14 +23,14 @@ try:
     _APP_SETTINGS = get_settings(create_dirs=True)
 except Exception:
     _APP_SETTINGS = None
-from tickers_loader import get_all_tickers
-from utils.cache_manager import load_base_cache, base_cache_path
-from holding_tracker import (
+from scripts.tickers_loader import get_all_tickers
+from common.cache_manager import load_base_cache, base_cache_path
+from common.holding_tracker import (
     generate_holding_matrix,
     display_holding_heatmap,
     download_holding_csv,
 )
-from system.core import generate_roc200_ranking_system1
+from core.system1 import generate_roc200_ranking_system1
 import common.i18n as i18n
 # 互換用エイリアス（既存コードの tr(...) 呼び出しを維持）
 tr = i18n.tr

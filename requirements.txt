@@ -7,7 +7,6 @@ numpy>=1.24,<3
 requests>=2.31,<3
 pandas-market-calendars>=5.0,<6
 ta>=0.11,<1
-alpaca-py>=0.19,<1
 
 # Env & config
 python-dotenv>=1.0,<2
