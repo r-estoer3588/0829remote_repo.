@@ -381,14 +381,30 @@ def run_backtest_with_logging(
             pass
         progress = bt_phase.progress_bar
         log_area = bt_phase.log_area
-        trade_log_area = getattr(bt_phase, "trade_log_area", bt_phase.container.empty())
+        # 資金推移ログをエクスパンダー内に表示
+        _fund_expander = getattr(bt_phase, "fund_log_expander", None)
+        if _fund_expander is None:
+            try:
+                _fund_expander = bt_phase.container.expander("💰 資金推移", expanded=False)
+            except Exception:
+                _fund_expander = bt_phase.container
+            try:
+                setattr(bt_phase, "fund_log_expander", _fund_expander)
+            except Exception:
+                pass
+        trade_log_area = getattr(bt_phase, "trade_log_area", _fund_expander.empty())
         setattr(bt_phase, "trade_log_area", trade_log_area)
         debug_area = bt_phase.container.empty()
     else:
         st.info(tr("backtest: running..."))
         progress = st.progress(0)
         log_area = st.empty()
-        trade_log_area = st.empty()
+        # 単体ページでもエクスパンダーで表示
+        try:
+            _fund_expander = st.expander("💰 資金推移", expanded=False)
+            trade_log_area = _fund_expander.empty()
+        except Exception:
+            trade_log_area = st.empty()
         debug_area = st.empty()
     start_time = time.time()
     debug_logs: list[str] = []
