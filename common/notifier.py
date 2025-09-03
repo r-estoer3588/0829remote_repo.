@@ -208,7 +208,10 @@ class Notifier:
                 wait = (2 ** i) + random.uniform(-0.2, 0.2)
                 time.sleep(wait)
         self.logger.error("送信に失敗しました: %s", masked)
-        raise RuntimeError("notification failed")
+        # 既定では UI を落とさない。厳格運用したい場合は NOTIFIER_STRICT=1 を設定。
+        if os.getenv("NOTIFIER_STRICT", "").strip() in {"1", "true", "True", "YES", "yes"}:
+            raise RuntimeError("notification failed")
+        return
 
     def send(
         self,

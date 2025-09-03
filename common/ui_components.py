@@ -36,22 +36,38 @@ import common.i18n as i18n
 tr = i18n.tr
 import matplotlib as mpl
 import logging
+from matplotlib import font_manager as _font_manager
 
 # 日本語表示のためのフォントフォールバック（Windows向け優先）
-try:
-    mpl.rcParams["font.family"] = [
-        "Noto Sans JP",
-        "IPAexGothic",
-        "Yu Gothic",
-        "Meiryo",
-        "MS Gothic",
-        "DejaVu Sans",
-    ]
-except Exception:
-    pass
+def _set_japanese_font_fallback() -> None:
+    """日本語フォントをインストール済みのものだけに設定して警告を回避する。"""
+    try:
+        preferred = [
+            "Noto Sans JP",
+            "IPAexGothic",
+            "Yu Gothic",
+            "Meiryo",
+            "MS Gothic",
+            "Yu Gothic UI",
+            "MS PGothic",
+            "Hiragino Sans",
+            "Hiragino Kaku Gothic ProN",
+            "TakaoGothic",
+            "DejaVu Sans",
+        ]
+        available = {f.name for f in _font_manager.fontManager.ttflist}
+        chosen = [name for name in preferred if name in available]
+        if not chosen:
+            chosen = ["DejaVu Sans"]
+        mpl.rcParams["font.family"] = chosen
+        mpl.rcParams["axes.unicode_minus"] = False
+    except Exception:
+        pass
+
+_set_japanese_font_fallback()
 
 # matplotlib.font_manager の冗長な INFO を抑制
-logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 
 
 # ------------------------------
@@ -767,14 +783,7 @@ def show_results(
     st.subheader(i18n.tr("cumulative pnl"))
     # 日本語を軸ラベルに使う際のフォントフォールバック設定（環境にあるフォントを優先して選択）
     try:
-        mpl.rcParams["font.family"] = [
-            "Noto Sans JP",
-            "IPAexGothic",
-            "Yu Gothic",
-            "Meiryo",
-            "MS Gothic",
-            "DejaVu Sans",
-        ]
+        _set_japanese_font_fallback()
     except Exception:
         pass
     plt.figure(figsize=(10, 4))
@@ -935,6 +944,21 @@ def save_signal_and_trade_logs(signal_counts_df, results, system_name, capital):
 
     trades_df = pd.DataFrame(results) if isinstance(results, list) else results
     if trades_df is not None and not trades_df.empty:
+        # 画面内プレビュー（呼び出し元でエクスパンダー内にいる想定）
+        try:
+            preferred_cols = [
+                "entry_date",
+                "exit_date",
+                "symbol",
+                "action",
+                "price",
+                "qty",
+                "pnl",
+            ]
+            cols = [c for c in preferred_cols if c in trades_df.columns]
+            st.dataframe(trades_df[cols] if cols else trades_df)
+        except Exception:
+            pass
         trade_path = os.path.join(
             trade_dir, f"{system_name}_trades_{today_str}_{int(capital)}.csv"
         )
