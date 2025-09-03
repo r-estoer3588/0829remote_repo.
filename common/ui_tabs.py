@@ -235,18 +235,18 @@ def render_batch_tab(settings, logger) -> None:
             st.experimental_rerun()
 
     st.markdown("---")
-    with st.expander(tr("Saved Per-System Logs"), expanded=False):
-        any_logs = False
-        for i in range(1, 8):
-            sys_name = f"System{i}"
-            logs = st.session_state.get(f"{sys_name}_debug_logs")
-            if logs:
-                any_logs = True
-                with st.expander(f"{sys_name} logs", expanded=False):
-                    tail = list(map(str, logs))[-int(log_tail_lines):]
-                    st.text("\n".join(tail))
-        if not any_logs:
-            st.info(tr("no saved logs yet"))
+    st.subheader(tr("Saved Per-System Logs"))
+    any_logs = False
+    for i in range(1, 8):
+        sys_name = f"System{i}"
+        logs = st.session_state.get(f"{sys_name}_debug_logs")
+        if logs:
+            any_logs = True
+            with st.expander(f"{sys_name} logs", expanded=False):
+                tail = list(map(str, logs))[-int(log_tail_lines):]
+                st.text("\n".join(tail))
+    if not any_logs:
+        st.info(tr("no saved logs yet"))
 
     if mode != "Backtest":
         st.info(tr("Signal detection mode will be added soon."))

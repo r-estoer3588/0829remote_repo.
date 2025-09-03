@@ -78,7 +78,28 @@ def run_tab(spy_df=None, ui_manager=None):
             start = pd.to_datetime(results_df["entry_date"]).min()
             end = pd.to_datetime(results_df["exit_date"]).max()
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
-        notifier.send_backtest("system1", period, stats, ranking)
+        # 通知ON/OFFトグル（既定はOFF）
+        notify_key = f"{SYSTEM_NAME}_notify_backtest"
+        if notify_key not in st.session_state:
+            st.session_state[notify_key] = False
+        try:
+            use_toggle = hasattr(st, "toggle")
+        except Exception:
+            use_toggle = False
+        label = tr("バックテスト結果を通知する（Webhook）")
+        enabled = (
+            st.toggle(label, key=notify_key) if use_toggle else st.checkbox(label, key=notify_key)
+        )
+        if not notifier.webhook_url:
+            st.caption(tr("Webhook URL が未設定です（.env を確認）"))
+        if enabled:
+            try:
+                notifier.send_backtest("system1", period, stats, ranking)
+                st.success(tr("通知を送信しました"))
+            except Exception:
+                st.warning(tr("通知の送信に失敗しました"))
+        else:
+            st.info(tr("通知はOFFです"))
 
     elif results_df is None and merged_df is None:
         prev_res = st.session_state.get(f"{SYSTEM_NAME}_results_df")
@@ -103,4 +124,3 @@ if __name__ == "__main__":
     import sys
     if "streamlit" not in sys.argv[0]:
         run_tab()
-
