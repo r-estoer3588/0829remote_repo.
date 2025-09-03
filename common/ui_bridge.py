@@ -1,14 +1,16 @@
-﻿from __future__ import annotations
-import time
+# ruff: noqa: I001
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict
-import streamlit as st
-import pandas as pd
-from common.utils import safe_filename, get_cached_data
-from common.cache_manager import load_base_cache, base_cache_path
 import os
-from typing import Optional
+import time
+
+import pandas as pd
+import streamlit as st
+
+from common.cache_manager import base_cache_path, load_base_cache
 from common.i18n import tr
+from common.utils import get_cached_data, safe_filename
 
 
 class _FallbackPhase:
@@ -69,10 +71,8 @@ def _load_symbol(symbol: str, cache_dir: str = "data_cache"):
     )
 
 
-def _fetch_data_ui(
-    symbols, ui_manager=None, max_workers: int = 8
-) -> Dict[str, pd.DataFrame]:
-    data: Dict[str, pd.DataFrame] = {}
+def _fetch_data_ui(symbols, ui_manager=None, max_workers: int = 8) -> dict[str, pd.DataFrame]:
+    data: dict[str, pd.DataFrame] = {}
     total = len(symbols)
     phase = ui_manager.phase("fetch") if ui_manager else None
     progress = phase.progress_bar if phase else st.progress(0)
@@ -180,18 +180,14 @@ def prepare_backtest_data_ui(
     try:
         candidates_by_date, merged_df = strategy.generate_candidates(
             prepared,
-            progress_callback=lambda done, total: cand.progress_bar.progress(
-                done / total
-            ),
+            progress_callback=lambda done, total: cand.progress_bar.progress(done / total),
             **kwargs,
         )
     except TypeError:
         # 戻り値が dict のみ（System2仕様）
         candidates_by_date = strategy.generate_candidates(
             prepared,
-            progress_callback=lambda done, total: cand.progress_bar.progress(
-                done / total
-            ),
+            progress_callback=lambda done, total: cand.progress_bar.progress(done / total),
             **kwargs,
         )
         merged_df = None
@@ -203,12 +199,6 @@ def prepare_backtest_data_ui(
         cand.log_area.text(tr("candidates: done"))
     except Exception:
         pass
-
-
-
-
-
-
 
     if not candidates_by_date:
         st.warning(tr("候補がありません"))
@@ -240,24 +230,23 @@ def run_backtest_with_logging_ui(
 
     bt = _phase(ui_manager, "backtest")
     bt.info("💹 バックテスト実行中...")
-    debug_area = bt.container.empty()
     debug_logs = []
+
+    def _handle_log(msg):
+        s = str(msg)
+        if s.startswith("💰"):
+            debug_logs.append(s)
+            if hasattr(bt, "trade_log_area"):
+                bt.trade_log_area.text(s)
+        else:
+            bt.log_area.text(s)
 
     results_df = strategy.run_backtest(
         prepared_dict,
         candidates_by_date,
         capital,
-        on_progress=lambda i, total, start: bt.progress_bar.progress(
-            0 if not total else i / total
-        ),
-        on_log=lambda msg: (
-            debug_logs.append(str(msg))
-            or (
-                (getattr(bt, "trade_log_area", bt.log_area).text(str(msg)))
-                if (isinstance(msg, str) and str(msg).startswith("💰"))
-                else bt.log_area.text(str(msg))
-            )
-        ),
+        on_progress=lambda i, total, start: bt.progress_bar.progress(0 if not total else i / total),
+        on_log=_handle_log,
     )
 
     if debug_logs:
