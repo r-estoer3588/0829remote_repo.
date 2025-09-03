@@ -16,7 +16,8 @@ from common.notifier import Notifier
 
 # 翻訳辞書ロードと言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
-language_selector()
+if not st.session_state.get("_integrated_ui", False):
+    language_selector()
 
 
 # 戦略インスタンス

@@ -1,5 +1,5 @@
 import streamlit as st  
-import common.ui_patch  # noqa: F401  # 共通ログ/サマリーへ委譲
+import common.ui_patch  # noqa: F401
 import pandas as pd
 from strategies.system1_strategy import System1Strategy
 from common.ui_components import (
@@ -15,34 +15,31 @@ from common.i18n import tr, load_translations_from_dir, language_selector
 from common.performance_summary import summarize as summarize_perf
 from common.notifier import Notifier
 
-# 外部翻訳を読み込む（任意・起動時に一度）
+# Load translations once
 load_translations_from_dir(Path(__file__).parent / "translations")
-# 言語選択を表示
-language_selector()
+# Skip local language selector when running inside integrated UI
+if not st.session_state.get("_integrated_ui", False):
+    language_selector()
 
-# ✅ SPY関連は共通ユーティリティから
 from common.utils_spy import get_spy_with_indicators
 
 SYSTEM_NAME = "System1"
 DISPLAY_NAME = "システム1"
 
-# インスタンス生成
 strategy = System1Strategy()
 notifier = Notifier(platform="discord")
 
 
 def run_tab(spy_df=None, ui_manager=None):
-    # 例: 既存のヘッダを i18n で包む
     st.header(
         tr(
-            f"{DISPLAY_NAME}：ロング・トレンド・ハイ・モメンタム（複数銘柄＋ランキング）"
+            f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"
         )
     )
 
-    # SPY はフィルター判定で SMA100 を使用するため、必ずインジ付きで取得
     spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
     if spy_df is None or spy_df.empty:
-        st.error("SPYデータの取得に失敗しました。キャッシュを更新してください。")
+        st.error("SPYデータの取得に失敗しました。キャッシュを更新してください")
         return
 
     results_df, merged_df, data_dict, capital, candidates_by_date = run_backtest_app(
@@ -64,7 +61,6 @@ def run_tab(spy_df=None, ui_manager=None):
         )
         save_signal_and_trade_logs(signal_summary_df, results_df, SYSTEM_NAME, capital)
         save_prepared_data_cache(data_dict, SYSTEM_NAME)
-        # キャッシュ保存後にも完了メッセージを再掲
         st.success("バックテスト完了")
         summary, _ = summarize_perf(results_df, capital)
         stats = {
@@ -84,7 +80,6 @@ def run_tab(spy_df=None, ui_manager=None):
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
         notifier.send_backtest("system1", period, stats, ranking)
 
-    # フォールバック: リラン時にセッションから復元してランキング/サマリを表示
     elif results_df is None and merged_df is None:
         prev_res = st.session_state.get(f"{SYSTEM_NAME}_results_df")
         prev_merged = st.session_state.get(f"{SYSTEM_NAME}_merged_df")
@@ -97,34 +92,15 @@ def run_tab(spy_df=None, ui_manager=None):
             _ = show_signal_trade_summary(
                 prev_merged, prev_res, SYSTEM_NAME, display_name=DISPLAY_NAME
             )
-            # 前回結果の主要出力（表・グラフ・ヒートマップ）も再表示
             try:
                 from common.ui_components import show_results
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
 
-        # ✅ 同時保有銘柄数の最大値をチェック 0823デバッグ用
-        # if not results_df.empty:
-        #     results_df["entry_date"] = pd.to_datetime(results_df["entry_date"])
-        #     results_df["exit_date"] = pd.to_datetime(results_df["exit_date"])
 
-        #     # 各営業日に保有している銘柄数をカウント
-        #     unique_dates = sorted(results_df["entry_date"].dt.normalize().unique())
-        #     holding_counts = []
-        #     for d in unique_dates:
-        #         active = results_df[
-        #             (results_df["entry_date"] <= d) & (results_df["exit_date"] >= d)
-        #         ]
-        #         holding_counts.append(len(active["symbol"].unique()))
-
-        #     max_holdings = max(holding_counts) if holding_counts else 0
-        #     st.info(f"📌 最大同時保有銘柄数: {max_holdings}")
-
-
-# 単体実行用
 if __name__ == "__main__":
     import sys
-
     if "streamlit" not in sys.argv[0]:
         run_tab()
+

@@ -1,13 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import streamlit as st
-
-# Must be the first Streamlit command on the page
-st.set_page_config(page_title="Trading Systems 1-7 (Integrated)", layout="wide")
-
-# Mark that we are running inside the integrated UI to avoid duplicate widgets
-st.session_state["_integrated_ui"] = True
-
 import common.ui_patch  # noqa: F401
 from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
@@ -18,18 +11,19 @@ from common.notifier import Notifier
 from common.utils_spy import get_spy_data_cached
 from common.ui_tabs import render_integrated_tab, render_batch_tab
 
-# Load external translations once at startup
+# 螟夜Κ鄙ｻ險ｳ繧定ｪｭ縺ｿ霎ｼ繧・井ｻｻ諢上・襍ｷ蜍墓凾縺ｫ荳蠎ｦ・・
 load_translations_from_dir(Path(__file__).parent / "translations")
+# 險隱樣∈謚槭ｒ陦ｨ遉ｺ
+language_selector()
 
 
 def main() -> None:
+    st.set_page_config(page_title="Trading Systems 1-7 (Integrated)", layout="wide")
+
     settings = get_settings(create_dirs=True)
     logger = setup_logging(settings)
     logger.info("app_integrated start")
     notifier = Notifier(platform="discord")
-
-    # Show language selector exactly once
-    language_selector()
 
     st.title(tr("Trading Systems Integrated UI"))
     with st.expander(tr("settings"), expanded=False):
@@ -71,4 +65,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

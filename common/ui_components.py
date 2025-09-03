@@ -550,20 +550,7 @@ def run_backtest_app(
             return None, None, None, None, None
         symbols = [s.strip().upper() for s in symbols_input.split(",")]
 
-    # System1 専用: SPY セットアップ確認（SMA100/200 付与の確認）
-    run_permitted = True
-    if system_name == "System1":
-        spy_confirm_key = f"{system_name}_spy_setup_confirm"
-        spy_confirm = st.checkbox(
-            tr("チェック: SPYセットアップ確認（SMA100/200付与済み）"),
-            value=False,
-            key=spy_confirm_key,
-        )
-        if not spy_confirm:
-            st.info(tr("SPYのセットアップ確認にチェックを入れてください"))
-            run_permitted = False
-
-    if run_permitted and st.button(tr("run"), key=f"{system_name}_run"):
+    if st.button(tr("run"), key=f"{system_name}_run"):
         prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
             strategy,
             symbols,

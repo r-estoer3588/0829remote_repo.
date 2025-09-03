@@ -14,16 +14,17 @@ from common.i18n import tr, load_translations_from_dir, language_selector
 from common.performance_summary import summarize as summarize_perf
 from common.notifier import Notifier
 
-# 翻訳辞書ロード + 言語選択
+# Load translations and (optionally) show language selector
 load_translations_from_dir(Path(__file__).parent / "translations")
-language_selector()
+if not st.session_state.get("_integrated_ui", False):
+    language_selector()
 
 strategy = System7Strategy()
 notifier = Notifier(platform="discord")
 
 
 def run_tab(single_mode=None, ui_manager=None):
-    st.header(tr("System7 バックテスト（カタストロフィー・ヘッジ：SPYのみ）"))
+    st.header(tr("System7 バックテスト（カタストロフィー・ヘッジ / SPYのみ）"))
     single_mode = st.checkbox(tr("単体モード（資金100%を使用）"), value=False)
 
     ui = ui_manager or UIManager()
@@ -65,7 +66,7 @@ def run_tab(single_mode=None, ui_manager=None):
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
         notifier.send_backtest("system7", period, stats, ranking)
     else:
-        # フォールバック表示（セッション保存から復元）
+        # Fallback view from session state
         prev_res = st.session_state.get("System7_results_df")
         prev_data = st.session_state.get("System7_prepared_dict")
         prev_cap = st.session_state.get("System7_capital_saved")
@@ -82,3 +83,4 @@ if __name__ == "__main__":
     import sys
     if "streamlit" not in sys.argv[0]:
         run_tab()
+
