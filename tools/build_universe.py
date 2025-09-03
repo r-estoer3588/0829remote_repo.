@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from utils.universe import build_universe_from_cache, save_universe_file
+from common.universe import build_universe_from_cache, save_universe_file
 
 
 def main():

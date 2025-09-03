@@ -63,7 +63,7 @@ def parse_cron(cron: str):
 
 
 def task_cache_daily_data():
-    from cache_daily_data import warm_cache_default
+    from scripts.cache_daily_data import warm_cache_default
 
     warm_cache_default()
 
@@ -79,7 +79,7 @@ def task_notify_signals():
 
 def task_run_today_signals():
     try:
-        from run_all_systems_today import compute_today_signals
+        from scripts.run_all_systems_today import compute_today_signals
 
         compute_today_signals(None, save_csv=True, notify=False)
     except Exception:
@@ -88,7 +88,7 @@ def task_run_today_signals():
 
 def task_bulk_last_day():
     try:
-        from update_from_bulk_last_day import main as bulk_update
+        from scripts.update_from_bulk_last_day import main as bulk_update
 
         bulk_update()
     except Exception:
@@ -97,7 +97,7 @@ def task_bulk_last_day():
 
 def task_update_tickers():
     try:
-        from tickers_loader import update_ticker_list
+        from scripts.tickers_loader import update_ticker_list
 
         update_ticker_list()
     except Exception:

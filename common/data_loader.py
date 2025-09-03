@@ -6,7 +6,7 @@ from typing import Dict, Iterable, Tuple
 
 import pandas as pd
 
-from utils.cache_manager import load_base_cache
+from common.cache_manager import load_base_cache
 from common.utils import get_cached_data, safe_filename
 
 

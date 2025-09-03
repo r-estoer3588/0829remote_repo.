@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 ## 実行例
 - UI: `streamlit run app_integrated.py`
-- 日次キャッシュ: `python cache_daily_data.py`
+- 日次キャッシュ: `python scripts/cache_daily_data.py`
 - 簡易スケジューラ: `python -m schedulers.runner`
 
 ## テスト

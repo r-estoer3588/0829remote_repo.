@@ -1,7 +1,0 @@
-*** Begin Patch
-*** Update File: app_system1_ui2.py
-@@
--    spy_df = spy_df if spy_df is not None else get_spy_data_cached()
-+    # SPY はフィルター判定で SMA100 を使用するため、必ずインジ付きで取得
-+    spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
-*** End Patch

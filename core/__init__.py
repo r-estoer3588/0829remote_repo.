@@ -1,6 +1,6 @@
-"""Core logic layer (aliases to shared implementations).
+"""Core logic layer.
 
-This package provides stable import paths like `core.system1`
-that delegate to existing shared logic under `system.core`.
-"""
+Provides stable import paths like ``core.system1`` that expose
+the actual per-system implementations without additional
+wrappers."""
 
