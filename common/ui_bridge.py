@@ -262,12 +262,20 @@ def run_backtest_with_logging_ui(
 
     if debug_logs:
         with st.expander("💰 取引ログ", expanded=False):
-            st.text("\n".join(debug_logs))
+            # st.text だと見づらいので text_area の方がよい
+            st.text_area(
+                "Logs",
+                "\n".join(debug_logs),
+                height=300,
+            )
+
     # セッションへ永続化
     st.session_state[f"{system_name}_debug_logs"] = list(debug_logs)
+
     try:
         bt.progress_bar.empty()
     except Exception:
         pass
+
     st.session_state[f"{system_name}_results_df"] = results_df
     return results_df
