@@ -7,3 +7,5 @@
 - CI 追加（lint/type/security/test）
 - ドキュメント整備（AGENTS.md, .env.example）
 - Slack通知が送信されない問題を修正（textフィールドを追加）
+- バッチタブに当日シグナル実行を追加
+- `app_today_signals.py` を削除（機能をバッチタブに統合）
