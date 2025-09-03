@@ -184,7 +184,7 @@ def _submit_orders(
         out = pd.DataFrame(results)
         _log("\n=== Alpaca submission results ===")
         _log(out.to_string(index=False))
-        notifier = Notifier(platform="discord")
+        notifier = Notifier(platform="auto")
         notifier.send_trade_report("integrated", results)
         return out
     return pd.DataFrame()

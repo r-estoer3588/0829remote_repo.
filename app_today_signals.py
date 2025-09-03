@@ -15,7 +15,7 @@ st.set_page_config(page_title="Today Signals", layout="wide")
 st.title("📈 Today Signals (All Systems)")
 
 settings = get_settings(create_dirs=True)
-notifier = Notifier(platform="discord")
+notifier = Notifier(platform="auto")
 
 with st.sidebar:
     st.header("Universe")

@@ -4,4 +4,5 @@ bt_cache/
 results_csv/
 __pycache__/
 common/__pycache__/
-logs/
+logs/*
+!logs/images/

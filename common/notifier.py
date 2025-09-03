@@ -11,7 +11,15 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-__all__ = ["Notifier", "now_jst_str", "mask_secret", "truncate", "format_table", "chunk_fields"]
+__all__ = [
+    "Notifier",
+    "now_jst_str",
+    "mask_secret",
+    "truncate",
+    "format_table",
+    "chunk_fields",
+    "detect_default_platform",
+]
 
 SYSTEM_POSITION = {
     "system1": "long",
@@ -144,8 +152,23 @@ def chunk_fields(name: str, items: List[str], inline: bool = True, max_per_field
     return fields
 
 
+def detect_default_platform() -> str:
+    """Return preferred notifier platform based on environment.
+
+    - If ``SLACK_WEBHOOK_URL`` is set, prefer Slack.
+    - Otherwise fall back to Discord.
+    """
+    try:
+        return "slack" if os.getenv("SLACK_WEBHOOK_URL") else "discord"
+    except Exception:
+        return "discord"
+
+
 class Notifier:
     def __init__(self, platform: str = "discord", webhook_url: str | None = None) -> None:
+        # Allow callers that pass "auto" or an empty string to rely on env detection
+        if not platform or platform.lower() == "auto":
+            platform = detect_default_platform()
         self.platform = platform.lower()
         if self.platform not in {"discord", "slack"}:
             raise ValueError(f"未知のplatform: {platform}")
@@ -255,6 +278,83 @@ class Notifier:
         )
         self._post(payload)
 
+    # unified send with optional mention support
+    def send_with_mention(
+        self,
+        title: str,
+        message: str,
+        fields: Dict[str, str] | List[Dict[str, Any]] | None = None,
+        image_url: str | None = None,
+        color: int | None = None,
+        mention: str | bool | None = None,
+    ) -> None:
+        desc = f"実行日時: {now_jst_str()}"
+        if message:
+            desc += "\n" + message
+        content: str | None = None
+        if mention is None:
+            _m = os.getenv("NOTIFY_MENTION", "").strip().lower()
+            if _m in {"channel", "here", "@everyone", "@here"}:
+                mention = _m
+        if mention:
+            if self.platform == "slack":
+                tag = "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
+                desc = f"{tag}\n" + desc
+            else:
+                content = "@everyone" if str(mention).lower() in {"channel", "@everyone"} else "@here"
+
+        payload: Dict[str, Any]
+        if self.platform == "discord":
+            embed: Dict[str, Any] = {
+                "title": truncate(title, 256),
+                "description": truncate(desc, 4096),
+            }
+            if color is not None:
+                embed["color"] = int(color)
+            field_list: List[Dict[str, Any]] = []
+            if isinstance(fields, dict):
+                for k, v in fields.items():
+                    field_list.append(
+                        {"name": truncate(k, 256), "value": truncate(str(v), 1024), "inline": True}
+                    )
+            elif isinstance(fields, list):
+                for f in fields:
+                    field_list.append(
+                        {
+                            "name": truncate(f.get("name", ""), 256),
+                            "value": truncate(str(f.get("value", "")), 1024),
+                            "inline": bool(f.get("inline", True)),
+                        }
+                    )
+            if field_list:
+                embed["fields"] = field_list[:25]
+            if image_url:
+                embed["image"] = {"url": image_url}
+            payload = {"embeds": [embed]}
+            if content:
+                payload["content"] = content
+        else:
+            blocks: List[Dict[str, Any]] = [
+                {"type": "section", "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)}}
+            ]
+            if isinstance(fields, dict):
+                text = "\n".join(f"*{k}*: {v}" for k, v in fields.items())
+                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+            elif isinstance(fields, list):
+                for f in fields:
+                    text = f"*{f.get('name','')}*\n{f.get('value','')}"
+                    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+            if image_url:
+                blocks.append({"type": "image", "image_url": image_url, "alt_text": title})
+            payload = {"blocks": blocks}
+        self.logger.info(
+            "send+mention title=%s fields=%d image=%s",
+            truncate(title, 50),
+            0 if not fields else (len(fields) if isinstance(fields, list) else len(fields)),
+            bool(image_url),
+        )
+        self._post(payload)
+
     def send_signals(self, system_name: str, signals: List[str]) -> None:
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
         color = (
@@ -332,4 +432,57 @@ class Notifier:
         self.send(title, "", fields=fields, image_url=image_url)
         self.logger.info(
             "summary %s %s keys=%d", system_name, period_type, len(summary)
+        )
+
+    def send_backtest_ex(
+        self,
+        system_name: str,
+        period: str,
+        stats: Dict[str, Any],
+        ranking: List[Any],
+        image_url: str | None = None,
+        mention: str | bool | None = None,
+    ) -> None:
+        """Enhanced backtest notification with optional image and mentions.
+
+        - ranking can be list of str or dicts with keys: symbol, roc, volume.
+        - When platform is Slack and mention is truthy ("channel"/"here"),
+          a tag is prefixed to the message so that a sound/notification bar appears.
+        """
+        direction = SYSTEM_POSITION.get(system_name.lower(), "")
+        color = (
+            COLOR_LONG if direction == "long" else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
+        )
+        title = f"📊 {system_name} バックテスト（{period}）"
+        fields = {k: str(v) for k, v in stats.items()}
+        desc = ""
+        if ranking:
+            lines: List[str] = []
+            for i, item in enumerate(ranking[:10], start=1):
+                try:
+                    if isinstance(item, dict):
+                        sym = item.get("symbol") or item.get("sym") or item.get("ticker") or "?"
+                        roc = item.get("roc")
+                        vol = item.get("volume") or item.get("vol")
+                        part = f"{sym}"
+                        if roc is not None:
+                            part += f"  ROC200:{float(roc):.2f}"
+                        if vol is not None:
+                            part += f"  Vol:{int(float(vol)):,}"
+                        lines.append(f"{i}. {part}")
+                    else:
+                        lines.append(f"{i}. {item}")
+                except Exception:
+                    lines.append(f"{i}. {item}")
+            if len(ranking) > 10:
+                lines.append("…")
+            desc = "ROC200 TOP10\n" + "\n".join(lines)
+        # Slack mention: add tag at the top of the message
+        if mention and getattr(self, "platform", "") == "slack":
+            tag = "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
+            desc = f"{tag}\n" + desc
+        self.send(title, desc, fields=fields, color=color, image_url=image_url)
+        summary = ", ".join(f"{k}={v}" for k, v in list(stats.items())[:3])
+        self.logger.info(
+            "backtest_ex %s stats=%s top=%d", system_name, summary, min(len(ranking), 10)
         )

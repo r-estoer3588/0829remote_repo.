@@ -13,6 +13,8 @@ from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
 from common.performance_summary import summarize as summarize_perf
 from common.notifier import Notifier
+from common.equity_curve import save_equity_curve
+import os
 
 # 翻訳辞書ロードと言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -22,7 +24,7 @@ if not st.session_state.get("_integrated_ui", False):
 
 # 戦略インスタンス
 strategy = System2Strategy()
-notifier = Notifier(platform="discord")
+notifier = Notifier(platform="auto")
 
 
 def display_adx7_ranking(
@@ -67,7 +69,8 @@ def run_tab(ui_manager=None):
     if results_df is not None and candidates_by_date is not None:
         display_adx7_ranking(candidates_by_date)
         summary_df = show_signal_trade_summary(data_dict, results_df, "System2")
-        save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
+        with st.expander(tr("取引ログ・保存ファイル"), expanded=False):
+            save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
         save_prepared_data_cache(data_dict, "System2")
         summary, _ = summarize_perf(results_df, capital)
         stats = {
@@ -85,7 +88,13 @@ def run_tab(ui_manager=None):
             start = pd.to_datetime(results_df["entry_date"]).min()
             end = pd.to_datetime(results_df["exit_date"]).max()
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
-        notifier.send_backtest("system2", period, stats, ranking)
+        # equity image and mention for Slack
+        _img_path, _img_url = save_equity_curve(results_df, capital, "System2")
+        _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+        if hasattr(notifier, "send_backtest_ex"):
+            notifier.send_backtest_ex("system2", period, stats, ranking, image_url=_img_url, mention=_mention)
+        else:
+            notifier.send_backtest("system2", period, stats, ranking)
     # リラン時のフォールバック表示（セッションから復元）
     elif results_df is None and candidates_by_date is None:
         prev_res = st.session_state.get("System2_results_df")

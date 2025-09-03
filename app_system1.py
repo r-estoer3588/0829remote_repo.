@@ -14,6 +14,8 @@ from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
 from common.performance_summary import summarize as summarize_perf
 from common.notifier import Notifier
+from common.equity_curve import save_equity_curve
+import os
 
 # Load translations once
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -27,7 +29,8 @@ SYSTEM_NAME = "System1"
 DISPLAY_NAME = "システム1"
 
 strategy = System1Strategy()
-notifier = Notifier(platform="discord")
+# Auto-select Slack/Discord based on available webhook env
+notifier = Notifier(platform="auto")
 
 
 def run_tab(spy_df=None, ui_manager=None):
@@ -59,7 +62,9 @@ def run_tab(spy_df=None, ui_manager=None):
         signal_summary_df = show_signal_trade_summary(
             merged_df, results_df, SYSTEM_NAME, display_name=DISPLAY_NAME
         )
-        save_signal_and_trade_logs(signal_summary_df, results_df, SYSTEM_NAME, capital)
+        # 取引ログと保存ファイルはエクスパンダーにまとめて表示
+        with st.expander(tr("取引ログ・保存ファイル"), expanded=False):
+            save_signal_and_trade_logs(signal_summary_df, results_df, SYSTEM_NAME, capital)
         save_prepared_data_cache(data_dict, SYSTEM_NAME)
         st.success("バックテスト完了")
         summary, _ = summarize_perf(results_df, capital)
@@ -68,11 +73,39 @@ def run_tab(spy_df=None, ui_manager=None):
             "最大DD": f"{summary.max_drawdown:.2f}",
             "Sharpe": f"{summary.sharpe:.2f}",
         }
-        ranking = (
-            [str(s) for s in results_df["symbol"].head(10)]
-            if "symbol" in results_df.columns
-            else []
-        )
+        try:
+            if hasattr(summary, "profit_factor"):
+                stats["PF"] = f"{summary.profit_factor:.2f}"
+            if hasattr(summary, "win_rate"):
+                stats["勝率(%)"] = f"{summary.win_rate:.2f}"
+        except Exception:
+            pass
+
+        ranking = []
+        try:
+            last_date = pd.to_datetime(daily_df["Date"]).max()
+            cols = {c.lower(): c for c in daily_df.columns}
+            roc_col = cols.get("roc200")
+            vol_col = cols.get("volume") or cols.get("vol")
+            if roc_col:
+                today = daily_df[pd.to_datetime(daily_df["Date"]) == last_date]
+                today = today.sort_values(roc_col, ascending=False).head(10)
+                for _, r in today.iterrows():
+                    item = {"symbol": str(r.get("symbol"))}
+                    try:
+                        item["roc"] = float(r.get(roc_col))
+                    except Exception:
+                        item["roc"] = r.get(roc_col)
+                    if vol_col is not None:
+                        item["volume"] = r.get(vol_col)
+                    ranking.append(item)
+            elif "symbol" in results_df.columns:
+                ranking = [str(s) for s in results_df["symbol"].head(10)]
+        except Exception:
+            if "symbol" in results_df.columns:
+                ranking = [str(s) for s in results_df["symbol"].head(10)]
+
+        img_path, img_url = save_equity_curve(results_df, capital, SYSTEM_NAME)
         period = ""
         if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
             start = pd.to_datetime(results_df["entry_date"]).min()
@@ -82,7 +115,12 @@ def run_tab(spy_df=None, ui_manager=None):
         notify_key = f"{SYSTEM_NAME}_notify_backtest"
         if st.session_state.get(notify_key, False):
             try:
-                notifier.send_backtest("system1", period, stats, ranking)
+                mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+                # use enhanced sender to include image and mention
+                if hasattr(notifier, "send_backtest_ex"):
+                    notifier.send_backtest_ex("system1", period, stats, ranking, image_url=img_url, mention=mention)
+                else:
+                    notifier.send_backtest("system1", period, stats, ranking)
                 st.success(tr("通知を送信しました"))
             except Exception:
                 st.warning(tr("通知の送信に失敗しました"))

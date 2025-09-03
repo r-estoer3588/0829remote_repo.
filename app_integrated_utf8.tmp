@@ -23,7 +23,7 @@ def main() -> None:
     settings = get_settings(create_dirs=True)
     logger = setup_logging(settings)
     logger.info("app_integrated start")
-    notifier = Notifier(platform="discord")
+    notifier = Notifier(platform="auto")
 
     st.title(tr("Trading Systems Integrated UI"))
     with st.expander(tr("settings"), expanded=False):

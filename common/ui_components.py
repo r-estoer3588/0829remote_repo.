@@ -40,10 +40,11 @@ import logging
 # 日本語表示のためのフォントフォールバック（Windows向け優先）
 try:
     mpl.rcParams["font.family"] = [
+        "Noto Sans JP",
+        "IPAexGothic",
         "Yu Gothic",
         "Meiryo",
         "MS Gothic",
-        "Noto Sans JP",
         "DejaVu Sans",
     ]
 except Exception:
@@ -381,30 +382,18 @@ def run_backtest_with_logging(
             pass
         progress = bt_phase.progress_bar
         log_area = bt_phase.log_area
-        # 資金推移ログをエクスパンダー内に表示
-        _fund_expander = getattr(bt_phase, "fund_log_expander", None)
-        if _fund_expander is None:
-            try:
-                _fund_expander = bt_phase.container.expander("💰 資金推移", expanded=False)
-            except Exception:
-                _fund_expander = bt_phase.container
-            try:
-                setattr(bt_phase, "fund_log_expander", _fund_expander)
-            except Exception:
-                pass
-        trade_log_area = getattr(bt_phase, "trade_log_area", _fund_expander.empty())
-        setattr(bt_phase, "trade_log_area", trade_log_area)
+        # 資金推移は最新行のみ、エクスパンダーは使わず単一プレースホルダに出力
+        fund_log_area = getattr(bt_phase, "fund_log_area", bt_phase.container.empty())
+        try:
+            setattr(bt_phase, "fund_log_area", fund_log_area)
+        except Exception:
+            pass
         debug_area = bt_phase.container.empty()
     else:
         st.info(tr("backtest: running..."))
         progress = st.progress(0)
         log_area = st.empty()
-        # 単体ページでもエクスパンダーで表示
-        try:
-            _fund_expander = st.expander("💰 資金推移", expanded=False)
-            trade_log_area = _fund_expander.empty()
-        except Exception:
-            trade_log_area = st.empty()
+        fund_log_area = st.empty()
         debug_area = st.empty()
     start_time = time.time()
     debug_logs: list[str] = []
@@ -420,7 +409,8 @@ def run_backtest_with_logging(
             # Active: 0 -> 保有ポジション: 0
             s = re.sub(r"Active:\s*([0-9]+)", r"保有ポジション: \1", s)
             debug_logs.append(s)
-            trade_log_area.text(s)
+            # 最新行のみを表示（差し替え）
+            fund_log_area.text(s)
         else:
             log_area.text(str(msg))
 
@@ -572,7 +562,7 @@ def run_backtest_app(
     if system_name == "System1":
         _notify_key = f"{system_name}_notify_backtest"
         if _notify_key not in st.session_state:
-            st.session_state[_notify_key] = False
+            st.session_state[_notify_key] = True
         _label = tr("バックテスト結果を通知する（Webhook）")
         try:
             _use_toggle = hasattr(st, "toggle")
@@ -780,7 +770,10 @@ def show_results(
         mpl.rcParams["font.family"] = [
             "Noto Sans JP",
             "IPAexGothic",
-            "TakaoGothic",
+            "Yu Gothic",
+            "Meiryo",
+            "MS Gothic",
+            "DejaVu Sans",
         ]
     except Exception:
         pass

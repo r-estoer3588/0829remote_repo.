@@ -5,6 +5,8 @@ import pandas as pd
 import streamlit as st
 
 from common.i18n import tr
+from common.equity_curve import save_equity_curve
+import os
 from common.performance_summary import summarize as summarize_perf
 from common.ui_bridge import (
     prepare_backtest_data_ui as _prepare_ui,
@@ -146,17 +148,30 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
                 mime="text/csv",
                 key="download_integrated_csv",
             )
-            notifier.send_summary(
-                "integrated",
-                "daily",
-                _pd.Timestamp.now().strftime("%Y-%m-%d"),
-                d,
-            )
+            # Save equity curve image for integrated results
+            _img_path, _img_url = save_equity_curve(df2, capital_i, "Integrated")
+            _title = tr("Integrated Summary")
+            _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+            # Use unified sender with mention support if available
+            try:
+                if hasattr(notifier, "send_with_mention"):
+                    notifier.send_with_mention(_title, "", fields=d, image_url=_img_url, mention=_mention)
+                else:
+                    notifier.send(_title, "", fields=d, image_url=_img_url)
+            except Exception:
+                # Fallback to simple summary
+                notifier.send_summary(
+                    "integrated",
+                    "daily",
+                    _pd.Timestamp.now().strftime("%Y-%m-%d"),
+                    d,
+                    image_url=_img_url,
+                )
         else:
             st.info(tr("no trades in integrated run"))
 
 
-def render_batch_tab(settings, logger) -> None:
+def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None:
     """バッチバックテストタブの描画"""
     st.subheader(tr("Batch Backtest / Summary"))
     _mode_options = {
@@ -360,6 +375,19 @@ def render_batch_tab(settings, logger) -> None:
             st.session_state["Batch_all_trades_df"] = all_df2
             st.session_state["Batch_summary_dict"] = d
             st.session_state["Batch_capital"] = capital
+
+            # Optional notification for batch summary with equity image
+            if notifier is not None:
+                _img_path, _img_url = save_equity_curve(all_df2, capital, "Batch")
+                _title = tr("Batch Backtest / Summary")
+                _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+                try:
+                    if hasattr(notifier, "send_with_mention"):
+                        notifier.send_with_mention(_title, "", fields=d, image_url=_img_url, mention=_mention)
+                    else:
+                        notifier.send(_title, "", fields=d, image_url=_img_url)
+                except Exception:
+                    pass
 
             try:
                 import matplotlib.pyplot as _plt

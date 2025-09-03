@@ -26,7 +26,8 @@ def main() -> None:
     settings = get_settings(create_dirs=True)
     logger = setup_logging(settings)
     logger.info("app_integrated start")
-    notifier = Notifier(platform="discord")
+    # Auto-detect Slack/Discord from environment
+    notifier = Notifier(platform="auto")
 
     # Show language selector exactly once
     language_selector()
@@ -50,7 +51,7 @@ def main() -> None:
         render_integrated_tab(settings, notifier)
 
     with tabs[1]:
-        render_batch_tab(settings, logger)
+        render_batch_tab(settings, logger, notifier)
 
     system_tabs = tabs[2:]
     for sys_idx, tab in enumerate(system_tabs, start=1):
@@ -71,4 +72,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

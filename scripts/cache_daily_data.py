@@ -1,84 +1,241 @@
-import pandas as pd
-import requests
-import time
+from __future__ import annotations
+
+import csv
 import logging
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dotenv import load_dotenv
 import os
 import sys
-from ta.trend import SMAIndicator
-from ta.momentum import ROCIndicator
-from ta.volatility import AverageTrueRange
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Iterable, List, Set, Tuple
 
-# 親ディレクトリ（リポジトリ ルート）を import パスに追加して、
-# 直下モジュール `indicators_common.py` を解決可能にする。
+import pandas as pd
+import requests
+from dotenv import load_dotenv
+
+# 親ディレクトリ（リポジトリ ルート）を import パスに追加して、直下モジュール `indicators_common.py` を解決可能にする
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from indicators_common import add_indicators
-
-FAILED_LIST = "eodhd_failed_symbols.csv"
+from indicators_common import add_indicators  # noqa: E402
 
 
-def load_failed_symbols():
-    if os.path.exists(FAILED_LIST):
-        return set(pd.read_csv(FAILED_LIST, header=None)[0].astype(str).str.upper())
-    return set()
+# -----------------------------
+# 設定/環境
+# -----------------------------
 
-
-def save_failed_symbols(new_failed):
-    old_failed = load_failed_symbols()
-    updated_failed = old_failed | set([s.upper() for s in new_failed])
-    pd.Series(list(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
-
-
-# .envからAPIキーを読み込み（プロジェクトルートの .env）
+# .env から API キー等を取り込む（プロジェクトルートの .env）
 load_dotenv(dotenv_path=r".env")
-API_KEY = os.getenv("EODHD_API_KEY")
 
-# 設定から安全にディレクトリを用意
 try:
     from config.settings import get_settings
 
     _settings = get_settings(create_dirs=True)
-    log_dir = str(_settings.LOGS_DIR)
+    LOG_DIR = Path(_settings.LOGS_DIR)
+    DATA_CACHE_DIR = Path(_settings.DATA_CACHE_DIR)
+    THREADS_DEFAULT = int(_settings.THREADS_DEFAULT)
+    REQUEST_TIMEOUT = int(_settings.REQUEST_TIMEOUT)
+    DOWNLOAD_RETRIES = int(_settings.DOWNLOAD_RETRIES)
+    API_THROTTLE_SECONDS = float(_settings.API_THROTTLE_SECONDS)
+    API_BASE = str(_settings.API_EODHD_BASE).rstrip("/")
+    API_KEY = _settings.EODHD_API_KEY or os.getenv("EODHD_API_KEY", "")
 except Exception:
-    # フォールバック: scripts/ 下に logs を作成
-    log_dir = os.path.join(os.path.dirname(__file__), "logs")
-    os.makedirs(log_dir, exist_ok=True)
+    # フォールバック（settings が読めない場合）
+    LOG_DIR = Path(os.path.dirname(__file__)) / "logs"
+    DATA_CACHE_DIR = Path(os.path.dirname(__file__)) / ".." / "data_cache"
+    THREADS_DEFAULT = int(os.getenv("THREADS_DEFAULT", 8))
+    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 10))
+    DOWNLOAD_RETRIES = int(os.getenv("DOWNLOAD_RETRIES", 3))
+    API_THROTTLE_SECONDS = float(os.getenv("API_THROTTLE_SECONDS", 1.5))
+    API_BASE = os.getenv("API_EODHD_BASE", "https://eodhistoricaldata.com").rstrip("/")
+    API_KEY = os.getenv("EODHD_API_KEY", "")
 
-# ロギング設定
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+DATA_CACHE_DIR = DATA_CACHE_DIR.resolve()
+DATA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# -----------------------------
+# ロギング
+# -----------------------------
+
 logging.basicConfig(
-    filename=os.path.join(log_dir, "cache_log.txt"),
+    filename=str(LOG_DIR / "cache_log.txt"),
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
-def get_all_symbols():
+# -----------------------------
+# ブラックリスト（クールダウン: 月単位）
+# -----------------------------
+
+FAILED_LIST_PATH = LOG_DIR / "eodhd_failed_symbols.csv"
+LEGACY_FAILED_LIST = Path(__file__).resolve().parents[1] / "eodhd_failed_symbols.csv"
+
+
+@dataclass
+class FailedEntry:
+    symbol: str
+    last_failed_at: datetime  # 失敗日
+    count: int = 1
+
+
+def _parse_date(s: str) -> datetime:
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        try:
+            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return datetime.utcnow()
+
+
+def _migrate_legacy_failed_if_needed() -> None:
+    """リポジトリ直下の旧 CSV（シンボルのみ）を logs/ に移行する。
+    旧形式: 1列（symbol）
+    新形式: 3列（symbol,last_failed_at,count）
+    """
+    if LEGACY_FAILED_LIST.exists() and not FAILED_LIST_PATH.exists():
+        symbols = []
+        try:
+            with open(LEGACY_FAILED_LIST, "r", encoding="utf-8") as f:
+                for line in f:
+                    s = line.strip()
+                    if s:
+                        symbols.append(s.upper())
+        except Exception:
+            pass
+
+        now = datetime.utcnow().isoformat()
+        FAILED_LIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(FAILED_LIST_PATH, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["symbol", "last_failed_at", "count"])  # header
+                for s in sorted(set(symbols)):
+                    writer.writerow([s, now, 1])
+        except Exception:
+            pass
+
+
+def _load_failed_map() -> Dict[str, FailedEntry]:
+    """CSV から失敗情報を読み込む。"""
+    _migrate_legacy_failed_if_needed()
+    entries: Dict[str, FailedEntry] = {}
+    if not FAILED_LIST_PATH.exists():
+        return entries
+
+    try:
+        df = pd.read_csv(FAILED_LIST_PATH)
+        # 新形式（ヘッダあり）
+        if set(df.columns.str.lower()) >= {"symbol", "last_failed_at"}:
+            for _, row in df.iterrows():
+                sym = str(row["symbol"]).upper().strip()
+                if not sym:
+                    continue
+                last_dt = _parse_date(str(row["last_failed_at"]))
+                cnt = int(row.get("count", 1) or 1)
+                entries[sym] = FailedEntry(sym, last_dt, cnt)
+            return entries
+        # 旧形式（1列のみ）
+        else:
+            now = datetime.utcnow()
+            for s in df.iloc[:, 0].astype(str).str.upper():
+                s = s.strip()
+                if s:
+                    entries[s] = FailedEntry(s, now, 1)
+            return entries
+    except Exception:
+        # CSV が壊れている等の場合は空扱い
+        return {}
+
+
+def _save_failed_map(entries: Dict[str, FailedEntry]) -> None:
+    FAILED_LIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for e in entries.values():
+        rows.append([e.symbol, e.last_failed_at.isoformat(), int(e.count)])
+    rows.sort(key=lambda r: r[0])
+    with open(FAILED_LIST_PATH, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["symbol", "last_failed_at", "count"])  # header
+        writer.writerows(rows)
+
+
+def load_monthly_blacklist() -> Set[str]:
+    """当月に失敗した銘柄を集合で返す（同一月はスキップ）。"""
+    m = _load_failed_map()
+    now = datetime.utcnow()
+    skip: Set[str] = set()
+    for sym, e in m.items():
+        if e.last_failed_at.year == now.year and e.last_failed_at.month == now.month:
+            skip.add(sym)
+    return skip
+
+
+def update_failed_symbols(failed: Iterable[str]) -> None:
+    """失敗銘柄を更新（当月の失敗日時を上書き、回数をインクリメント）。"""
+    failed_set = {str(s).upper().strip() for s in failed if str(s).strip()}
+    if not failed_set:
+        return
+    m = _load_failed_map()
+    now = datetime.utcnow()
+    for s in failed_set:
+        if s in m:
+            e = m[s]
+            e.last_failed_at = now
+            e.count = int(e.count) + 1
+        else:
+            m[s] = FailedEntry(s, now, 1)
+    _save_failed_map(m)
+
+
+def remove_recovered_symbols(succeeded: Iterable[str]) -> None:
+    """成功した銘柄はブラックリストから削除。"""
+    suc_set = {str(s).upper().strip() for s in succeeded if str(s).strip()}
+    if not suc_set:
+        return
+    m = _load_failed_map()
+    changed = False
+    for s in list(suc_set):
+        if s in m:
+            del m[s]
+            changed = True
+    if changed:
+        _save_failed_map(m)
+
+
+# -----------------------------
+# データ取得
+# -----------------------------
+
+def get_all_symbols() -> List[str]:
     urls = [
         "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
     ]
-    symbols = set()
+    symbols: Set[str] = set()
     for url in urls:
         try:
-            r = requests.get(url)
+            r = requests.get(url, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
             lines = r.text.splitlines()
             for line in lines[1:]:
                 if "|" in line:
                     parts = line.split("|")
                     if parts[0].isalpha():
-                        symbols.add(parts[0])
+                        symbols.add(parts[0].upper())
         except Exception as e:
             logging.error(f"取得失敗: {url} - {e}")
     return sorted(symbols)
 
 
-def get_with_retry(url, retries=3, delay=2):
-    for i in range(retries):
+def get_with_retry(url: str, retries: int = DOWNLOAD_RETRIES, delay: float = 2.0):
+    for i in range(max(1, retries)):
         try:
-            r = requests.get(url, timeout=10)
+            r = requests.get(url, timeout=REQUEST_TIMEOUT)
             if r.status_code == 200:
                 return r
             logging.warning(f"ステータスコード {r.status_code} - {url}")
@@ -88,8 +245,8 @@ def get_with_retry(url, retries=3, delay=2):
     return None
 
 
-def get_eodhd_data(symbol):
-    url = f"https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
+def get_eodhd_data(symbol: str) -> pd.DataFrame | None:
+    url = f"{API_BASE}/api/eod/{symbol}.US?api_token={API_KEY}&period=d&fmt=json"
     r = get_with_retry(url)
     if r is None:
         return None
@@ -145,67 +302,84 @@ RESERVED_WORDS = {
 }
 
 
-def safe_filename(symbol):
-    # Windows予約語を避ける（大文字小文字無視）
+def safe_filename(symbol: str) -> str:
+    # Windows 予約語を避ける（大文字小文字無視）
     if symbol.upper() in RESERVED_WORDS:
         return symbol + "_RESV"
     return symbol
 
 
-def cache_single(symbol, output_dir):
+def cache_single(symbol: str, output_dir: Path) -> Tuple[str, bool, bool]:
+    """指定シンボルをキャッシュ。
+    戻り値: (message, used_api, success)
+    """
     safe_symbol = safe_filename(symbol)
-    filepath = os.path.join(output_dir, f"{safe_symbol}.csv")
-    if os.path.exists(filepath):
-        mod_time = datetime.fromtimestamp(os.path.getmtime(filepath))
+    filepath = output_dir / f"{safe_symbol}.csv"
+    if filepath.exists():
+        mod_time = datetime.fromtimestamp(filepath.stat().st_mtime)
         if mod_time.date() == datetime.today().date():
-            return f"{symbol}: already cached", False  # False = no API call
+            return (f"{symbol}: already cached", False, True)
     df = get_eodhd_data(symbol)
     if df is not None and not df.empty:
-        df = add_indicators(df)  # ← ここで指標を追加
+        df = add_indicators(df)
         df.to_csv(filepath)
-        return f"{symbol}: saved", True  # True = API call used
+        return (f"{symbol}: saved", True, True)
     else:
-        return f"{symbol}: failed to fetch", True
+        return (f"{symbol}: failed to fetch", True, False)
 
 
-def cache_data(symbols, output_dir="data_cache", max_workers=5):
-    os.makedirs(output_dir, exist_ok=True)
-    failed = []
+def cache_data(symbols: List[str], output_dir: Path | str = DATA_CACHE_DIR, max_workers: int | None = None) -> None:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    max_workers = int(max_workers or THREADS_DEFAULT)
+
+    # 当月ブラックリストに該当する銘柄をスキップ
+    monthly_blacklist = load_monthly_blacklist()
+    symbols_to_fetch = [s for s in symbols if s.upper() not in monthly_blacklist]
+    skipped_due_to_cooldown = len(symbols) - len(symbols_to_fetch)
+
+    failed: List[str] = []
+    succeeded: List[str] = []
+
+    results_list: List[Tuple[str, str, bool]] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(cache_single, symbol, output_dir): symbol
-            for symbol in symbols
-        }
-        results_list = []
+        futures = {executor.submit(cache_single, symbol, output_dir): symbol for symbol in symbols_to_fetch}
         for i, future in enumerate(as_completed(futures)):
-            result, used_api = future.result()
+            msg, used_api, ok = future.result()
             symbol = futures[future]
-            results_list.append((symbol, result, used_api))
-            logging.info(result)
-            print(f"[{i}] {result}")
-            if "failed" in result:
-                failed.append(futures[future])
+            results_list.append((symbol, msg, used_api))
+            logging.info(msg)
+            print(f"[{i}] {msg}")
+            if not ok:
+                failed.append(symbol)
+            else:
+                succeeded.append(symbol)
             if used_api:
-                time.sleep(1.5)  # API使用時のみスロットリング
+                time.sleep(API_THROTTLE_SECONDS)
 
-    # ブラックリストへ追記
+    # ブラックリスト更新/回復削除
     if failed:
-        save_failed_symbols(failed)
+        update_failed_symbols(failed)
+    if succeeded:
+        remove_recovered_symbols(succeeded)
 
-    # 処理件数のログ（results_listから集計）
+    # 統計の出力
     cached_count = sum(1 for _, _, used_api in results_list if not used_api)
     api_count = sum(1 for _, _, used_api in results_list if used_api)
     print(
-        f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {len(failed)}件"
+        f"✅ キャッシュ済み: {cached_count}件, API使用: {api_count}件, 失敗: {len(failed)}件, クールダウン除外: {skipped_due_to_cooldown}件"
     )
 
 
-if __name__ == "__main__":
-    # symbols = get_all_symbols()[:3]  # 無料プラン対策（テスト用）
+def _cli_main() -> None:
+    # symbols = get_all_symbols()[:3]  # 簡易テスト用
     symbols = get_all_symbols()
-    # ブラックリスト除外
-    failed_symbols = load_failed_symbols()
-    symbols = [s for s in symbols if s.upper() not in failed_symbols]
-    print(f"{len(symbols)}銘柄を取得します（ブラックリスト除外後）")
-    cache_data(symbols, output_dir="data_cache")
+    print(f"{len(symbols)}銘柄を取得します（クールダウン月次ブラックリスト適用後に除外）")
+    cache_data(symbols, output_dir=DATA_CACHE_DIR)
     print("データのキャッシュが完了しました。")
+
+
+if __name__ == "__main__":
+    _cli_main()
+
