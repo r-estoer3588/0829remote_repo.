@@ -6,9 +6,14 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 import os
+import sys
 from ta.trend import SMAIndicator
 from ta.momentum import ROCIndicator
 from ta.volatility import AverageTrueRange
+
+# 親ディレクトリ（リポジトリ ルート）を import パスに追加して、
+# 直下モジュール `indicators_common.py` を解決可能にする。
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from indicators_common import add_indicators
 
 FAILED_LIST = "eodhd_failed_symbols.csv"
@@ -26,12 +31,20 @@ def save_failed_symbols(new_failed):
     pd.Series(list(updated_failed)).to_csv(FAILED_LIST, index=False, header=False)
 
 
-# .envからAPIキーを読み込み（相対的なパス）
+# .envからAPIキーを読み込み（プロジェクトルートの .env）
 load_dotenv(dotenv_path=r".env")
 API_KEY = os.getenv("EODHD_API_KEY")
 
-# logディレクトリは既に存在する想定のため、作成は行わずパスのみ設定
-log_dir = os.path.join(os.path.dirname(__file__), "logs")
+# 設定から安全にディレクトリを用意
+try:
+    from config.settings import get_settings
+
+    _settings = get_settings(create_dirs=True)
+    log_dir = str(_settings.LOGS_DIR)
+except Exception:
+    # フォールバック: scripts/ 下に logs を作成
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
 
 # ロギング設定
 logging.basicConfig(
