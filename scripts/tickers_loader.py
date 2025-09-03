@@ -133,19 +133,16 @@ def filter_symbols_by_system1(data_dict):
         volume_ok = latest.get("DollarVolume20", 0) > 50_000_000
         trend_ok = latest.get("SMA25", 0) > latest.get("SMA50", 0)
         if debug_mode:
-            st.write(
-                f"{symbol}: Close={
-                    latest['Close']:.2f} ({close_ok}), Volume={
-                    latest.get(
-                        'DollarVolume20',
-                        0):.0f} ({volume_ok}), Trend={
-                    latest.get(
-                        'SMA25',
-                        0):.2f}>{
-                            latest.get(
-                                'SMA50',
-                                0):.2f} ({trend_ok})"
+            close_val = float(latest.get("Close", float("nan")))
+            dollar_vol = float(latest.get("DollarVolume20", 0))
+            sma25 = float(latest.get("SMA25", 0))
+            sma50 = float(latest.get("SMA50", 0))
+            msg = (
+                f"{symbol}: Close={close_val:.2f} ({close_ok}), "
+                f"Volume={dollar_vol:.0f} ({volume_ok}), "
+                f"Trend={sma25:.2f}>{sma50:.2f} ({trend_ok})"
             )
+            st.write(msg)
 
         if close_ok and volume_ok and trend_ok:
             result[symbol] = df
@@ -163,11 +160,7 @@ def filter_symbols_by_system1(data_dict):
             last_log_time = current_time
 
     total_elapsed = time.time() - start_time
-    st.write(
-        f"✅ フィルター処理完了：{total}件中 {
-            len(result)}件通過 | 総処理時間: {
-            total_elapsed:.1f}秒"
-    )
+    st.write(f"✅ フィルター処理完了：{total}件中 {len(result)}件通過 | 総処理時間: {total_elapsed:.1f}秒")
 
     return result
 
