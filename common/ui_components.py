@@ -434,7 +434,9 @@ def run_backtest_with_logging(
 
     if st.session_state.get("show_debug_logs", True) and debug_logs:
         # ログはバックテスト・フェーズのコンテナ内に配置（システムごとにまとまるように）
-        with (bt_phase.container if bt_phase else st).expander(tr("trade logs"), expanded=False):
+        parent = bt_phase.container if bt_phase else st.container()
+        with parent:
+            st.caption(tr("trade logs"))
             st.text("\n".join(debug_logs))
 
     # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
@@ -549,6 +551,27 @@ def run_backtest_app(
             st.error(tr("please input symbols"))
             return None, None, None, None, None
         symbols = [s.strip().upper() for s in symbols_input.split(",")]
+
+    # System1 専用: 実行ボタンの直前に通知トグルを配置
+    if system_name == "System1":
+        _notify_key = f"{system_name}_notify_backtest"
+        if _notify_key not in st.session_state:
+            st.session_state[_notify_key] = False
+        _label = tr("バックテスト結果を通知する（Webhook）")
+        try:
+            _use_toggle = hasattr(st, "toggle")
+        except Exception:
+            _use_toggle = False
+        if _use_toggle:
+            st.toggle(_label, key=_notify_key)
+        else:
+            st.checkbox(_label, key=_notify_key)
+        try:
+            import os as _os  # local alias to avoid top imports churn
+            if not (_os.getenv("DISCORD_WEBHOOK_URL") or _os.getenv("SLACK_WEBHOOK_URL")):
+                st.caption(tr("Webhook URL が未設定です（.env を確認）"))
+        except Exception:
+            pass
 
     if st.button(tr("run"), key=f"{system_name}_run"):
         prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(

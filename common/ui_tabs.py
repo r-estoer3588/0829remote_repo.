@@ -394,15 +394,15 @@ def render_batch_tab(settings, logger) -> None:
             st.info(tr("no results"))
 
         st.markdown("---")
-        with st.expander(tr("Per-System Logs (latest)"), expanded=False):
-            any_logs2 = False
-            for i in range(1, 8):
-                sys_name = f"System{i}"
-                logs = st.session_state.get(f"{sys_name}_debug_logs")
-                if logs:
-                    any_logs2 = True
-                    with st.expander(f"{sys_name} logs", expanded=False):
-                        tail2 = list(map(str, logs))[-int(log_tail_lines):]
-                        st.text("\n".join(tail2))
-            if not any_logs2:
-                st.info(tr("no logs to show"))
+        st.subheader(tr("Per-System Logs (latest)"))
+        any_logs2 = False
+        for i in range(1, 8):
+            sys_name = f"System{i}"
+            logs = st.session_state.get(f"{sys_name}_debug_logs")
+            if logs:
+                any_logs2 = True
+                with st.expander(f"{sys_name} logs", expanded=False):
+                    tail2 = list(map(str, logs))[-int(log_tail_lines):]
+                    st.text("\n".join(tail2))
+        if not any_logs2:
+            st.info(tr("no logs to show"))
