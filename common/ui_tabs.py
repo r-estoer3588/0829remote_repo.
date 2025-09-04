@@ -176,7 +176,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
     st.subheader(tr("Batch Backtest / Summary"))
     _mode_options = {
         "Backtest": tr("Backtest"),
-        "Future": tr("Future signals (coming soon)"),
+        "Today": tr("Today signals"),
     }
     _mode_label = st.radio(
         tr("mode"),
@@ -185,7 +185,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
         horizontal=True,
         key="batch_mode",
     )
-    mode = "Backtest" if _mode_label == _mode_options["Backtest"] else "Future"
+    mode = "Backtest" if _mode_label == _mode_options["Backtest"] else "Today"
     capital = st.number_input(
         tr("capital (USD)"),
         min_value=1000,
@@ -199,7 +199,36 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
         value=min(500, get_all_tickers().__len__()),
         step=50,
     )
-    run_btn = st.button(tr("run batch"), disabled=(mode != "Backtest"))
+    run_btn = st.button(
+        tr("run batch") if mode == "Backtest" else tr("run today signals"),
+        key="run_batch" if mode == "Backtest" else "run_today",
+    )
+
+    if mode != "Backtest":
+        if run_btn:
+            from scripts.run_all_systems_today import compute_today_signals
+
+            all_tickers = get_all_tickers()
+            symbols = all_tickers[: int(limit_symbols)]
+            with st.spinner(tr("running today signals...")):
+                final_df, per_system = compute_today_signals(
+                    symbols,
+                    capital_long=float(capital),
+                    capital_short=float(capital),
+                    save_csv=False,
+                )
+            if final_df is None or final_df.empty:
+                st.info(tr("no results"))
+            else:
+                st.dataframe(final_df, use_container_width=True)
+            with st.expander("Per-system details"):
+                for name, df in per_system.items():
+                    st.markdown(f"#### {name}")
+                    if df is None or df.empty:
+                        st.write("(empty)")
+                    else:
+                        st.dataframe(df, use_container_width=True)
+        return
 
     log_tail_lines = st.number_input(
         tr("max log lines shown per system"),
@@ -262,9 +291,6 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
                 st.text("\n".join(tail))
     if not any_logs:
         st.info(tr("no saved logs yet"))
-
-    if mode != "Backtest":
-        st.info(tr("Signal detection mode will be added soon."))
 
     if run_btn:
         all_tickers = get_all_tickers()

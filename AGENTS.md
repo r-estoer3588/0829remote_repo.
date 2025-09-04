@@ -28,6 +28,9 @@
 - 使用: コミット時に `ruff`/`black`/`isort`/基本フックが自動実行。
 
 ## Testing Guidelines
+- Codex タスク後は以下のコマンドでテストを実行し、異常がないか確認すること:
+  - `pre-commit run --files tests/test_headless_app.py tests/test_utils.py tests/app_smoke.py`
+  - `pytest tests/test_headless_app.py tests/test_utils.py -q`
 - フレームワーク: `pytest`。決定性重視（乱数シード・日付固定）。
 - ネットワーク呼び出しは避け、キャッシュ済みデータを使用。
 - 実行: `pytest -q`。失敗時は対象を絞ってデバッグ。

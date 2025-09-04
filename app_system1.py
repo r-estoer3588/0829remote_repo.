@@ -1,21 +1,23 @@
-import streamlit as st  
-import common.ui_patch  # noqa: F401
-import pandas as pd
-from strategies.system1_strategy import System1Strategy
-from common.ui_components import (
-    run_backtest_app,
-    show_signal_trade_summary,
-    save_signal_and_trade_logs,
-    display_roc200_ranking,
-    clean_date_column,
-)
-from common.cache_utils import save_prepared_data_cache
-from pathlib import Path
-from common.i18n import tr, load_translations_from_dir, language_selector
-from common.performance_summary import summarize as summarize_perf
-from common.notifier import Notifier
-from common.equity_curve import save_equity_curve
 import os
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+
+from common.cache_utils import save_prepared_data_cache
+from common.equity_curve import save_equity_curve
+from common.i18n import language_selector, load_translations_from_dir, tr
+from common.notifier import Notifier
+from common.performance_summary import summarize as summarize_perf
+from common.ui_components import (
+    clean_date_column,
+    display_roc200_ranking,
+    run_backtest_app,
+    save_signal_and_trade_logs,
+    show_signal_trade_summary,
+)
+import common.ui_patch  # noqa: F401
+from strategies.system1_strategy import System1Strategy
 
 # Load translations once
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -23,7 +25,7 @@ load_translations_from_dir(Path(__file__).parent / "translations")
 if not st.session_state.get("_integrated_ui", False):
     language_selector()
 
-from common.utils_spy import get_spy_with_indicators
+from common.utils_spy import get_spy_with_indicators  # noqa: E402  # isort: skip
 
 SYSTEM_NAME = "System1"
 DISPLAY_NAME = "システム1"
@@ -34,11 +36,7 @@ notifier = Notifier(platform="auto")
 
 
 def run_tab(spy_df=None, ui_manager=None):
-    st.header(
-        tr(
-            f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"
-        )
-    )
+    st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"))
 
     spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
     if spy_df is None or spy_df.empty:
@@ -55,9 +53,7 @@ def run_tab(spy_df=None, ui_manager=None):
 
     if results_df is not None and merged_df is not None:
         daily_df = clean_date_column(merged_df, col_name="Date")
-        display_roc200_ranking(
-            daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング"
-        )
+        display_roc200_ranking(daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング")
 
         signal_summary_df = show_signal_trade_summary(
             merged_df, results_df, SYSTEM_NAME, display_name=DISPLAY_NAME
@@ -68,9 +64,13 @@ def run_tab(spy_df=None, ui_manager=None):
         save_prepared_data_cache(data_dict, SYSTEM_NAME)
         st.success("バックテスト完了")
         summary, _ = summarize_perf(results_df, capital)
+        max_dd = summary.max_drawdown
+        if max_dd > 0:
+            max_dd = -max_dd
+        max_dd_pct = (max_dd / capital * 100) if capital else 0.0
         stats = {
             "総リターン": f"{summary.total_return:.2f}",
-            "最大DD": f"{summary.max_drawdown:.2f}",
+            "最大DD": f"{max_dd:.2f} ({max_dd_pct:.2f}%)",
             "Sharpe": f"{summary.sharpe:.2f}",
         }
         try:
@@ -118,7 +118,9 @@ def run_tab(spy_df=None, ui_manager=None):
                 mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
                 # use enhanced sender to include image and mention
                 if hasattr(notifier, "send_backtest_ex"):
-                    notifier.send_backtest_ex("system1", period, stats, ranking, image_url=img_url, mention=mention)
+                    notifier.send_backtest_ex(
+                        "system1", period, stats, ranking, image_url=img_url, mention=mention
+                    )
                 else:
                     notifier.send_backtest("system1", period, stats, ranking)
                 st.success(tr("通知を送信しました"))
@@ -139,6 +141,7 @@ def run_tab(spy_df=None, ui_manager=None):
             )
             try:
                 from common.ui_components import show_results
+
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
@@ -146,5 +149,6 @@ def run_tab(spy_df=None, ui_manager=None):
 
 if __name__ == "__main__":
     import sys
+
     if "streamlit" not in sys.argv[0]:
         run_tab()

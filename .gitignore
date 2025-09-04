@@ -6,3 +6,4 @@ __pycache__/
 common/__pycache__/
 logs/*
 !logs/images/
+.pytest_cache/
