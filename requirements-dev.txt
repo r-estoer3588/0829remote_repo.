@@ -9,5 +9,5 @@ pip-audit>=2.7,<3
 
 # Testing helpers
 pytest>=8,<9
+pytest-cov>=5,<6
 freezegun>=1.5,<2
-
