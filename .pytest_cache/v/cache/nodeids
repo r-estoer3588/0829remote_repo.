@@ -18,5 +18,7 @@
   "tests/test_system6.py::test_minimal_indicators",
   "tests/test_system6.py::test_placeholder_run",
   "tests/test_system7.py::test_minimal_indicators",
-  "tests/test_system7.py::test_placeholder_run"
+  "tests/test_system7.py::test_placeholder_run",
+  "tests/test_ui_contracts.py::test_trade_logs_are_in_expander_in_common_ui_bridge",
+  "tests/test_ui_contracts.py::test_trade_logs_are_in_expander_in_common_ui_components"
 ]

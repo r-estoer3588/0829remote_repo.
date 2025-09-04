@@ -4,7 +4,7 @@
 and logs a summary. ``send_signal_notification`` posts a short text message to
 webhooks defined by ``TEAMS_WEBHOOK_URL`` or ``SLACK_WEBHOOK_URL`` environment
 variables.  The payload is compatible with Microsoft Teams and Slack incoming
-webhooks.
+webhooks. Discord webhooks are also supported via ``DISCORD_WEBHOOK_URL``.
 """
 
 from __future__ import annotations
@@ -54,8 +54,18 @@ def notify_signals():
 
 
 def _post_webhook(url: str, text: str) -> None:
+    """Post a simple text payload to an incoming webhook.
+
+    - Teams/Slack expect a JSON payload with "text" key.
+    - Discord accepts both "content" and rich embeds; for simple text we use
+      "content" to ensure the message appears as plain text.
+    """
     try:
-        requests.post(url, json={"text": text}, timeout=5)
+        # Heuristic: if URL contains 'discord.com/api/webhooks', send as Discord
+        if "discord.com/api/webhooks" in (url or ""):
+            requests.post(url, json={"content": text}, timeout=5)
+        else:
+            requests.post(url, json={"text": text}, timeout=5)
     except Exception:
         logging.exception("Webhook post failed: %s", url)
 
@@ -66,7 +76,8 @@ def send_signal_notification(df: pd.DataFrame) -> None:
         return
     syms = ", ".join(df["symbol"].astype(str).head(10))
     text = f"Today signals: {len(df)} picks\n{syms}"
-    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL"):
+    # Post to all configured destinations
+    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"):
         url = os.getenv(env)
         if url:
             _post_webhook(url, text)

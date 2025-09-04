@@ -57,7 +57,6 @@ def main() -> None:
     for sys_idx, tab in enumerate(system_tabs, start=1):
         with tab:
             sys_name = f"System{sys_idx}"
-            st.subheader(f"{sys_name} backtest")
             try:
                 app_mod = __import__(f"app_system{sys_idx}")
                 if sys_idx == 1:

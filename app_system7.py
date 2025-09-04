@@ -30,6 +30,14 @@ def run_tab(single_mode=None, ui_manager=None):
     single_mode = st.checkbox(tr("単体モード（資金100%を使用）"), value=False)
 
     ui = ui_manager or UIManager()
+    # System1準拠: 通知トグル（Webhook）
+    notify_key = "System7_notify_backtest"
+    if notify_key not in st.session_state:
+        st.session_state[notify_key] = True
+    try:
+        st.toggle(tr("バックテスト結果を通知する（Webhook）"), key=notify_key)
+    except Exception:
+        st.checkbox(tr("バックテスト結果を通知する（Webhook）"), key=notify_key)
     results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
         strategy,
         system_name="System7",
@@ -68,11 +76,12 @@ def run_tab(single_mode=None, ui_manager=None):
             end = pd.to_datetime(results_df["exit_date"]).max()
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
         _img_path, _img_url = save_equity_curve(results_df, capital, "System7")
-        _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
-        if hasattr(notifier, "send_backtest_ex"):
-            notifier.send_backtest_ex("system7", period, stats, ranking, image_url=_img_url, mention=_mention)
-        else:
-            notifier.send_backtest("system7", period, stats, ranking)
+        if st.session_state.get(notify_key, False):
+            _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+            if hasattr(notifier, "send_backtest_ex"):
+                notifier.send_backtest_ex("system7", period, stats, ranking, image_url=_img_url, mention=_mention)
+            else:
+                notifier.send_backtest("system7", period, stats, ranking)
     else:
         # Fallback view from session state
         prev_res = st.session_state.get("System7_results_df")

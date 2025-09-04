@@ -23,8 +23,18 @@ class System2Strategy(AlpacaOrderMixin, StrategyBase):
     # データ準備（共通コアへ委譲）
     # ===============================
     def prepare_data(
-        self, raw_data_dict, progress_callback=None, log_callback=None, batch_size=50
+        self,
+        raw_data_dict,
+        progress_callback=None,
+        log_callback=None,
+        batch_size=50,
+        **kwargs,
     ):
+        """インジケーター計算をコア関数へ委譲。
+
+        UI 側から渡される追加キーワード（例: `limit_symbols`, `skip_callback` など）が
+        混在してもここで受け止めて無視することで、予期しない TypeError を回避する。
+        """
         return prepare_data_vectorized_system2(
             raw_data_dict,
             progress_callback=progress_callback,

@@ -94,7 +94,7 @@ def update_ticker_list(output_path: str | Path | None = None) -> Path:
         text += f"\nAdded: {', '.join(new[:10])}"
     if removed:
         text += f"\nRemoved: {', '.join(removed[:10])}"
-    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL"):
+    for env in ("TEAMS_WEBHOOK_URL", "SLACK_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"):
         url = os.getenv(env)
         if url:
             _post_webhook(url, text)

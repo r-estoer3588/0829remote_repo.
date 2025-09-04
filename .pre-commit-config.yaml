@@ -22,3 +22,12 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  - repo: local
+    hooks:
+      - id: guard-critical-files
+        name: Guard critical UI files (expander contract)
+        entry: python tools/guard_critical_files.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+

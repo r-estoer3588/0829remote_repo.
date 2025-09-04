@@ -1,13 +1,15 @@
 """
-UI要素の一元管理ヘルパ。
+UI 要素の薄いラッパ。
 
-- `UIManager`: コンテナ階層（root→system→phase）を管理し、
-  ログ表示用`st.empty()`と進捗用`st.progress()`を提供。
-- 既存コードは `log_area.text(...)` / `progress_bar.progress(v)` に依存しているため、
-  互換オブジェクト（StreamlitのElementそのもの）を返すだけの薄い実装にしている。
+- UIManager: ルート→システム→フェーズの階層を管理
+  - 各フェーズ内に `info`/`log`/`progress` 用のスロットを用意
+  - 既存コードが `log_area.text(...)` / `progress_bar.progress(v)` を
+    直接使えるよう互換 API を提供
 
-将来的に並列実行へ拡張する際も、各System/Phase専用の領域を確保して干渉を避けられる。
+System2 で発生していた「info の表示がログより後ろに出る」問題を解消するため、
+info 用スロットを先に確保し、`info()` はそのスロットを更新する設計にしている。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,7 +20,7 @@ import streamlit as st
 
 @dataclass
 class PhaseContext:
-    """フェーズ単位のUIハンドル。"""
+    """フェーズ単位の UI ハンドル。"""
 
     container: "st.delta_generator.DeltaGenerator"
     title: Optional[str] = None
@@ -29,7 +31,8 @@ class PhaseContext:
                 self.container.caption(self.title)
             except Exception:
                 pass
-        # 必要な要素を先に確保（互換API）
+        # 表示順序を保証するために先に確保: info → log → progress
+        self._info = self.container.empty()
         self._log = self.container.empty()
         self._progress = self.container.progress(0)
 
@@ -41,16 +44,16 @@ class PhaseContext:
     def progress_bar(self):
         return self._progress
 
-    # 便利メソッド
     def info(self, msg: str) -> None:
         try:
-            self.container.info(msg)
+            # 事前確保した info スロットを更新（位置が下がらないように）
+            self._info.info(msg)
         except Exception:
             pass
 
 
 class UIManager:
-    """UI階層を管理する薄いマネージャ。"""
+    """UI 階層を管理するシンプルなマネージャ。"""
 
     def __init__(self, *, root: "st.delta_generator.DeltaGenerator" | None = None):
         self._root = root or st.container()
@@ -75,7 +78,7 @@ class UIManager:
             self._phases[name] = PhaseContext(container=c, title=title)
         return self._phases[name]
 
-    # --- シンプル便宜API（後方互換想定） ---
+    # --- 互換 API（既存コード向け） ---
     def get_log_area(self, name: str = "log"):
         return self.phase(name).log_area
 
@@ -86,3 +89,4 @@ class UIManager:
     @property
     def container(self):
         return self._root
+

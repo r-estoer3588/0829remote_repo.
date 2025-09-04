@@ -457,9 +457,15 @@ def run_backtest_with_logging(
     if st.session_state.get("show_debug_logs", True) and debug_logs:
         # ログはバックテスト・フェーズのコンテナ内に配置（システムごとにまとまるように）
         parent = bt_phase.container if bt_phase else st.container()
-        with parent:
-            st.caption(tr("trade logs"))
-            st.text("\n".join(debug_logs))
+        # ユーザー要望: 取引ログはエクスパンダーで折りたたみ表示
+        title = f"💰 {tr('trade logs')}"
+        with parent.expander(title, expanded=False):
+            # text_area の方が行間・スクロールで視認性が高い
+            st.text_area(
+                "Logs",
+                "\n".join(debug_logs),
+                height=300,
+            )
 
     # 結果も併せてセッションに保存（UI層でも保存するが二重でも安全）
     st.session_state[f"{system_name}_results_df"] = results_df

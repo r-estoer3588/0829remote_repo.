@@ -13,6 +13,8 @@ import requests
 
 __all__ = [
     "Notifier",
+    "BroadcastNotifier",
+    "create_notifier",
     "now_jst_str",
     "mask_secret",
     "truncate",
@@ -489,3 +491,83 @@ class Notifier:
         self.logger.info(
             "backtest_ex %s stats=%s top=%d", system_name, summary, min(len(ranking), 10)
         )
+
+
+# ---------------------------------
+# Broadcast support (Slack + Discord)
+# ---------------------------------
+class BroadcastNotifier:
+    """複数プラットフォームへ同時通知するラッパ。
+
+    子として `Notifier(platform="slack")` や `Notifier(platform="discord")`
+    を保持し、各メソッド呼び出しを順に委譲する。
+    """
+
+    def __init__(self, notifiers: List[Notifier]) -> None:
+        self._notifiers = [n for n in notifiers if getattr(n, "webhook_url", None)]
+        self.logger = _setup_logger()
+
+    def _each(self, fn_name: str, *args, **kwargs) -> None:
+        for n in self._notifiers:
+            try:
+                getattr(n, fn_name)(*args, **kwargs)
+            except Exception as e:  # pragma: no cover - network/IO
+                self.logger.warning("broadcast %s failed platform=%s %s", fn_name, getattr(n, "platform", "?"), e)
+
+    # mirror Notifier API
+    def send(self, *args, **kwargs) -> None:
+        self._each("send", *args, **kwargs)
+
+    def send_with_mention(self, *args, **kwargs) -> None:
+        self._each("send_with_mention", *args, **kwargs)
+
+    def send_backtest(self, *args, **kwargs) -> None:
+        self._each("send_backtest", *args, **kwargs)
+
+    def send_backtest_ex(self, *args, **kwargs) -> None:
+        self._each("send_backtest_ex", *args, **kwargs)
+
+    def send_trade_report(self, *args, **kwargs) -> None:
+        self._each("send_trade_report", *args, **kwargs)
+
+    def send_summary(self, *args, **kwargs) -> None:
+        self._each("send_summary", *args, **kwargs)
+
+
+def create_notifier(platform: str = "auto", broadcast: bool | None = None):
+    """Notifier を生成するファクトリ。
+
+    - broadcast=True の場合、Slack/Discord の両方が設定されていれば
+      BroadcastNotifier を返し、片方のみなら通常の Notifier を返す。
+    - broadcast が None の場合、環境変数 `NOTIFY_BROADCAST` を参照する。
+    - platform="auto" は既存動作（Slack 優先）を維持。
+    """
+    if broadcast is None:
+        flag = os.getenv("NOTIFY_BROADCAST", "").strip().lower()
+        broadcast = flag in {"1", "true", "yes", "on", "both", "all"}
+
+    if broadcast:
+        notifiers: List[Notifier] = []
+        slack_url = os.getenv("SLACK_WEBHOOK_URL")
+        discord_url = os.getenv("DISCORD_WEBHOOK_URL")
+        # auto/both: 可能なものを全部採用
+        if platform in {"auto", "both", "broadcast", "all"}:
+            if slack_url:
+                notifiers.append(Notifier(platform="slack", webhook_url=slack_url))
+            if discord_url:
+                notifiers.append(Notifier(platform="discord", webhook_url=discord_url))
+        else:
+            # 明示指定時は一致する方のみ
+            if platform == "slack" and slack_url:
+                notifiers.append(Notifier(platform="slack", webhook_url=slack_url))
+            if platform == "discord" and discord_url:
+                notifiers.append(Notifier(platform="discord", webhook_url=discord_url))
+        if len(notifiers) >= 2:
+            return BroadcastNotifier(notifiers)
+        if len(notifiers) == 1:
+            return notifiers[0]
+        # フォールバック
+        return Notifier(platform=platform)
+
+    # broadcast 無効時はそのまま
+    return Notifier(platform=platform)
