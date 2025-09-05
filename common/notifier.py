@@ -413,23 +413,15 @@ class Notifier:
         stats: dict[str, Any],
         ranking: list[str],
     ) -> None:
-        direction = SYSTEM_POSITION.get(system_name.lower(), "")
-        color = (
-            COLOR_LONG
-            if direction == "long"
-            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
-        )
-        title = f"📊 {system_name} バックテスト（{period}, 実行: {now_jst_str()}）"
-        fields = {k: str(v) for k, v in stats.items()}
-        desc = ""
-        if ranking:
-            lines = [f"{i + 1}. {s}" for i, s in enumerate(ranking[:10])]
-            if len(ranking) > 10:
-                lines.append("…")
-            desc = "ROC200 TOP10\n" + "\n".join(lines)
-        self.send(title, desc, fields=fields, color=color)
+        period_with_run = f"{period}, 実行: {now_jst_str()}" if period else f"実行: {now_jst_str()}"
+        self.send_backtest_ex(system_name, period_with_run, stats, ranking)
         summary = ", ".join(f"{k}={v}" for k, v in list(stats.items())[:3])
-        self.logger.info("backtest %s stats=%s top=%d", system_name, summary, min(len(ranking), 10))
+        self.logger.info(
+            "backtest %s stats=%s top=%d",
+            system_name,
+            summary,
+            min(len(ranking), 10),
+        )
 
     def send_trade_report(self, system_name: str, trades: list[dict[str, Any]]) -> None:
         title = f"✅ {system_name} 売買完了（{now_jst_str()}）"

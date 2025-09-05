@@ -17,6 +17,7 @@ from common.ui_components import (
     display_roc200_ranking,
     run_backtest_app,
     save_signal_and_trade_logs,
+    show_results,
     show_signal_trade_summary,
 )
 import common.ui_patch  # noqa: F401
@@ -35,7 +36,6 @@ DISPLAY_NAME = "システム1"
 strategy = System1Strategy()
 # Auto-select Slack/Discord based on available webhook env
 notifiers = get_notifiers_from_env()
-notifier = notifiers[0]
 
 
 def run_tab(spy_df=None, ui_manager=None):
@@ -117,17 +117,14 @@ def run_tab(spy_df=None, ui_manager=None):
             for n in notifiers:
                 try:
                     mention = "channel" if n.platform == "slack" else None
-                    if hasattr(n, "send_backtest_ex"):
-                        n.send_backtest_ex(
-                            "system1",
-                            period,
-                            stats,
-                            ranking,
-                            image_url=img_url,
-                            mention=mention,
-                        )
-                    else:
-                        n.send_backtest("system1", period, stats, ranking)
+                    n.send_backtest_ex(
+                        "system1",
+                        period,
+                        stats,
+                        ranking,
+                        image_url=img_url,
+                        mention=mention,
+                    )
                     sent = True
                 except Exception:
                     continue
@@ -149,8 +146,6 @@ def run_tab(spy_df=None, ui_manager=None):
                 prev_merged, prev_res, SYSTEM_NAME, display_name=DISPLAY_NAME
             )
             try:
-                from common.ui_components import show_results
-
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
