@@ -1,12 +1,17 @@
+"""通知機能のユーティリティ."""
+
+# ruff: noqa: I001
+
 from __future__ import annotations
 
+from collections.abc import Iterable
+from datetime import datetime
 import logging
 import os
+from pathlib import Path
 import random
 import time
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import requests
@@ -19,6 +24,7 @@ __all__ = [
     "format_table",
     "chunk_fields",
     "detect_default_platform",
+    "get_notifiers_from_env",
 ]
 
 SYSTEM_POSITION = {
@@ -110,7 +116,9 @@ def truncate(text: str, max_len: int) -> str:
     return s if len(s) <= max_len else s[:max_len] + "… (truncated)"
 
 
-def format_table(rows: List[Iterable[Any]], headers: List[str] | None = None, max_width: int = 80) -> str:
+def format_table(
+    rows: list[Iterable[Any]], headers: list[str] | None = None, max_width: int = 80
+) -> str:
     if not rows:
         return ""
     data = [list(map(str, r)) for r in rows]
@@ -123,10 +131,10 @@ def format_table(rows: List[Iterable[Any]], headers: List[str] | None = None, ma
         ratio = (max_width - 3 * (cols - 1)) / sum(widths)
         widths = [max(1, int(w * ratio)) for w in widths]
 
-    def fmt_row(r: List[str]) -> str:
-        return " | ".join(s[:widths[i]].ljust(widths[i]) for i, s in enumerate(r))
+    def fmt_row(r: list[str]) -> str:
+        return " | ".join(s[: widths[i]].ljust(widths[i]) for i, s in enumerate(r))
 
-    lines: List[str] = []
+    lines: list[str] = []
     if headers:
         lines.append(fmt_row(data[0]))
         lines.append("-+-".join("-" * w for w in widths))
@@ -138,8 +146,10 @@ def format_table(rows: List[Iterable[Any]], headers: List[str] | None = None, ma
     return "```\n" + "\n".join(lines) + "\n```"
 
 
-def chunk_fields(name: str, items: List[str], inline: bool = True, max_per_field: int = 15) -> List[Dict[str, Any]]:
-    fields: List[Dict[str, Any]] = []
+def chunk_fields(
+    name: str, items: list[str], inline: bool = True, max_per_field: int = 15
+) -> list[dict[str, Any]]:
+    fields: list[dict[str, Any]] = []
     for i in range(0, len(items), max_per_field):
         chunk = items[i : i + max_per_field]
         fields.append(
@@ -185,7 +195,7 @@ class Notifier:
             )
 
     # internal send with retry
-    def _post(self, payload: Dict[str, Any]) -> None:
+    def _post(self, payload: dict[str, Any]) -> None:
         if not self.webhook_url:
             self.logger.debug("Webhook未設定のため通知をスキップしました")
             return
@@ -205,7 +215,7 @@ class Notifier:
             except Exception as e:  # pragma: no cover - network errors
                 self.logger.warning("送信エラー[%d] %s", i + 1, e)
             if i < 2:
-                wait = (2 ** i) + random.uniform(-0.2, 0.2)
+                wait = (2**i) + random.uniform(-0.2, 0.2)
                 time.sleep(wait)
         self.logger.error("送信に失敗しました: %s", masked)
         raise RuntimeError("notification failed")
@@ -214,22 +224,22 @@ class Notifier:
         self,
         title: str,
         message: str,
-        fields: Dict[str, str] | List[Dict[str, Any]] | None = None,
+        fields: dict[str, str] | list[dict[str, Any]] | None = None,
         image_url: str | None = None,
         color: int | None = None,
     ) -> None:
         desc = f"実行日時: {now_jst_str()}"
         if message:
             desc += "\n" + message
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
         if self.platform == "discord":
-            embed: Dict[str, Any] = {
+            embed: dict[str, Any] = {
                 "title": truncate(title, 256),
                 "description": truncate(desc, 4096),
             }
             if color is not None:
                 embed["color"] = int(color)
-            field_list: List[Dict[str, Any]] = []
+            field_list: list[dict[str, Any]] = []
             if isinstance(fields, dict):
                 for k, v in fields.items():
                     field_list.append(
@@ -254,7 +264,7 @@ class Notifier:
                 embed["image"] = {"url": image_url}
             payload = {"embeds": [embed]}
         else:  # slack
-            blocks: List[Dict[str, Any]] = [
+            blocks: list[dict[str, Any]] = [
                 {
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)},
@@ -262,11 +272,18 @@ class Notifier:
             ]
             if isinstance(fields, dict):
                 text = "\n".join(f"*{k}*: {v}" for k, v in fields.items())
-                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+                blocks.append(
+                    {"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}}
+                )
             elif isinstance(fields, list):
                 for f in fields:
-                    text = f"*{f.get('name','')}*\n{f.get('value','')}"
-                    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+                    text = f"*{f.get('name', '')}*\n{f.get('value', '')}"
+                    blocks.append(
+                        {
+                            "type": "section",
+                            "text": {"type": "mrkdwn", "text": truncate(text, 3000)},
+                        }
+                    )
             if image_url:
                 blocks.append({"type": "image", "image_url": image_url, "alt_text": title})
             payload = {"blocks": blocks}
@@ -283,7 +300,7 @@ class Notifier:
         self,
         title: str,
         message: str,
-        fields: Dict[str, str] | List[Dict[str, Any]] | None = None,
+        fields: dict[str, str] | list[dict[str, Any]] | None = None,
         image_url: str | None = None,
         color: int | None = None,
         mention: str | bool | None = None,
@@ -298,20 +315,24 @@ class Notifier:
                 mention = _m
         if mention:
             if self.platform == "slack":
-                tag = "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
+                tag = (
+                    "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
+                )
                 desc = f"{tag}\n" + desc
             else:
-                content = "@everyone" if str(mention).lower() in {"channel", "@everyone"} else "@here"
+                content = (
+                    "@everyone" if str(mention).lower() in {"channel", "@everyone"} else "@here"
+                )
 
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
         if self.platform == "discord":
-            embed: Dict[str, Any] = {
+            embed: dict[str, Any] = {
                 "title": truncate(title, 256),
                 "description": truncate(desc, 4096),
             }
             if color is not None:
                 embed["color"] = int(color)
-            field_list: List[Dict[str, Any]] = []
+            field_list: list[dict[str, Any]] = []
             if isinstance(fields, dict):
                 for k, v in fields.items():
                     field_list.append(
@@ -334,16 +355,26 @@ class Notifier:
             if content:
                 payload["content"] = content
         else:
-            blocks: List[Dict[str, Any]] = [
-                {"type": "section", "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)}}
+            blocks: list[dict[str, Any]] = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)},
+                }
             ]
             if isinstance(fields, dict):
                 text = "\n".join(f"*{k}*: {v}" for k, v in fields.items())
-                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+                blocks.append(
+                    {"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}}
+                )
             elif isinstance(fields, list):
                 for f in fields:
-                    text = f"*{f.get('name','')}*\n{f.get('value','')}"
-                    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
+                    text = f"*{f.get('name', '')}*\n{f.get('value', '')}"
+                    blocks.append(
+                        {
+                            "type": "section",
+                            "text": {"type": "mrkdwn", "text": truncate(text, 3000)},
+                        }
+                    )
             if image_url:
                 blocks.append({"type": "image", "image_url": image_url, "alt_text": title})
             payload = {"blocks": blocks}
@@ -355,10 +386,12 @@ class Notifier:
         )
         self._post(payload)
 
-    def send_signals(self, system_name: str, signals: List[str]) -> None:
+    def send_signals(self, system_name: str, signals: list[str]) -> None:
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
         color = (
-            COLOR_LONG if direction == "long" else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
+            COLOR_LONG
+            if direction == "long"
+            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
         )
         title = f"📢 {system_name} 日次シグナル（{now_jst_str()}）"
         if not signals:
@@ -377,28 +410,28 @@ class Notifier:
         self,
         system_name: str,
         period: str,
-        stats: Dict[str, Any],
-        ranking: List[str],
+        stats: dict[str, Any],
+        ranking: list[str],
     ) -> None:
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
         color = (
-            COLOR_LONG if direction == "long" else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
+            COLOR_LONG
+            if direction == "long"
+            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
         )
         title = f"📊 {system_name} バックテスト（{period}, 実行: {now_jst_str()}）"
         fields = {k: str(v) for k, v in stats.items()}
         desc = ""
         if ranking:
-            lines = [f"{i+1}. {s}" for i, s in enumerate(ranking[:10])]
+            lines = [f"{i + 1}. {s}" for i, s in enumerate(ranking[:10])]
             if len(ranking) > 10:
                 lines.append("…")
             desc = "ROC200 TOP10\n" + "\n".join(lines)
         self.send(title, desc, fields=fields, color=color)
         summary = ", ".join(f"{k}={v}" for k, v in list(stats.items())[:3])
-        self.logger.info(
-            "backtest %s stats=%s top=%d", system_name, summary, min(len(ranking), 10)
-        )
+        self.logger.info("backtest %s stats=%s top=%d", system_name, summary, min(len(ranking), 10))
 
-    def send_trade_report(self, system_name: str, trades: List[Dict[str, Any]]) -> None:
+    def send_trade_report(self, system_name: str, trades: list[dict[str, Any]]) -> None:
         title = f"✅ {system_name} 売買完了（{now_jst_str()}）"
         if not trades:
             self.send(title, "本日の売買はありません。")
@@ -415,31 +448,27 @@ class Notifier:
             rows.append([sym, action, f"{qty}", f"@{price:.4f}"])
         table = format_table(rows, headers=["SYMBOL", "ACTION", "QTY", "PRICE"])
         self.send(title, table)
-        self.logger.info(
-            "trade report %s count=%d notional=%.2f", system_name, len(trades), total
-        )
+        self.logger.info("trade report %s count=%d notional=%.2f", system_name, len(trades), total)
 
     def send_summary(
         self,
         system_name: str,
         period_type: str,
         period_label: str,
-        summary: Dict[str, Any],
+        summary: dict[str, Any],
         image_url: str | None = None,
     ) -> None:
         title = f"📊 {system_name} {period_type} サマリー（{period_label}, 実行: {now_jst_str()}）"
         fields = {k: str(v) for k, v in summary.items()}
         self.send(title, "", fields=fields, image_url=image_url)
-        self.logger.info(
-            "summary %s %s keys=%d", system_name, period_type, len(summary)
-        )
+        self.logger.info("summary %s %s keys=%d", system_name, period_type, len(summary))
 
     def send_backtest_ex(
         self,
         system_name: str,
         period: str,
-        stats: Dict[str, Any],
-        ranking: List[Any],
+        stats: dict[str, Any],
+        ranking: list[Any],
         image_url: str | None = None,
         mention: str | bool | None = None,
     ) -> None:
@@ -451,13 +480,15 @@ class Notifier:
         """
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
         color = (
-            COLOR_LONG if direction == "long" else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
+            COLOR_LONG
+            if direction == "long"
+            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
         )
         title = f"📊 {system_name} バックテスト（{period}）"
         fields = {k: str(v) for k, v in stats.items()}
         desc = ""
         if ranking:
-            lines: List[str] = []
+            lines: list[str] = []
             for i, item in enumerate(ranking[:10], start=1):
                 try:
                     if isinstance(item, dict):
@@ -486,3 +517,23 @@ class Notifier:
         self.logger.info(
             "backtest_ex %s stats=%s top=%d", system_name, summary, min(len(ranking), 10)
         )
+
+
+def get_notifiers_from_env() -> list[Notifier]:
+    """環境変数から利用可能な Notifier のリストを生成する。"""
+    notifiers: list[Notifier] = []
+    try:
+        slack_url = os.getenv("SLACK_WEBHOOK_URL")
+        if slack_url:
+            notifiers.append(Notifier(platform="slack", webhook_url=slack_url))
+    except Exception:
+        pass
+    try:
+        discord_url = os.getenv("DISCORD_WEBHOOK_URL")
+        if discord_url:
+            notifiers.append(Notifier(platform="discord", webhook_url=discord_url))
+    except Exception:
+        pass
+    if not notifiers:
+        notifiers.append(Notifier(platform="auto"))
+    return notifiers
