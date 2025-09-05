@@ -12,7 +12,7 @@ from common.ui_manager import UIManager
 from pathlib import Path
 from common.i18n import tr, load_translations_from_dir, language_selector
 from common.performance_summary import summarize as summarize_perf
-from common.notifier import Notifier
+from common.notifier import get_notifiers_from_env
 from common.equity_curve import save_equity_curve
 import os
 
@@ -22,7 +22,7 @@ if not st.session_state.get("_integrated_ui", False):
     language_selector()
 
 strategy = System7Strategy()
-notifier = Notifier(platform="auto")
+notifiers = get_notifiers_from_env()
 
 
 def run_tab(single_mode=None, ui_manager=None):
@@ -77,11 +77,21 @@ def run_tab(single_mode=None, ui_manager=None):
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
         _img_path, _img_url = save_equity_curve(results_df, capital, "System7")
         if st.session_state.get(notify_key, False):
-            _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
-            if hasattr(notifier, "send_backtest_ex"):
-                notifier.send_backtest_ex("system7", period, stats, ranking, image_url=_img_url, mention=_mention)
+            sent = False
+            for n in notifiers:
+                try:
+                    _mention = "channel" if getattr(n, "platform", None) == "slack" else None
+                    if hasattr(n, "send_backtest_ex"):
+                        n.send_backtest_ex("system7", period, stats, ranking, image_url=_img_url, mention=_mention)
+                    else:
+                        n.send_backtest("system7", period, stats, ranking)
+                    sent = True
+                except Exception:
+                    continue
+            if sent:
+                st.success(tr("通知を送信しました"))
             else:
-                notifier.send_backtest("system7", period, stats, ranking)
+                st.warning(tr("通知の送信に失敗しました"))
     else:
         # Fallback view from session state
         prev_res = st.session_state.get("System7_results_df")
