@@ -1,8 +1,7 @@
 """System1 Streamlitアプリ."""
 
 # ruff: noqa: I001
-
-from pathlib import Path
+# isort: skip_file
 
 import os
 from pathlib import Path
@@ -15,16 +14,7 @@ from common.equity_curve import save_equity_curve
 from common.i18n import language_selector, load_translations_from_dir, tr
 from common.notifier import get_notifiers_from_env
 from common.performance_summary import summarize as summarize_perf
-import streamlit as st
-
-from common.cache_utils import save_prepared_data_cache
-from common.equity_curve import save_equity_curve
-from common.i18n import language_selector, load_translations_from_dir, tr
-from common.notifier import Notifier
-from common.performance_summary import summarize as summarize_perf
 from common.ui_components import (
-    clean_date_column,
-    display_roc200_ranking,
     clean_date_column,
     display_roc200_ranking,
     run_backtest_app,
@@ -33,8 +23,6 @@ from common.ui_components import (
 )
 import common.ui_patch  # noqa: F401
 from common.utils_spy import get_spy_with_indicators
-from strategies.system1_strategy import show_signal_trade_summary
-import common.ui_patch  # noqa: F401
 from strategies.system1_strategy import System1Strategy
 
 # Load translations once
@@ -42,8 +30,6 @@ load_translations_from_dir(Path(__file__).parent / "translations")
 # Skip local language selector when running inside integrated UI
 if not st.session_state.get("_integrated_ui", False):
     language_selector()
-
-from common.utils_spy import get_spy_with_indicators  # noqa: E402  # isort: skip
 
 SYSTEM_NAME = "System1"
 DISPLAY_NAME = "システム1"
@@ -154,16 +140,18 @@ def run_tab(spy_df=None, ui_manager=None):
                 except Exception:
                     continue
             if sent:
-            try:
-                mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
-                # use enhanced sender to include image and mention
-                if hasattr(notifier, "send_backtest_ex"):
-                    notifier.send_backtest_ex(
-                        "system1", period, stats, ranking, image_url=img_url, mention=mention
-                    )
-                else:
-                    notifier.send_backtest("system1", period, stats, ranking)
-                st.success(tr("通知を送信しました"))
+                try:
+                    mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+                    # use enhanced sender to include image and mention
+                    if hasattr(notifier, "send_backtest_ex"):
+                        notifier.send_backtest_ex(
+                            "system1", period, stats, ranking, image_url=img_url, mention=mention
+                        )
+                    else:
+                        notifier.send_backtest("system1", period, stats, ranking)
+                    st.success(tr("通知を送信しました"))
+                except Exception:
+                    st.warning(tr("通知の送信に失敗しました"))
             else:
                 st.warning(tr("通知の送信に失敗しました"))
 
@@ -182,7 +170,6 @@ def run_tab(spy_df=None, ui_manager=None):
             try:
                 from common.ui_components import show_results
 
-
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
@@ -190,7 +177,6 @@ def run_tab(spy_df=None, ui_manager=None):
 
 if __name__ == "__main__":
     import sys
-
 
     if "streamlit" not in sys.argv[0]:
         run_tab()
