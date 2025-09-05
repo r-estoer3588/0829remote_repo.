@@ -1,21 +1,18 @@
 from __future__ import annotations
 
 import os
-import pandas as pd
+
 import streamlit as st
 
-from common.i18n import tr
 from common.equity_curve import save_equity_curve
-import os
+from common.i18n import tr
+from common.notifier import Notifier
 from common.performance_summary import summarize as summarize_perf
-from common.ui_bridge import (
-    prepare_backtest_data_ui as _prepare_ui,
-    run_backtest_with_logging_ui as _run_ui,
-)
+from common.ui_bridge import prepare_backtest_data_ui as _prepare_ui
+from common.ui_bridge import run_backtest_with_logging_ui as _run_ui
 from common.ui_manager import UIManager
 from common.utils_spy import get_spy_data_cached, get_spy_with_indicators
 from scripts.tickers_loader import get_all_tickers
-from common.notifier import Notifier
 
 
 def _show_sys_result(df, capital):
@@ -37,14 +34,11 @@ def _show_sys_result(df, capital):
 def render_integrated_tab(settings, notifier: Notifier) -> None:
     """統合バックテストタブの描画"""
     st.subheader(tr("Integrated Backtest (Systems 1-7)"))
+    from common.holding_tracker import display_holding_heatmap, generate_holding_matrix
     from common.integrated_backtest import (
+        DEFAULT_ALLOCATIONS,
         build_system_states,
         run_integrated_backtest,
-        DEFAULT_ALLOCATIONS,
-    )
-    from common.holding_tracker import (
-        generate_holding_matrix,
-        display_holding_heatmap,
     )
 
     capital_i = st.number_input(
@@ -54,14 +48,16 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
         step=1000,
         key="integrated_capital",
     )
+    all_tickers = get_all_tickers()
     limit_i = st.number_input(
         tr("symbol limit"),
         min_value=50,
-        max_value=5000,
-        value=min(500, get_all_tickers().__len__()),
+        max_value=len(all_tickers),
+        value=min(500, len(all_tickers)),
         step=50,
         key="integrated_limit",
     )
+    use_all = st.checkbox(tr("use all symbols"), key="integrated_all")
     colA, colB = st.columns(2)
     with colA:
         allow_gross = st.checkbox(
@@ -70,11 +66,7 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
             key="integrated_gross",
         )
     with colB:
-        st.caption(
-            tr(
-                "allocation is fixed: long 1/3/4/5: each 25%, short 2:40%,6:40%,7:20%"
-            )
-        )
+        st.caption(tr("allocation is fixed: long 1/3/4/5: each 25%, short 2:40%,6:40%,7:20%"))
     colL, colS = st.columns(2)
     with colL:
         long_share = st.slider(
@@ -88,11 +80,24 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
     with colS:
         st.caption(tr("short bucket share = 100% - long"))
     short_share = 100 - int(long_share)
+    notify_key_i = "Integrated_notify_backtest"
+    if notify_key_i not in st.session_state:
+        st.session_state[notify_key_i] = True
+    _label_i = tr("バックテスト結果を通知する（Webhook）")
+    try:
+        if hasattr(st, "toggle"):
+            st.toggle(_label_i, key=notify_key_i)
+        else:
+            st.checkbox(_label_i, key=notify_key_i)
+        if not (os.getenv("DISCORD_WEBHOOK_URL") or os.getenv("SLACK_WEBHOOK_URL")):
+            st.caption(tr("Webhook URL が未設定です（.env を確認）"))
+    except Exception:
+        pass
+
     run_btn_i = st.button(tr("run integrated"))
 
     if run_btn_i:
-        all_tickers = get_all_tickers()
-        symbols = all_tickers[: int(limit_i)]
+        symbols = all_tickers if use_all else all_tickers[: int(limit_i)]
         spy_base = get_spy_with_indicators(get_spy_data_cached())
 
         ui = UIManager().system("Integrated", title=tr("Integrated"))
@@ -107,7 +112,10 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
         )
 
         import pandas as _pd
-        sig_counts = {s.name: int(sum(len(v) for v in s.candidates_by_date.values())) for s in states}
+
+        sig_counts = {
+            s.name: int(sum(len(v) for v in s.candidates_by_date.values())) for s in states
+        }
         st.write(tr("signals per system:"))
         st.dataframe(_pd.DataFrame([sig_counts]))
 
@@ -143,13 +151,39 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
             summary, df2 = summarize_perf(trades_df, capital_i)
             d = summary.to_dict()
             cols = st.columns(6)
+            try:
+                dd_pct = (df2["drawdown"] / (capital_i + df2["cum_max"])).min() * 100
+            except Exception:
+                dd_pct = 0.0
             cols[0].metric(tr("trades"), d.get("trades"))
             cols[1].metric(tr("total pnl"), f"{d.get('total_return', 0):.2f}")
             cols[2].metric(tr("win rate (%)"), f"{d.get('win_rate', 0):.2f}")
             cols[3].metric("PF", f"{d.get('profit_factor', 0):.2f}")
             cols[4].metric("Sharpe", f"{d.get('sharpe', 0):.2f}")
-            cols[5].metric(tr("max drawdown"), f"{d.get('max_drawdown', 0):.2f}")
+            cols[5].metric(
+                tr("max drawdown"),
+                f"{d.get('max_drawdown', 0):.2f}",
+                f"{dd_pct:.2f}%",
+            )
             st.dataframe(df2)
+
+            try:
+                equity = capital_i + df2["cumulative_pnl"]
+                equity.index = _pd.to_datetime(df2["exit_date"])
+                daily_eq = equity.resample("D").last().ffill()
+                year_start = daily_eq.resample("Y").first()
+                year_end = daily_eq.resample("Y").last()
+                yearly_df = _pd.DataFrame(
+                    {
+                        "year": year_end.index.year,
+                        "pnl": (year_end - year_start).values,
+                        "return_pct": ((year_end / year_start - 1) * 100).values,
+                    }
+                )
+                st.subheader(tr("yearly summary"))
+                st.dataframe(yearly_df)
+            except Exception:
+                pass
 
             with st.expander("holdings heatmap", expanded=False):
                 matrix = generate_holding_matrix(df2)
@@ -168,20 +202,31 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
             _title = tr("Integrated Summary")
             _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
             # Use unified sender with mention support if available
-            try:
-                if hasattr(notifier, "send_with_mention"):
-                    notifier.send_with_mention(_title, "", fields=d, image_url=_img_url, mention=_mention)
-                else:
-                    notifier.send(_title, "", fields=d, image_url=_img_url)
-            except Exception:
-                # Fallback to simple summary
-                notifier.send_summary(
-                    "integrated",
-                    "daily",
-                    _pd.Timestamp.now().strftime("%Y-%m-%d"),
-                    d,
-                    image_url=_img_url,
-                )
+            if st.session_state.get(notify_key_i, False):
+                try:
+                    if hasattr(notifier, "send_with_mention"):
+                        notifier.send_with_mention(
+                            _title,
+                            "",
+                            fields=d,
+                            image_url=_img_url,
+                            mention=_mention,
+                        )
+                    else:
+                        notifier.send(_title, "", fields=d, image_url=_img_url)
+                    st.success(tr("通知を送信しました"))
+                except Exception:
+                    try:
+                        notifier.send_summary(
+                            "integrated",
+                            "daily",
+                            _pd.Timestamp.now().strftime("%Y-%m-%d"),
+                            d,
+                            image_url=_img_url,
+                        )
+                        st.success(tr("通知を送信しました"))
+                    except Exception:
+                        st.warning(tr("通知の送信に失敗しました"))
         else:
             st.info(tr("no trades in integrated run"))
 
@@ -270,6 +315,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
             cols[5].metric(tr("max drawdown"), f"{saved_summary.get('max_drawdown', 0):.2f}")
         st.dataframe(saved_df)
         import pandas as _pd
+
         _ts = _pd.Timestamp.now().strftime("%Y-%m-%d_%H%M")
         st.download_button(
             label=tr("download saved batch trades CSV"),
@@ -279,12 +325,17 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
             key="download_saved_batch_csv",
         )
         if st.button(tr("save saved batch CSV to disk"), key="save_saved_batch_to_disk"):
-            out_dir = os.path.join("results_csv", "batch"); os.makedirs(out_dir, exist_ok=True)
-            trades_path = os.path.join(out_dir, f"batch_trades_saved_{_ts}_{int(saved_capital or 0)}.csv")
+            out_dir = os.path.join("results_csv", "batch")
+            os.makedirs(out_dir, exist_ok=True)
+            trades_path = os.path.join(
+                out_dir, f"batch_trades_saved_{_ts}_{int(saved_capital or 0)}.csv"
+            )
             saved_df.to_csv(trades_path, index=False)
             if isinstance(saved_summary, dict):
                 sum_df = _pd.DataFrame([saved_summary])
-                sum_path = os.path.join(out_dir, f"batch_summary_saved_{_ts}_{int(saved_capital or 0)}.csv")
+                sum_path = os.path.join(
+                    out_dir, f"batch_summary_saved_{_ts}_{int(saved_capital or 0)}.csv"
+                )
                 sum_df.to_csv(sum_path, index=False)
             st.success(tr("saved to {out_dir}", out_dir=out_dir))
         if st.button(tr("clear saved batch results"), key="clear_saved_batch"):
@@ -302,7 +353,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
         if logs:
             any_logs = True
             with st.expander(f"{sys_name} logs", expanded=False):
-                tail = list(map(str, logs))[-int(log_tail_lines):]
+                tail = list(map(str, logs))[-int(log_tail_lines) :]
                 st.text("\n".join(tail))
     if not any_logs:
         st.info(tr("no saved logs yet"))
@@ -405,7 +456,8 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
                 key="download_batch_csv_current",
             )
             if st.button(tr("save batch CSV to disk"), key="save_batch_to_disk_current"):
-                out_dir = os.path.join("results_csv", "batch"); os.makedirs(out_dir, exist_ok=True)
+                out_dir = os.path.join("results_csv", "batch")
+                os.makedirs(out_dir, exist_ok=True)
                 trades_path = os.path.join(out_dir, f"batch_trades_{_ts2}_{int(capital)}.csv")
                 all_df2.to_csv(trades_path, index=False)
                 sum_df = pd.DataFrame([d])
@@ -424,7 +476,9 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
                 _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
                 try:
                     if hasattr(notifier, "send_with_mention"):
-                        notifier.send_with_mention(_title, "", fields=d, image_url=_img_url, mention=_mention)
+                        notifier.send_with_mention(
+                            _title, "", fields=d, image_url=_img_url, mention=_mention
+                        )
                     else:
                         notifier.send(_title, "", fields=d, image_url=_img_url)
                 except Exception:
@@ -432,6 +486,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
 
             try:
                 import matplotlib.pyplot as _plt
+
                 st.markdown("---")
                 st.subheader("システム別 資金推移（サマリー）")
                 eq_map = {}
@@ -471,7 +526,7 @@ def render_batch_tab(settings, logger, notifier: Notifier | None = None) -> None
             if logs:
                 any_logs2 = True
                 with st.expander(f"{sys_name} logs", expanded=False):
-                    tail2 = list(map(str, logs))[-int(log_tail_lines):]
+                    tail2 = list(map(str, logs))[-int(log_tail_lines) :]
                     st.text("\n".join(tail2))
         if not any_logs2:
             st.info(tr("no logs to show"))

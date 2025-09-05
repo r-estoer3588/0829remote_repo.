@@ -1,69 +1,57 @@
-"""System1 Streamlitアプリ."""
+"""System1 Streamlit アプリ."""
 
-# ruff: noqa: I001
+from __future__ import annotations
 
-from pathlib import Path
-
-import os
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
+import common.ui_patch  # noqa: F401
 from common.cache_utils import save_prepared_data_cache
 from common.equity_curve import save_equity_curve
 from common.i18n import language_selector, load_translations_from_dir, tr
-from common.notifier import get_notifiers_from_env
-from common.performance_summary import summarize as summarize_perf
-import streamlit as st
-
-from common.cache_utils import save_prepared_data_cache
-from common.equity_curve import save_equity_curve
-from common.i18n import language_selector, load_translations_from_dir, tr
-from common.notifier import Notifier
 from common.performance_summary import summarize as summarize_perf
 from common.ui_components import (
-    clean_date_column,
-    display_roc200_ranking,
     clean_date_column,
     display_roc200_ranking,
     run_backtest_app,
     save_signal_and_trade_logs,
     show_signal_trade_summary,
 )
-import common.ui_patch  # noqa: F401
 from common.utils_spy import get_spy_with_indicators
-from strategies.system1_strategy import show_signal_trade_summary
-import common.ui_patch  # noqa: F401
 from strategies.system1_strategy import System1Strategy
 
-# Load translations once
+# Notifier は存在しない環境もあるため安全にフォールバック
+try:  # noqa: WPS501
+    from common.notifier import get_notifiers_from_env  # type: ignore
+except Exception:  # pragma: no cover
+    def get_notifiers_from_env():  # type: ignore
+        return []
+
+
+# 翻訳辞書ロードと言語選択（統合 UI 内ではスキップ）
 load_translations_from_dir(Path(__file__).parent / "translations")
-# Skip local language selector when running inside integrated UI
 if not st.session_state.get("_integrated_ui", False):
     language_selector()
 
-from common.utils_spy import get_spy_with_indicators  # noqa: E402  # isort: skip
 
 SYSTEM_NAME = "System1"
 DISPLAY_NAME = "システム1"
 
 strategy = System1Strategy()
-# Auto-select Slack/Discord based on available webhook env
 notifiers = get_notifiers_from_env()
-notifier = notifiers[0]
 
 
 def run_tab(spy_df=None, ui_manager=None):
-    st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"))
-    st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"))
+    st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド＋ハイ・モメンタム 候補銘柄ランキング"))
 
     spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
-    if spy_df is None or spy_df.empty:
-        st.error("SPYデータの取得に失敗しました。キャッシュを更新してください")
+    if spy_df is None or getattr(spy_df, "empty", True):
+        st.error(tr("SPYデータの取得に失敗しました。キャッシュを更新してください"))
         return
 
-    results_df, merged_df, data_dict, capital, candidates_by_date = run_backtest_app(
+    results_df, merged_df, data_dict, capital, _ = run_backtest_app(
         strategy,
         system_name=SYSTEM_NAME,
         limit_symbols=10,
@@ -74,16 +62,14 @@ def run_tab(spy_df=None, ui_manager=None):
     if results_df is not None and merged_df is not None:
         daily_df = clean_date_column(merged_df, col_name="Date")
         display_roc200_ranking(daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング")
-        display_roc200_ranking(daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング")
 
         signal_summary_df = show_signal_trade_summary(
             merged_df, results_df, SYSTEM_NAME, display_name=DISPLAY_NAME
         )
-        # 取引ログと保存ファイルはエクスパンダーにまとめて表示
         with st.expander(tr("取引ログ・保存ファイル"), expanded=False):
             save_signal_and_trade_logs(signal_summary_df, results_df, SYSTEM_NAME, capital)
         save_prepared_data_cache(data_dict, SYSTEM_NAME)
-        st.success("バックテスト完了")
+
         summary, _ = summarize_perf(results_df, capital)
         max_dd = summary.max_drawdown
         if max_dd > 0:
@@ -126,19 +112,19 @@ def run_tab(spy_df=None, ui_manager=None):
             if "symbol" in results_df.columns:
                 ranking = [str(s) for s in results_df["symbol"].head(10)]
 
-        img_path, img_url = save_equity_curve(results_df, capital, SYSTEM_NAME)
+        _, img_url = save_equity_curve(results_df, capital, SYSTEM_NAME)
         period = ""
         if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
             start = pd.to_datetime(results_df["entry_date"]).min()
             end = pd.to_datetime(results_df["exit_date"]).max()
             period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
-        # トグルがONの場合のみ通知を送信
+
         notify_key = f"{SYSTEM_NAME}_notify_backtest"
         if st.session_state.get(notify_key, False):
             sent = False
             for n in notifiers:
                 try:
-                    mention = "channel" if n.platform == "slack" else None
+                    mention = "channel" if getattr(n, "platform", None) == "slack" else None
                     if hasattr(n, "send_backtest_ex"):
                         n.send_backtest_ex(
                             "system1",
@@ -154,15 +140,6 @@ def run_tab(spy_df=None, ui_manager=None):
                 except Exception:
                     continue
             if sent:
-            try:
-                mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
-                # use enhanced sender to include image and mention
-                if hasattr(notifier, "send_backtest_ex"):
-                    notifier.send_backtest_ex(
-                        "system1", period, stats, ranking, image_url=img_url, mention=mention
-                    )
-                else:
-                    notifier.send_backtest("system1", period, stats, ranking)
                 st.success(tr("通知を送信しました"))
             else:
                 st.warning(tr("通知の送信に失敗しました"))
@@ -182,7 +159,6 @@ def run_tab(spy_df=None, ui_manager=None):
             try:
                 from common.ui_components import show_results
 
-
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
@@ -191,6 +167,6 @@ def run_tab(spy_df=None, ui_manager=None):
 if __name__ == "__main__":
     import sys
 
-
     if "streamlit" not in sys.argv[0]:
         run_tab()
+
