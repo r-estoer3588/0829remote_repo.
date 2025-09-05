@@ -1,8 +1,14 @@
+"""SPY の日足データを取得しローカルキャッシュに保存するスクリプト."""
+
+# ruff: noqa: I001
 import os
 import sys
+
+from dotenv import load_dotenv
 import pandas as pd
 import requests
-from dotenv import load_dotenv
+
+import common  # noqa: F401
 
 # .envからAPIキー取得
 load_dotenv()
