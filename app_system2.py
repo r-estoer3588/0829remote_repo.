@@ -1,20 +1,22 @@
-import streamlit as st  
-import common.ui_patch  # noqa: F401
+import os
+from pathlib import Path
+
 import pandas as pd
-from strategies.system2_strategy import System2Strategy
+import streamlit as st
+
+from common.cache_utils import save_prepared_data_cache
+from common.equity_curve import save_equity_curve
+from common.i18n import language_selector, load_translations_from_dir, tr
+from common.notifier import Notifier
+from common.performance_summary import summarize as summarize_perf
 from common.ui_components import (
     run_backtest_app,
-    show_signal_trade_summary,
     save_signal_and_trade_logs,
+    show_signal_trade_summary,
 )
-from common.cache_utils import save_prepared_data_cache
 from common.ui_manager import UIManager
-from pathlib import Path
-from common.i18n import tr, load_translations_from_dir, language_selector
-from common.performance_summary import summarize as summarize_perf
-from common.notifier import Notifier
-from common.equity_curve import save_equity_curve
-import os
+import common.ui_patch  # noqa: F401
+from strategies.system2_strategy import System2Strategy
 
 # 翻訳辞書ロードと言語選択
 load_translations_from_dir(Path(__file__).parent / "translations")
@@ -70,57 +72,64 @@ def run_tab(ui_manager=None):
         st.toggle(tr("バックテスト結果を通知する（Webhook）"), key=notify_key)
     except Exception:
         st.checkbox(tr("バックテスト結果を通知する（Webhook）"), key=notify_key)
-    results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
-        strategy, system_name="System2", limit_symbols=100, ui_manager=ui
-    )
-    # 実行直後の表示・保存
-    if results_df is not None and candidates_by_date is not None:
-        display_adx7_ranking(candidates_by_date)
-        summary_df = show_signal_trade_summary(data_dict, results_df, "System2")
-        with st.expander(tr("取引ログ・保存ファイル"), expanded=False):
-            save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
-        save_prepared_data_cache(data_dict, "System2")
-        summary, _ = summarize_perf(results_df, capital)
-        stats = {
-            "総リターン": f"{summary.total_return:.2f}",
-            "最大DD": f"{summary.max_drawdown:.2f}",
-            "Sharpe": f"{summary.sharpe:.2f}",
-        }
-        ranking = (
-            [str(s) for s in results_df["symbol"].head(10)]
-            if "symbol" in results_df.columns
-            else []
+
+    result_area = st.container()
+    with result_area:
+        results_df, _, data_dict, capital, candidates_by_date = run_backtest_app(
+            strategy, system_name="System2", limit_symbols=100, ui_manager=ui
         )
-        period = ""
-        if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
-            start = pd.to_datetime(results_df["entry_date"]).min()
-            end = pd.to_datetime(results_df["exit_date"]).max()
-            period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
-        # equity image and mention for Slack
-        _img_path, _img_url = save_equity_curve(results_df, capital, "System2")
-        if st.session_state.get(notify_key, False):
-            _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
-            if hasattr(notifier, "send_backtest_ex"):
-                notifier.send_backtest_ex("system2", period, stats, ranking, image_url=_img_url, mention=_mention)
-            else:
-                notifier.send_backtest("system2", period, stats, ranking)
-    # リラン時のフォールバック表示（セッションから復元）
-    elif results_df is None and candidates_by_date is None:
-        prev_res = st.session_state.get("System2_results_df")
-        prev_cands = st.session_state.get("System2_candidates_by_date")
-        prev_data = st.session_state.get("System2_prepared_dict")
-        prev_cap = st.session_state.get("System2_capital_saved")
-        if prev_res is not None and prev_cands is not None:
-            display_adx7_ranking(prev_cands)
-            _ = show_signal_trade_summary(prev_data, prev_res, "System2")
-            try:
-                from common.ui_components import show_results
-                show_results(prev_res, prev_cap or 0.0, "System2", key_context="prev")
-            except Exception:
-                pass
+        # 実行直後の表示・保存
+        if results_df is not None and candidates_by_date is not None:
+            display_adx7_ranking(candidates_by_date)
+            summary_df = show_signal_trade_summary(data_dict, results_df, "System2")
+            with st.expander(tr("取引ログ・保存ファイル"), expanded=False):
+                save_signal_and_trade_logs(summary_df, results_df, "System2", capital)
+            save_prepared_data_cache(data_dict, "System2")
+            summary, _ = summarize_perf(results_df, capital)
+            stats = {
+                "総リターン": f"{summary.total_return:.2f}",
+                "最大DD": f"{summary.max_drawdown:.2f}",
+                "Sharpe": f"{summary.sharpe:.2f}",
+            }
+            ranking = (
+                [str(s) for s in results_df["symbol"].head(10)]
+                if "symbol" in results_df.columns
+                else []
+            )
+            period = ""
+            if "entry_date" in results_df.columns and "exit_date" in results_df.columns:
+                start = pd.to_datetime(results_df["entry_date"]).min()
+                end = pd.to_datetime(results_df["exit_date"]).max()
+                period = f"{start:%Y-%m-%d}〜{end:%Y-%m-%d}"
+            # equity image and mention for Slack
+            _img_path, _img_url = save_equity_curve(results_df, capital, "System2")
+            if st.session_state.get(notify_key, False):
+                _mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
+                if hasattr(notifier, "send_backtest_ex"):
+                    notifier.send_backtest_ex(
+                        "system2", period, stats, ranking, image_url=_img_url, mention=_mention
+                    )
+                else:
+                    notifier.send_backtest("system2", period, stats, ranking)
+        # リラン時のフォールバック表示（セッションから復元）
+        elif results_df is None and candidates_by_date is None:
+            prev_res = st.session_state.get("System2_results_df")
+            prev_cands = st.session_state.get("System2_candidates_by_date")
+            prev_data = st.session_state.get("System2_prepared_dict")
+            prev_cap = st.session_state.get("System2_capital_saved")
+            if prev_res is not None and prev_cands is not None:
+                display_adx7_ranking(prev_cands)
+                _ = show_signal_trade_summary(prev_data, prev_res, "System2")
+                try:
+                    from common.ui_components import show_results
+
+                    show_results(prev_res, prev_cap or 0.0, "System2", key_context="prev")
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":
     import sys
+
     if "streamlit" not in sys.argv[0]:
         run_tab()
