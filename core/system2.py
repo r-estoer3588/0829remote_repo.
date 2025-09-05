@@ -28,7 +28,16 @@ def prepare_data_vectorized_system2(
     skipped_count = 0
 
     for sym, df in raw_data_dict.items():
-        x = df.copy()
+        # メモリ節約のため、必要最小限の列のみをコピーする
+        # （広いDataFrameの深いコピーでブロック統合が走り、
+        #  環境によっては不要な大規模アロケーションが発生するのを防ぐ）
+        base_cols = [c for c in ["Open", "High", "Low", "Close", "Volume"] if c in df.columns]
+        if base_cols:
+            x = df[base_cols].copy()
+        else:
+            # フォールバック（最低限 Close は必要）
+            needed = [c for c in ["Close", "Open", "High", "Low"] if c in df.columns]
+            x = df[needed].copy() if needed else df.copy(deep=False)
 
         # データ行不足
         if len(x) < 20:
@@ -45,7 +54,11 @@ def prepare_data_vectorized_system2(
             processed += 1
             continue
 
-        x["DollarVolume20"] = (x["Close"] * x["Volume"]).rolling(window=20).mean()
+        # Volume が無い場合は NaN で埋める（後段のフィルタで自然に落ちる）
+        if "Volume" in x.columns:
+            x["DollarVolume20"] = (x["Close"] * x["Volume"]).rolling(window=20).mean()
+        else:
+            x["DollarVolume20"] = pd.Series(index=x.index, dtype=float)
         x["ATR_Ratio"] = x["ATR10"] / x["Close"]
         x["TwoDayUp"] = (x["Close"] > x["Close"].shift(1)) & (x["Close"].shift(1) > x["Close"].shift(2))
 
