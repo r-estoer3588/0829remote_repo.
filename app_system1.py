@@ -33,9 +33,7 @@ from common.ui_components import (
 )
 import common.ui_patch  # noqa: F401
 from common.utils_spy import get_spy_with_indicators
-from strategies.system1_strategy import System1Strategy
-    show_signal_trade_summary,
-)
+from strategies.system1_strategy import show_signal_trade_summary
 import common.ui_patch  # noqa: F401
 from strategies.system1_strategy import System1Strategy
 
