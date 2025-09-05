@@ -601,40 +601,43 @@ def run_backtest_app(
         except Exception:
             pass
 
-    if st.button(tr("run"), key=f"{system_name}_run"):
-        prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
-            strategy,
-            symbols,
-            system_name=system_name,
-            spy_df=spy_df,
-            ui_manager=ui_manager,
-            **kwargs,
-        )
-        if candidates_by_date is None:
-            return None, None, None, None, None
+    run_clicked = st.button(tr("run"), key=f"{system_name}_run")
+    result_area = st.container()
+    if run_clicked:
+        with result_area:
+            prepared_dict, candidates_by_date, merged_df = prepare_backtest_data(
+                strategy,
+                symbols,
+                system_name=system_name,
+                spy_df=spy_df,
+                ui_manager=ui_manager,
+                **kwargs,
+            )
+            if candidates_by_date is None:
+                return None, None, None, None, None
 
-        results_df = run_backtest_with_logging(
-            strategy,
-            prepared_dict,
-            candidates_by_date,
-            capital,
-            system_name,
-            ui_manager=ui_manager,
-        )
-        show_results(results_df, capital, system_name, key_context="curr")
+            results_df = run_backtest_with_logging(
+                strategy,
+                prepared_dict,
+                candidates_by_date,
+                capital,
+                system_name,
+                ui_manager=ui_manager,
+            )
+            show_results(results_df, capital, system_name, key_context="curr")
 
-        # セッションへ保存（リラン対策）
-        st.session_state[key_results] = results_df
-        st.session_state[key_prepared] = prepared_dict
-        st.session_state[key_cands] = candidates_by_date
-        st.session_state[key_capital_saved] = capital
-        if merged_df is not None:
-            st.session_state[key_merged] = merged_df
+            # セッションへ保存（リラン対策）
+            st.session_state[key_results] = results_df
+            st.session_state[key_prepared] = prepared_dict
+            st.session_state[key_cands] = candidates_by_date
+            st.session_state[key_capital_saved] = capital
+            if merged_df is not None:
+                st.session_state[key_merged] = merged_df
 
-        if system_name == "System1":
-            return results_df, merged_df, prepared_dict, capital, candidates_by_date
-        else:
-            return results_df, None, prepared_dict, capital, candidates_by_date
+            if system_name == "System1":
+                return results_df, merged_df, prepared_dict, capital, candidates_by_date
+            else:
+                return results_df, None, prepared_dict, capital, candidates_by_date
 
     return None, None, None, None, None
 
