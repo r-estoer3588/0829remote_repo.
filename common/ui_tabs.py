@@ -113,6 +113,14 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
 
         sim = ui.phase("simulate", title=tr("simulate integrated"))
         sim.info(tr("running integrated engine..."))
+
+        # 進捗更新用のコールバック
+        def _on_progress(i: int, total: int, start):
+            try:
+                sim.progress_bar.progress(0 if not total else i / total)
+            except Exception:
+                pass
+
         trades_df, _sig = run_integrated_backtest(
             states,
             capital_i,
@@ -120,7 +128,14 @@ def render_integrated_tab(settings, notifier: Notifier) -> None:
             long_share=float(long_share) / 100.0,
             short_share=float(short_share) / 100.0,
             allow_gross_leverage=allow_gross,
+            on_progress=_on_progress,
         )
+
+        # 終了時にプログレスバーを消す
+        try:
+            sim.progress_bar.empty()
+        except Exception:
+            pass
 
         st.markdown("---")
         st.subheader(tr("Integrated Summary"))

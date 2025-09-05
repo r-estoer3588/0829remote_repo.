@@ -1,7 +1,20 @@
+"""System1 Streamlitアプリ."""
+
+# ruff: noqa: I001
+
+from pathlib import Path
+
 import os
 from pathlib import Path
 
 import pandas as pd
+import streamlit as st
+
+from common.cache_utils import save_prepared_data_cache
+from common.equity_curve import save_equity_curve
+from common.i18n import language_selector, load_translations_from_dir, tr
+from common.notifier import get_notifiers_from_env
+from common.performance_summary import summarize as summarize_perf
 import streamlit as st
 
 from common.cache_utils import save_prepared_data_cache
@@ -12,8 +25,15 @@ from common.performance_summary import summarize as summarize_perf
 from common.ui_components import (
     clean_date_column,
     display_roc200_ranking,
+    clean_date_column,
+    display_roc200_ranking,
     run_backtest_app,
     save_signal_and_trade_logs,
+    show_signal_trade_summary,
+)
+import common.ui_patch  # noqa: F401
+from common.utils_spy import get_spy_with_indicators
+from strategies.system1_strategy import System1Strategy
     show_signal_trade_summary,
 )
 import common.ui_patch  # noqa: F401
@@ -32,10 +52,12 @@ DISPLAY_NAME = "システム1"
 
 strategy = System1Strategy()
 # Auto-select Slack/Discord based on available webhook env
-notifier = Notifier(platform="auto")
+notifiers = get_notifiers_from_env()
+notifier = notifiers[0]
 
 
 def run_tab(spy_df=None, ui_manager=None):
+    st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"))
     st.header(tr(f"{DISPLAY_NAME} — ロング・トレンド × ハイ・モメンタム — 候補銘柄ランキング"))
 
     spy_df = spy_df if spy_df is not None else get_spy_with_indicators()
@@ -53,6 +75,7 @@ def run_tab(spy_df=None, ui_manager=None):
 
     if results_df is not None and merged_df is not None:
         daily_df = clean_date_column(merged_df, col_name="Date")
+        display_roc200_ranking(daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング")
         display_roc200_ranking(daily_df, title=f"📊 {DISPLAY_NAME} 日別ROC200ランキング")
 
         signal_summary_df = show_signal_trade_summary(
@@ -114,6 +137,25 @@ def run_tab(spy_df=None, ui_manager=None):
         # トグルがONの場合のみ通知を送信
         notify_key = f"{SYSTEM_NAME}_notify_backtest"
         if st.session_state.get(notify_key, False):
+            sent = False
+            for n in notifiers:
+                try:
+                    mention = "channel" if n.platform == "slack" else None
+                    if hasattr(n, "send_backtest_ex"):
+                        n.send_backtest_ex(
+                            "system1",
+                            period,
+                            stats,
+                            ranking,
+                            image_url=img_url,
+                            mention=mention,
+                        )
+                    else:
+                        n.send_backtest("system1", period, stats, ranking)
+                    sent = True
+                except Exception:
+                    continue
+            if sent:
             try:
                 mention = "channel" if os.getenv("SLACK_WEBHOOK_URL") else None
                 # use enhanced sender to include image and mention
@@ -124,7 +166,7 @@ def run_tab(spy_df=None, ui_manager=None):
                 else:
                     notifier.send_backtest("system1", period, stats, ranking)
                 st.success(tr("通知を送信しました"))
-            except Exception:
+            else:
                 st.warning(tr("通知の送信に失敗しました"))
 
     elif results_df is None and merged_df is None:
@@ -142,6 +184,7 @@ def run_tab(spy_df=None, ui_manager=None):
             try:
                 from common.ui_components import show_results
 
+
                 show_results(prev_res, prev_cap or 0.0, SYSTEM_NAME, key_context="prev")
             except Exception:
                 pass
@@ -149,6 +192,7 @@ def run_tab(spy_df=None, ui_manager=None):
 
 if __name__ == "__main__":
     import sys
+
 
     if "streamlit" not in sys.argv[0]:
         run_tab()

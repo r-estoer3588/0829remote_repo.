@@ -1,3 +1,9 @@
+"""通知機能のユーティリティ.
+
+- Slack / Discord Webhook に対応
+- ユーザー向け日本語文言は正規化済み
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -5,8 +11,6 @@ from datetime import datetime
 import logging
 import os
 from pathlib import Path
-import random
-import time
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -22,9 +26,12 @@ __all__ = [
     "format_table",
     "chunk_fields",
     "detect_default_platform",
+    "get_notifiers_from_env",
 ]
 
-SYSTEM_POSITION = {
+
+# System と売買方向（色指定に使用）
+SYSTEM_POSITION: dict[str, str] = {
     "system1": "long",
     "system2": "short",
     "system3": "long",
@@ -34,9 +41,9 @@ SYSTEM_POSITION = {
     "system7": "short",
 }
 
-COLOR_LONG = 3066993
-COLOR_SHORT = 15158332
-COLOR_NEUTRAL = 15548997
+COLOR_LONG = 0x2ECC71   # Discord embed color (緑)
+COLOR_SHORT = 0xE74C3C  # 赤
+COLOR_NEUTRAL = 0xF1C40F # 黄
 
 _JST = ZoneInfo("Asia/Tokyo")
 
@@ -68,7 +75,7 @@ def _setup_logger() -> logging.Logger:
     logger.addHandler(fh)
     logger.addHandler(sh)
 
-    # cleanup old logs (>3 years)
+    # 古いログをローテーション（> 3年）
     cutoff_year = now.year - 3
     cutoff_month = now.month
     for p in logs_dir.glob("notifier_*.log"):
@@ -79,7 +86,7 @@ def _setup_logger() -> logging.Logger:
         if (y < cutoff_year) or (y == cutoff_year and m < cutoff_month):
             try:
                 p.unlink()
-                logger.info("古いログを削除しました → %s", p.name)
+                logger.info("古いログを削除しました %s", p.name)
             except Exception:
                 pass
     return logger
@@ -106,10 +113,8 @@ def mask_secret(url: str) -> str:
         return "***"
 
 
-def truncate(text: str, max_len: int) -> str:
-    if text is None:
-        return ""
-    s = str(text)
+def truncate(text: Any, max_len: int) -> str:
+    s = "" if text is None else str(text)
     return s if len(s) <= max_len else s[:max_len] + "… (truncated)"
 
 
@@ -143,83 +148,60 @@ def format_table(
     return "```\n" + "\n".join(lines) + "\n```"
 
 
-def chunk_fields(
-    name: str, items: list[str], inline: bool = True, max_per_field: int = 15
-) -> list[dict[str, Any]]:
+def chunk_fields(title: str, items: list[str], inline: bool = True, per_row: int = 2) -> list[dict[str, Any]]:
+    """Slack/Discord 共通の fields 形式へ整形する簡易ユーティリティ."""
     fields: list[dict[str, Any]] = []
-    for i in range(0, len(items), max_per_field):
-        chunk = items[i : i + max_per_field]
-        fields.append(
-            {
-                "name": name if i == 0 else f"{name} ({i // max_per_field + 1})",
-                "value": "\n".join(chunk),
-                "inline": inline,
-            }
-        )
+    if not items:
+        return fields
+    if inline:
+        # 2列などで並べる
+        row: list[str] = []
+        for i, it in enumerate(items, 1):
+            row.append(str(it))
+            if i % per_row == 0:
+                fields.append({"name": title, "value": "  |  ".join(row), "inline": True})
+                row = []
+        if row:
+            fields.append({"name": title, "value": "  |  ".join(row), "inline": True})
+    else:
+        for it in items:
+            fields.append({"name": title, "value": str(it), "inline": False})
     return fields
 
 
 def detect_default_platform() -> str:
-    """Return preferred notifier platform based on environment.
-
-    - If ``SLACK_WEBHOOK_URL`` is set, prefer Slack.
-    - Otherwise fall back to Discord.
-    """
-    try:
-        return "slack" if os.getenv("SLACK_WEBHOOK_URL") else "discord"
-    except Exception:
+    if os.getenv("SLACK_WEBHOOK_URL"):
+        return "slack"
+    if os.getenv("DISCORD_WEBHOOK_URL"):
         return "discord"
+    return "none"
 
 
 class Notifier:
-    def __init__(self, platform: str = "discord", webhook_url: str | None = None) -> None:
-        # Allow callers that pass "auto" or an empty string to rely on env detection
-        if not platform or platform.lower() == "auto":
+    """Slack / Discord 送信を抽象化する通知クラス."""
+
+    def __init__(self, platform: str = "auto", webhook_url: str | None = None):
+        if platform == "auto":
             platform = detect_default_platform()
-        self.platform = platform.lower()
-        if self.platform not in {"discord", "slack"}:
-            raise ValueError(f"未知のplatform: {platform}")
-        env = "DISCORD_WEBHOOK_URL" if self.platform == "discord" else "SLACK_WEBHOOK_URL"
+        self.platform = platform
+        self.webhook_url = webhook_url or (
+            os.getenv("SLACK_WEBHOOK_URL") if platform == "slack" else os.getenv("DISCORD_WEBHOOK_URL")
+        )
         self.logger = _setup_logger()
-        self.webhook_url = webhook_url or os.getenv(env)
-        if not self.webhook_url:
-            self.logger.warning("Webhook URLが設定されていません: %s", env)
-        else:
-            self.logger.info(
-                "Notifier 初期化 platform=%s webhook=%s",
-                self.platform,
-                mask_secret(self.webhook_url),
-            )
 
-    # internal send with retry
-    def _post(self, payload: dict[str, Any]) -> None:
+    # 低レベル送信
+    def _post(self, payload: dict[str, Any]) -> None:  # pragma: no cover - 実送信は通常テストしない
         if not self.webhook_url:
-            self.logger.debug("Webhook未設定のため通知をスキップしました")
+            self.logger.warning("webhook が未設定のため送信をスキップします platform=%s", self.platform)
             return
-        url = self.webhook_url
-        masked = mask_secret(url)
-        for i in range(3):
-            try:
-                r = requests.post(url, json=payload, timeout=10)
-                if 200 <= r.status_code < 300:
-                    return
-                self.logger.warning(
-                    "送信失敗[%d] status=%s body=%s",
-                    i + 1,
-                    r.status_code,
-                    truncate(r.text, 100),
-                )
-            except Exception as e:  # pragma: no cover - network errors
-                self.logger.warning("送信エラー[%d] %s", i + 1, e)
-            if i < 2:
-                wait = (2**i) + random.uniform(-0.2, 0.2)
-                time.sleep(wait)
-        self.logger.error("送信に失敗しました: %s", masked)
-        # 既定では UI を落とさない。厳格運用したい場合は NOTIFIER_STRICT=1 を設定。
-        if os.getenv("NOTIFIER_STRICT", "").strip() in {"1", "true", "True", "YES", "yes"}:
-            raise RuntimeError("notification failed")
-        return
+        try:
+            resp = requests.post(self.webhook_url, json=payload, timeout=10)
+            if resp.status_code >= 300:
+                self.logger.warning("notify failed status=%s text=%s", resp.status_code, resp.text[:200])
+        except Exception as e:
+            self.logger.warning("notify exception %s", e)
 
+    # 共通 send（簡易）
     def send(
         self,
         title: str,
@@ -228,27 +210,18 @@ class Notifier:
         image_url: str | None = None,
         color: int | None = None,
     ) -> None:
-        desc = f"実行日時: {now_jst_str()}"
-        if message:
-            desc += "\n" + message
         payload: dict[str, Any]
         if self.platform == "discord":
             embed: dict[str, Any] = {
                 "title": truncate(title, 256),
-                "description": truncate(desc, 4096),
+                "description": truncate(message, 4096),
             }
             if color is not None:
                 embed["color"] = int(color)
             field_list: list[dict[str, Any]] = []
             if isinstance(fields, dict):
                 for k, v in fields.items():
-                    field_list.append(
-                        {
-                            "name": truncate(k, 256),
-                            "value": truncate(str(v), 1024),
-                            "inline": True,
-                        }
-                    )
+                    field_list.append({"name": truncate(k, 256), "value": truncate(str(v), 1024), "inline": True})
             elif isinstance(fields, list):
                 for f in fields:
                     field_list.append(
@@ -263,31 +236,21 @@ class Notifier:
             if image_url:
                 embed["image"] = {"url": image_url}
             payload = {"embeds": [embed]}
-        else:  # slack
+        else:  # slack / none
             blocks: list[dict[str, Any]] = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)},
-                }
+                {"type": "section", "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{message}", 3000)}}
             ]
             if isinstance(fields, dict):
                 text = "\n".join(f"*{k}*: {v}" for k, v in fields.items())
-                blocks.append(
-                    {"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}}
-                )
+                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
             elif isinstance(fields, list):
                 for f in fields:
-                    text = f"*{f.get('name','')}*\n{f.get('value','')}"
-                    blocks.append(
-                        {
-                            "type": "section",
-                            "text": {"type": "mrkdwn", "text": truncate(text, 3000)},
-                        }
-                    )
+                    text = f"*{f.get('name', '')}*\n{f.get('value', '')}"
+                    blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}})
             if image_url:
                 blocks.append({"type": "image", "image_url": image_url, "alt_text": title})
-            # Slack Webhookではfallback用にtextフィールドが必須
-            fallback = truncate(f"{title}\n{desc}", 3000)
+            # Slack Webhookでは fallback 用の text があると安全
+            fallback = truncate(f"{title}\n{message}", 3000)
             payload = {"text": fallback, "blocks": blocks}
         self.logger.info(
             "send title=%s fields=%d image=%s",
@@ -297,135 +260,29 @@ class Notifier:
         )
         self._post(payload)
 
-    # unified send with optional mention support
-    def send_with_mention(
-        self,
-        title: str,
-        message: str,
-        fields: dict[str, str] | list[dict[str, Any]] | None = None,
-        image_url: str | None = None,
-        color: int | None = None,
-        mention: str | bool | None = None,
-    ) -> None:
-        desc = f"実行日時: {now_jst_str()}"
-        if message:
-            desc += "\n" + message
-        content: str | None = None
-        if mention is None:
-            _m = os.getenv("NOTIFY_MENTION", "").strip().lower()
-            if _m in {"channel", "here", "@everyone", "@here"}:
-                mention = _m
-        if mention:
-            if self.platform == "slack":
-                tag = (
-                    "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
-                )
-                desc = f"{tag}\n" + desc
-            else:
-                content = (
-                    "@everyone" if str(mention).lower() in {"channel", "@everyone"} else "@here"
-                )
-
-        payload: dict[str, Any]
-        if self.platform == "discord":
-            embed: dict[str, Any] = {
-                "title": truncate(title, 256),
-                "description": truncate(desc, 4096),
-            }
-            if color is not None:
-                embed["color"] = int(color)
-            field_list: list[dict[str, Any]] = []
-            if isinstance(fields, dict):
-                for k, v in fields.items():
-                    field_list.append(
-                        {"name": truncate(k, 256), "value": truncate(str(v), 1024), "inline": True}
-                    )
-            elif isinstance(fields, list):
-                for f in fields:
-                    field_list.append(
-                        {
-                            "name": truncate(f.get("name", ""), 256),
-                            "value": truncate(str(f.get("value", "")), 1024),
-                            "inline": bool(f.get("inline", True)),
-                        }
-                    )
-            if field_list:
-                embed["fields"] = field_list[:25]
-            if image_url:
-                embed["image"] = {"url": image_url}
-            payload = {"embeds": [embed]}
-            if content:
-                payload["content"] = content
-        else:
-            blocks: list[dict[str, Any]] = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": truncate(f"*{title}*\n{desc}", 3000)},
-                }
-            ]
-            if isinstance(fields, dict):
-                text = "\n".join(f"*{k}*: {v}" for k, v in fields.items())
-                blocks.append(
-                    {"type": "section", "text": {"type": "mrkdwn", "text": truncate(text, 3000)}}
-                )
-            elif isinstance(fields, list):
-                for f in fields:
-                    text = f"*{f.get('name','')}*\n{f.get('value','')}"
-                    blocks.append(
-                        {
-                            "type": "section",
-                            "text": {"type": "mrkdwn", "text": truncate(text, 3000)},
-                        }
-                    )
-            if image_url:
-                blocks.append({"type": "image", "image_url": image_url, "alt_text": title})
-            payload = {"blocks": blocks}
-        self.logger.info(
-            "send+mention title=%s fields=%d image=%s",
-            truncate(title, 50),
-            0 if not fields else (len(fields) if isinstance(fields, list) else len(fields)),
-            bool(image_url),
-        )
-        self._post(payload)
-
+    # 以降は高レベル API（ユーザー向け日本語文言を整形）
     def send_signals(self, system_name: str, signals: list[str]) -> None:
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
-        color = (
-            COLOR_LONG
-            if direction == "long"
-            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
-        )
+        color = COLOR_LONG if direction == "long" else (COLOR_SHORT if direction == "short" else COLOR_NEUTRAL)
         title = f"📢 {system_name} 日次シグナル（{now_jst_str()}）"
         if not signals:
             self.send(title, "本日のシグナルはありません。", color=color)
             self.logger.info("signals %s direction=%s count=0", system_name, direction or "none")
             return
-        emoji = "✅" if direction == "long" else "❌" if direction == "short" else ""
+        emoji = "↑" if direction == "long" else ("↓" if direction == "short" else "")
         items = [f"{emoji} {s}" if emoji else s for s in signals]
         fields = chunk_fields("銘柄", items, inline=False)
         self.send(title, "", fields=fields, color=color)
-        self.logger.info(
-            "signals %s direction=%s count=%d", system_name, direction or "none", len(signals)
-        )
+        self.logger.info("signals %s direction=%s count=%d", system_name, direction or "none", len(signals))
 
-    def send_backtest(
-        self,
-        system_name: str,
-        period: str,
-        stats: dict[str, Any],
-        ranking: list[str],
-    ) -> None:
+    def send_backtest(self, system_name: str, period: str, stats: dict[str, Any], ranking: list[str]) -> None:
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
-        color = (
-            COLOR_LONG
-            if direction == "long"
-            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
-        )
-        title = f"📊 {system_name} バックテスト（{period}, 実行: {now_jst_str()}）"
+        color = COLOR_LONG if direction == "long" else (COLOR_SHORT if direction == "short" else COLOR_NEUTRAL)
+        title = f"📊 {system_name} バックテスト（{period}、実行日時 {now_jst_str()}）"
         fields = {k: str(v) for k, v in stats.items()}
         desc = ""
         if ranking:
-            lines = [f"{i+1}. {s}" for i, s in enumerate(ranking[:10])]
+            lines = [f"{i + 1}. {s}" for i, s in enumerate(ranking[:10])]
             if len(ranking) > 10:
                 lines.append("…")
             desc = "ROC200 TOP10\n" + "\n".join(lines)
@@ -460,7 +317,7 @@ class Notifier:
         summary: dict[str, Any],
         image_url: str | None = None,
     ) -> None:
-        title = f"📊 {system_name} {period_type} サマリー（{period_label}, 実行: {now_jst_str()}）"
+        title = f"📊 {system_name} {period_type} サマリー（{period_label}、実行日時 {now_jst_str()}）"
         fields = {k: str(v) for k, v in summary.items()}
         self.send(title, "", fields=fields, image_url=image_url)
         self.logger.info("summary %s %s keys=%d", system_name, period_type, len(summary))
@@ -474,18 +331,9 @@ class Notifier:
         image_url: str | None = None,
         mention: str | bool | None = None,
     ) -> None:
-        """Enhanced backtest notification with optional image and mentions.
-
-        - ranking can be list of str or dicts with keys: symbol, roc, volume.
-        - When platform is Slack and mention is truthy ("channel"/"here"),
-          a tag is prefixed to the message so that a sound/notification bar appears.
-        """
+        """拡張バックテスト通知（画像 URL、メンション対応）."""
         direction = SYSTEM_POSITION.get(system_name.lower(), "")
-        color = (
-            COLOR_LONG
-            if direction == "long"
-            else COLOR_SHORT if direction == "short" else COLOR_NEUTRAL
-        )
+        color = COLOR_LONG if direction == "long" else (COLOR_SHORT if direction == "short" else COLOR_NEUTRAL)
         title = f"📊 {system_name} バックテスト（{period}）"
         fields = {k: str(v) for k, v in stats.items()}
         desc = ""
@@ -510,28 +358,26 @@ class Notifier:
             if len(ranking) > 10:
                 lines.append("…")
             desc = "ROC200 TOP10\n" + "\n".join(lines)
-        # Slack mention: add tag at the top of the message
+        # Slack へは先頭にメンションタグ
         if mention and getattr(self, "platform", "") == "slack":
             tag = "<!channel>" if str(mention).lower() in {"channel", "@everyone"} else "<!here>"
             desc = f"{tag}\n" + desc
         self.send(title, desc, fields=fields, color=color, image_url=image_url)
         summary = ", ".join(f"{k}={v}" for k, v in list(stats.items())[:3])
-        self.logger.info(
-            "backtest_ex %s stats=%s top=%d", system_name, summary, min(len(ranking), 10)
-        )
+        self.logger.info("backtest_ex %s stats=%s top=%d", system_name, summary, min(len(ranking), 10))
 
 
 # ---------------------------------
 # Broadcast support (Slack + Discord)
 # ---------------------------------
 class BroadcastNotifier:
-    """複数プラットフォームへ同時通知するラッパ。
+    """複数プラットフォームへ同時通知するラッパー.
 
     子として `Notifier(platform="slack")` や `Notifier(platform="discord")`
-    を保持し、各メソッド呼び出しを順に委譲する。
+    を保持し、各メソッド呼び出しを内部で委譲する。
     """
 
-    def __init__(self, notifiers: List[Notifier]) -> None:
+    def __init__(self, notifiers: list[Notifier]) -> None:
         self._notifiers = [n for n in notifiers if getattr(n, "webhook_url", None)]
         self.logger = _setup_logger()
 
@@ -540,14 +386,16 @@ class BroadcastNotifier:
             try:
                 getattr(n, fn_name)(*args, **kwargs)
             except Exception as e:  # pragma: no cover - network/IO
-                self.logger.warning("broadcast %s failed platform=%s %s", fn_name, getattr(n, "platform", "?"), e)
+                self.logger.warning(
+                    "broadcast %s failed platform=%s %s", fn_name, getattr(n, "platform", "?"), e
+                )
 
-    # mirror Notifier API
+    # Notifier API を委譲
     def send(self, *args, **kwargs) -> None:
         self._each("send", *args, **kwargs)
 
-    def send_with_mention(self, *args, **kwargs) -> None:
-        self._each("send_with_mention", *args, **kwargs)
+    def send_signals(self, *args, **kwargs) -> None:
+        self._each("send_signals", *args, **kwargs)
 
     def send_backtest(self, *args, **kwargs) -> None:
         self._each("send_backtest", *args, **kwargs)
@@ -563,19 +411,19 @@ class BroadcastNotifier:
 
 
 def create_notifier(platform: str = "auto", broadcast: bool | None = None):
-    """Notifier を生成するファクトリ。
+    """Notifier を生成するファクトリ.
 
     - broadcast=True の場合、Slack/Discord の両方が設定されていれば
-      BroadcastNotifier を返し、片方のみなら通常の Notifier を返す。
-    - broadcast が None の場合、環境変数 `NOTIFY_BROADCAST` を参照する。
-    - platform="auto" は既存動作（Slack 優先）を維持。
+      BroadcastNotifier を返し、片方のみなら通常の Notifier を返す
+    - broadcast が None の場合、環境変数 `NOTIFY_BROADCAST` を参照する
+    - platform="auto" は既存動作（Slack 優先）を維持
     """
     if broadcast is None:
         flag = os.getenv("NOTIFY_BROADCAST", "").strip().lower()
         broadcast = flag in {"1", "true", "yes", "on", "both", "all"}
 
     if broadcast:
-        notifiers: List[Notifier] = []
+        notifiers: list[Notifier] = []
         slack_url = os.getenv("SLACK_WEBHOOK_URL")
         discord_url = os.getenv("DISCORD_WEBHOOK_URL")
         # auto/both: 可能なものを全部採用
@@ -599,3 +447,24 @@ def create_notifier(platform: str = "auto", broadcast: bool | None = None):
 
     # broadcast 無効時はそのまま
     return Notifier(platform=platform)
+
+
+def get_notifiers_from_env() -> list[Notifier]:
+    """環境変数から利用可能な Notifier のリストを生成する."""
+    notifiers: list[Notifier] = []
+    try:
+        slack_url = os.getenv("SLACK_WEBHOOK_URL")
+        if slack_url:
+            notifiers.append(Notifier(platform="slack", webhook_url=slack_url))
+    except Exception:
+        pass
+    try:
+        discord_url = os.getenv("DISCORD_WEBHOOK_URL")
+        if discord_url:
+            notifiers.append(Notifier(platform="discord", webhook_url=discord_url))
+    except Exception:
+        pass
+    if not notifiers:
+        notifiers.append(Notifier(platform="auto"))
+    return notifiers
+

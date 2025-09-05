@@ -14,7 +14,7 @@ from common.i18n import tr, load_translations_from_dir, language_selector
 
 from config.settings import get_settings
 from common.logging_utils import setup_logging
-from common.notifier import Notifier
+# 遅延インポートに変更（import 時の副作用を避ける）
 from common.utils_spy import get_spy_data_cached
 from common.ui_tabs import render_integrated_tab, render_batch_tab
 
@@ -27,6 +27,9 @@ def main() -> None:
     logger = setup_logging(settings)
     logger.info("app_integrated start")
     # Auto-detect Slack/Discord from environment
+    # Notifier は遅延インポート
+    from common.notifier import Notifier  # noqa: WPS433
+
     notifier = Notifier(platform="auto")
 
     # Show language selector exactly once

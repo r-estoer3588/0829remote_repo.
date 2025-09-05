@@ -5,6 +5,7 @@
   "tests/test_data_loader.py::test_load_symbols_empty_when_not_cached",
   "tests/test_exceptions_timeout.py::test_run_with_timeout_ok",
   "tests/test_exceptions_timeout.py::test_run_with_timeout_timeout",
+  "tests/test_headless_app.py::test_streamlit_smoke_headless",
   "tests/test_system1.py::test_placeholder_run",
   "tests/test_system1.py::test_prepare_data",
   "tests/test_system2.py::test_minimal_indicators",
@@ -20,5 +21,9 @@
   "tests/test_system7.py::test_minimal_indicators",
   "tests/test_system7.py::test_placeholder_run",
   "tests/test_ui_contracts.py::test_trade_logs_are_in_expander_in_common_ui_bridge",
-  "tests/test_ui_contracts.py::test_trade_logs_are_in_expander_in_common_ui_components"
+  "tests/test_ui_contracts.py::test_trade_logs_are_in_expander_in_common_ui_components",
+  "tests/test_utils.py::test_clamp01[-1-0.0]",
+  "tests/test_utils.py::test_clamp01[0.5-0.5]",
+  "tests/test_utils.py::test_clamp01[2-1.0]",
+  "tests/test_utils.py::test_clamp01[bad-0.0]"
 ]

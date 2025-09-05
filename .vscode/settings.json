@@ -12,5 +12,10 @@
     "**/__pycache__": true,
     "**/.git": true
   },
-  "chatgpt.openOnStartup": true
+  "chatgpt.openOnStartup": true,
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "black-formatter.importStrategy": "fromEnvironment"
 }

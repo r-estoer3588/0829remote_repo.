@@ -7,3 +7,5 @@ common/__pycache__/
 logs/*
 logs/images/
 .pytest_cache/
+# temp files
+*.tmp

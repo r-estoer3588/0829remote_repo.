@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Callable
 
 import pandas as pd
 
@@ -124,6 +124,7 @@ def run_integrated_backtest(
     long_share: float = 0.5,
     short_share: float = 0.5,
     allow_gross_leverage: bool = False,
+    on_progress: Optional[Callable[[int, int, float], None]] = None,
 ) -> Tuple[pd.DataFrame, Dict[str, int]]:
     """
     統合バックテスト本体。
@@ -158,6 +159,12 @@ def run_integrated_backtest(
 
     start_time = time.time()
     for i, current_date in enumerate(all_dates, 1):
+        # UI側のプログレスバー更新（あれば）
+        try:
+            if on_progress is not None:
+                on_progress(i, len(all_dates), start_time)
+        except Exception:
+            pass
         # 1) 当日決済を反映
         realized = [p for p in active_positions if p["exit_date"] == current_date]
         if realized:
